@@ -2,8 +2,8 @@
 // ⚠️ عدل هذه القيم ببيانات Supabase الخاصة بك
 
 class AppConstants {
-  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  static const String supabaseUrl = 'https://pgiidgoafajfpcnlmzde.supabase.co';
+  static const String supabaseAnonKey = 'sb_publishable_sFLWfYET8aWskNxHPKZyuA_tk2f4kN_';
 
   static const String appName = 'NetYemen';
   static const String appVersion = '1.0.0';
