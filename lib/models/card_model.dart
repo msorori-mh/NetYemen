@@ -28,11 +28,9 @@ class CardModel {
       denomination: json['denomination'] ?? 0,
       status: json['status'] ?? 'available',
       soldTo: json['sold_to'],
-      soldAt: json['sold_at'] != null 
-          ? DateTime.parse(json['sold_at']) 
-          : null,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      soldAt: json['sold_at'] != null ? DateTime.parse(json['sold_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
     );
   }
@@ -43,6 +41,7 @@ class Purchase {
   final String userId;
   final String? cardId;
   final String? networkId;
+  final String? networkName;
   final String cardNumber;
   final int denomination;
   final int amount;
@@ -53,6 +52,7 @@ class Purchase {
     required this.userId,
     this.cardId,
     this.networkId,
+    this.networkName,
     required this.cardNumber,
     required this.denomination,
     required this.amount,
@@ -65,11 +65,14 @@ class Purchase {
       userId: json['user_id'] ?? '',
       cardId: json['card_id'],
       networkId: json['network_id'],
+      networkName: json['networks'] != null && json['networks']['name'] != null
+          ? json['networks']['name'] as String?
+          : json['network_name'] as String?,
       cardNumber: json['card_number'] ?? '',
       denomination: json['denomination'] ?? 0,
       amount: json['amount'] ?? 0,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
     );
   }

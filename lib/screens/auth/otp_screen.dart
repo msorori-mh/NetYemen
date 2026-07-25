@@ -1,7 +1,7 @@
 // lib/screens/auth/otp_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/supabase_service.dart';
+import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 import '../main_screen.dart';
 

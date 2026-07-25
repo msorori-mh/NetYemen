@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
-import '../../services/supabase_service.dart';
 import '../../utils/app_theme.dart';
 
 class DepositScreen extends ConsumerStatefulWidget {
@@ -18,7 +17,11 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   bool _isSubmitting = false;
 
   final List<Map<String, dynamic>> _methods = [
-    {'id': 'bank_transfer', 'name': 'تحويل بنكي', 'icon': Icons.account_balance},
+    {
+      'id': 'bank_transfer',
+      'name': 'تحويل بنكي',
+      'icon': Icons.account_balance
+    },
     {'id': 'ewallet', 'name': 'محفظة إلكترونية', 'icon': Icons.phone_android},
     {'id': 'agent', 'name': 'وكيل شحن', 'icon': Icons.storefront},
   ];
@@ -113,7 +116,8 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                 child: ListTile(
                   leading: Icon(
                     method['icon'] as IconData,
-                    color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                    color:
+                        isSelected ? AppTheme.primary : AppTheme.textSecondary,
                   ),
                   title: Text(method['name'] as String),
                   trailing: isSelected

@@ -87,7 +87,8 @@ class PurchasesScreen extends ConsumerWidget {
                                 ),
                                 Text(
                                   purchase.formattedDate,
-                                  style: const TextStyle(color: AppTheme.textSecondary),
+                                  style: const TextStyle(
+                                      color: AppTheme.textSecondary),
                                 ),
                               ],
                             ),
