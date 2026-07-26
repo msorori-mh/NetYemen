@@ -15,4 +15,3 @@ android/key.properties
 *.keystore
 .env
 .env.*
-.metadata

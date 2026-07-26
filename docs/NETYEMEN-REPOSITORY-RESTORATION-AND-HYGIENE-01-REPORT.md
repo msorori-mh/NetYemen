@@ -159,3 +159,13 @@ Confirmed: No Supabase CLI or management command was executed.
 ## 18. Confirmation that No New Business Feature Was Added
 
 Confirmed: Scope was strictly limited to repository hygiene, Android restoration, compilation repair, test governance, and CI setup.
+
+## 19. Subtask NY-RESTORE-001B: Metadata Tracking & CI Analysis Tightening
+
+As part of `NY-RESTORE-001B`:
+* **`.metadata` Tracking**: Removed `.metadata` from `.gitignore` and added `.metadata` to Git tracking. Verified that `.metadata` contains only standard Flutter version/migration properties (`revision: "3b62efc2a3da49882f43c372e0bc53daef7295a6"`, `channel: "stable"`, `project_type: app`) without any secrets or environment-sensitive paths.
+* **CI Workflow Tightening**: Updated `.github/workflows/flutter-ci.yml` to run `flutter analyze` directly without `--no-fatal-infos`.
+* **Local Verification**:
+  * `flutter analyze`: Standard analysis passed (0 errors, 0 warnings, 23 info lints).
+  * `flutter test`: 6 tests passed (0 failed).
+  * `flutter build apk --debug`: Built `build\app\outputs\flutter-apk\app-debug.apk` successfully in 50.9s.
