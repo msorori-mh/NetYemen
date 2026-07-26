@@ -1,7 +1,6 @@
 // lib/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/app_theme.dart';
 import '../providers/app_providers.dart';
 import 'auth/login_screen.dart';
@@ -63,7 +62,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               'كروت الإنترنت في جيبك',
               style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.textOnPrimary.withOpacity(0.8),
+                color: AppTheme.textOnPrimary.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 40),

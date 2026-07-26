@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
-import '../../services/supabase_service.dart';
 import '../../utils/app_theme.dart';
 import '../auth/login_screen.dart';
 
@@ -45,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundColor: AppTheme.primary.withOpacity(0.1),
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                       child: Text(
                         user.fullName?.isNotEmpty == true
                             ? user.fullName![0]
@@ -85,7 +84,8 @@ class ProfileScreen extends ConsumerWidget {
               _buildListTile(
                 icon: Icons.location_on_outlined,
                 title: 'الموقع',
-                subtitle: '${user.governorate ?? '---'} - ${user.city ?? '---'}',
+                subtitle:
+                    '${user.governorate ?? '---'} - ${user.city ?? '---'}',
                 onTap: () {},
               ),
 

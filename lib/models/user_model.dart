@@ -35,8 +35,8 @@ class AppUser {
       city: json['city'],
       district: json['district'],
       isActive: json['is_active'] ?? true,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
     );
   }

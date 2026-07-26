@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../models/network_model.dart';
+import '../models/card_model.dart';
 import '../services/supabase_service.dart';
 
 // Service

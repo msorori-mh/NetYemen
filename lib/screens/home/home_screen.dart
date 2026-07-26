@@ -40,7 +40,8 @@ class HomeScreen extends ConsumerWidget {
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
-                          ref.read(networksSearchQueryProvider.notifier).state = '';
+                          ref.read(networksSearchQueryProvider.notifier).state =
+                              '';
                         },
                       )
                     : null,
@@ -79,7 +80,8 @@ class HomeScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Center(child: Text('حدث خطأ في تحميل الشبكات')),
+              error: (_, __) =>
+                  const Center(child: Text('حدث خطأ في تحميل الشبكات')),
             ),
           ),
         ],
@@ -115,7 +117,7 @@ class NetworkCard extends StatelessWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppTheme.primary.withOpacity(0.1),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                     child: Text(
                       network.name.isNotEmpty ? network.name[0] : '?',
                       style: const TextStyle(
@@ -145,9 +147,10 @@ class NetworkCard extends StatelessWidget {
                   ),
                   if (network.isFeatured)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.accent.withOpacity(0.1),
+                        color: AppTheme.accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(

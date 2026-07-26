@@ -44,8 +44,10 @@ class WalletScreen extends ConsumerWidget {
                       color: Colors.white,
                     ),
                   ),
-                  loading: () => const CircularProgressIndicator(color: Colors.white),
-                  error: (_, __) => const Text('---', style: TextStyle(color: Colors.white)),
+                  loading: () =>
+                      const CircularProgressIndicator(color: Colors.white),
+                  error: (_, __) =>
+                      const Text('---', style: TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -54,7 +56,8 @@ class WalletScreen extends ConsumerWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const DepositScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const DepositScreen()),
                       );
                     },
                     icon: const Icon(Icons.add),
@@ -83,12 +86,13 @@ class WalletScreen extends ConsumerWidget {
                   itemCount: transactions.length,
                   itemBuilder: (context, index) {
                     final tx = transactions[index];
-                    final isCredit = tx['type'] == 'deposit' || tx['type'] == 'refund';
+                    final isCredit =
+                        tx['type'] == 'deposit' || tx['type'] == 'refund';
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: isCredit
-                            ? AppTheme.accent.withOpacity(0.1)
-                            : AppTheme.error.withOpacity(0.1),
+                            ? AppTheme.accent.withValues(alpha: 0.1)
+                            : AppTheme.error.withValues(alpha: 0.1),
                         child: Icon(
                           isCredit ? Icons.arrow_downward : Icons.arrow_upward,
                           color: isCredit ? AppTheme.accent : AppTheme.error,

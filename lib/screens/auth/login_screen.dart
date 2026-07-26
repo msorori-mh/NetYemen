@@ -1,7 +1,7 @@
 // lib/screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/supabase_service.dart';
+import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 import 'otp_screen.dart';
 
@@ -87,10 +87,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 textAlign: TextAlign.center,
                 maxLength: 9,
                 style: const TextStyle(fontSize: 18),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: '77XXXXXXX',
                   prefixIcon: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       '+967',
                       style: TextStyle(
@@ -100,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  prefixIconConstraints: const BoxConstraints(minWidth: 80),
+                  prefixIconConstraints: BoxConstraints(minWidth: 80),
                   counterText: '',
                 ),
               ),

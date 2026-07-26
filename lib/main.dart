@@ -17,7 +17,7 @@ void main() async {
 
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
-    anonKey: AppConstants.supabaseAnonKey,
+    publishableKey: AppConstants.supabaseAnonKey,
   );
 
   runApp(const ProviderScope(child: NetYemenApp()));
@@ -49,7 +49,7 @@ class NetYemenApp extends StatelessWidget {
           elevation: 0,
           centerTitle: true,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

@@ -43,21 +43,22 @@ class Network {
       district: json['district'],
       phone: json['phone'],
       whatsapp: json['whatsapp'],
-      lat: json['location_lat'] != null 
-          ? (json['location_lat'] as num).toDouble() 
+      lat: json['location_lat'] != null
+          ? (json['location_lat'] as num).toDouble()
           : null,
-      lng: json['location_lng'] != null 
-          ? (json['location_lng'] as num).toDouble() 
+      lng: json['location_lng'] != null
+          ? (json['location_lng'] as num).toDouble()
           : null,
       isActive: json['is_active'] ?? true,
       isFeatured: json['is_featured'] ?? false,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
     );
   }
 
-  String get locationText => '$governorate - $city${district != null ? ' - $district' : ''}';
+  String get locationText =>
+      '$governorate - $city${district != null ? ' - $district' : ''}';
 }
 
 class NetworkPrice {

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/network_model.dart';
 import '../../providers/app_providers.dart';
-import '../../services/supabase_service.dart';
 import '../../utils/app_theme.dart';
 import 'purchase_success_screen.dart';
 
@@ -13,7 +12,8 @@ class NetworkDetailScreen extends ConsumerStatefulWidget {
   const NetworkDetailScreen({super.key, required this.network});
 
   @override
-  ConsumerState<NetworkDetailScreen> createState() => _NetworkDetailScreenState();
+  ConsumerState<NetworkDetailScreen> createState() =>
+      _NetworkDetailScreenState();
 }
 
 class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
@@ -92,7 +92,9 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                       radius: 32,
                       backgroundColor: Colors.white,
                       child: Text(
-                        widget.network.name.isNotEmpty ? widget.network.name[0] : '?',
+                        widget.network.name.isNotEmpty
+                            ? widget.network.name[0]
+                            : '?',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -118,7 +120,7 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                             widget.network.locationText,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -159,10 +161,14 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.primary : AppTheme.surface,
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : AppTheme.surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? AppTheme.primary : AppTheme.border,
+                                color: isSelected
+                                    ? AppTheme.primary
+                                    : AppTheme.border,
                                 width: 2,
                               ),
                             ),
@@ -175,14 +181,16 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                                     style: TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
-                                      color: isSelected ? Colors.white : AppTheme.textPrimary,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppTheme.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     'ريال يمني',
                                     style: TextStyle(
                                       color: isSelected
-                                          ? Colors.white.withOpacity(0.8)
+                                          ? Colors.white.withValues(alpha: 0.8)
                                           : AppTheme.textSecondary,
                                     ),
                                   ),

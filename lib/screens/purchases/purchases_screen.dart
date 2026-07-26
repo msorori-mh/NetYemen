@@ -26,18 +26,18 @@ class PurchasesScreen extends ConsumerWidget {
       body: purchasesAsync.when(
         data: (purchases) {
           if (purchases.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.receipt_long_outlined,
                     size: 64,
                     color: AppTheme.textMuted,
                   ),
-                  const SizedBox(height: 16),
-                  const Text('لا توجد مشتريات حالياً'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 16),
+                  Text('لا توجد مشتريات حالياً'),
+                  SizedBox(height: 8),
                   Text(
                     'ابدأ بشراء كرت من شبكة متاحة',
                     style: TextStyle(color: AppTheme.textSecondary),
@@ -62,7 +62,8 @@ class PurchasesScreen extends ConsumerWidget {
                       Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppTheme.primary.withOpacity(0.1),
+                            backgroundColor:
+                                AppTheme.primary.withValues(alpha: 0.1),
                             child: Text(
                               purchase.networkName?.isNotEmpty == true
                                   ? purchase.networkName![0]
@@ -87,7 +88,8 @@ class PurchasesScreen extends ConsumerWidget {
                                 ),
                                 Text(
                                   purchase.formattedDate,
-                                  style: const TextStyle(color: AppTheme.textSecondary),
+                                  style: const TextStyle(
+                                      color: AppTheme.textSecondary),
                                 ),
                               ],
                             ),

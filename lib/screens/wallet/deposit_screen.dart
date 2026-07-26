@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
-import '../../services/supabase_service.dart';
 import '../../utils/app_theme.dart';
 
 class DepositScreen extends ConsumerStatefulWidget {
@@ -18,7 +17,11 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   bool _isSubmitting = false;
 
   final List<Map<String, dynamic>> _methods = [
-    {'id': 'bank_transfer', 'name': 'تحويل بنكي', 'icon': Icons.account_balance},
+    {
+      'id': 'bank_transfer',
+      'name': 'تحويل بنكي',
+      'icon': Icons.account_balance
+    },
     {'id': 'ewallet', 'name': 'محفظة إلكترونية', 'icon': Icons.phone_android},
     {'id': 'agent', 'name': 'وكيل شحن', 'icon': Icons.storefront},
   ];
@@ -109,11 +112,13 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               final isSelected = _selectedMethod == method['id'];
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
-                color: isSelected ? AppTheme.primary.withOpacity(0.1) : null,
+                color:
+                    isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
                 child: ListTile(
                   leading: Icon(
                     method['icon'] as IconData,
-                    color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                    color:
+                        isSelected ? AppTheme.primary : AppTheme.textSecondary,
                   ),
                   title: Text(method['name'] as String),
                   trailing: isSelected

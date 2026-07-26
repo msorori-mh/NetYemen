@@ -32,11 +32,8 @@ class SupabaseService {
   // ==================== USERS ====================
 
   Future<AppUser?> getUserProfile(String userId) async {
-    final response = await _client
-        .from('users')
-        .select()
-        .eq('id', userId)
-        .single();
+    final response =
+        await _client.from('users').select().eq('id', userId).maybeSingle();
 
     if (response == null) return null;
     return AppUser.fromJson(response);
@@ -64,9 +61,7 @@ class SupabaseService {
         .eq('is_active', true)
         .order('name');
 
-    return (response as List)
-        .map((json) => Network.fromJson(json))
-        .toList();
+    return (response as List).map((json) => Network.fromJson(json)).toList();
   }
 
   Future<List<NetworkPrice>> getNetworkPrices(String networkId) async {
@@ -95,7 +90,7 @@ class SupabaseService {
         .eq('status', 'available')
         .order('created_at')
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (response == null) return null;
     return CardModel.fromJson(response);
@@ -126,9 +121,7 @@ class SupabaseService {
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => Purchase.fromJson(json))
-        .toList();
+    return (response as List).map((json) => Purchase.fromJson(json)).toList();
   }
 
   // ==================== WALLET ====================
