@@ -65,11 +65,14 @@ BEGIN
         (v_auditor_id, 'system_auditor')
     ON CONFLICT (user_id, role) DO NOTHING;
 
+    -- Set Admin context for initial setup of active/verified test fixtures
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+
     -- Insert Networks
-    INSERT INTO public.networks (id, commercial_name, status, verification_status, created_by) VALUES
-        (v_net_1_id, 'Network One', 'active', 'verified', v_owner_1_id),
-        (v_net_2_id, 'Network Two', 'active', 'verified', v_owner_2_id),
-        (v_suspended_net_id, 'Suspended Net', 'suspended', 'unverified', v_owner_1_id)
+    INSERT INTO public.networks (id, commercial_name, status, verification_status, created_by, approved_by, approved_at) VALUES
+        (v_net_1_id, 'Network One', 'active', 'verified', v_owner_1_id, v_admin_id, NOW()),
+        (v_net_2_id, 'Network Two', 'active', 'verified', v_owner_2_id, v_admin_id, NOW()),
+        (v_suspended_net_id, 'Suspended Net', 'suspended', 'unverified', v_owner_1_id, NULL, NULL)
     ON CONFLICT (id) DO NOTHING;
 
     -- Memberships
@@ -78,6 +81,9 @@ BEGIN
         (v_net_1_id, v_operator_id, 'operator', 'active'),
         (v_net_2_id, v_owner_2_id, 'owner', 'active')
     ON CONFLICT (network_id, user_id) DO NOTHING;
+
+    -- Switch connection to authenticated role to enforce table & column privileges (prevent superuser bypass)
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     -- ------------------------------------------------------------------------
     -- NEG-01: Customer network creation via create_network_draft RPC fails
@@ -322,7 +328,169 @@ BEGIN
         RAISE EXCEPTION 'TEST_FAIL (NEG-18): Authenticated client directly inserted profile!';
     END IF;
 
-    RAISE NOTICE 'SUCCESS: All 18 Negative Authorization Tests Passed.';
+    -- ------------------------------------------------------------------------
+    -- NEG-19: Suspended network owner cannot create network draft
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.profiles SET account_status = 'suspended' WHERE id = v_owner_1_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.create_network_draft('Suspended Owner Net Draft');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.profiles SET account_status = 'active' WHERE id = v_owner_1_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-19): Suspended network owner created draft network!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-20: Suspended owner cannot manage network
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.profiles SET account_status = 'suspended' WHERE id = v_owner_1_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    UPDATE public.networks SET commercial_name = 'Illegal Rename' WHERE id = v_net_1_id;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND commercial_name = 'Illegal Rename';
+    UPDATE public.profiles SET account_status = 'active' WHERE id = v_owner_1_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-20): Suspended owner managed network!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-21: User whose network_owner role was removed cannot use owner membership
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_owner_1_id AND role = 'network_owner';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    UPDATE public.networks SET commercial_name = 'No Role Rename' WHERE id = v_net_1_id;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND commercial_name = 'No Role Rename';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_owner_1_id, 'network_owner') ON CONFLICT DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): User without network_owner platform role managed network!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-22: Owner cannot rename display name of active, verified SSID alias
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    INSERT INTO public.network_ssid_aliases (id, network_id, ssid_display, ssid_normalized, status, verified_by, verified_at)
+    VALUES ('e1e1e1e1-e1e1-4e1e-a1e1-e1e1e1e1e1e1', v_net_1_id, 'Verified SSID', 'verified-ssid', 'active', v_admin_id, NOW())
+    ON CONFLICT (id) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    -- Owner attempts rename
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        UPDATE public.network_ssid_aliases SET ssid_display = 'Renamed Active SSID' WHERE id = 'e1e1e1e1-e1e1-4e1e-a1e1-e1e1e1e1e1e1';
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-22): Owner renamed display name of active verified SSID alias!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-23: Owner cannot reactivate suspended SSID alias
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    INSERT INTO public.network_ssid_aliases (id, network_id, ssid_display, ssid_normalized, status)
+    VALUES ('e2e2e2e2-e2e2-4e2e-a2e2-e2e2e2e2e2e2', v_net_1_id, 'Suspended Alias', 'suspended-alias', 'suspended')
+    ON CONFLICT (id) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        UPDATE public.network_ssid_aliases SET status = 'pending_verification' WHERE id = 'e2e2e2e2-e2e2-4e2e-a2e2-e2e2e2e2e2e2';
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-23): Owner reactivated suspended SSID alias!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-24: Admin cannot set alias status=active without verified_by / verified_at
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status, verified_by, verified_at)
+        VALUES (v_net_1_id, 'Unverified Active', 'active', NULL, NULL);
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-24): Alias status active was committed without verification metadata!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-25: Inconsistent network state (active status with unverified verification_status) fails
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.networks (commercial_name, status, verification_status, approved_by, approved_at)
+        VALUES ('Incoherent Net', 'active', 'unverified', v_admin_id, NOW());
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-25): Incoherent network status/verification combination was committed!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-26: Finance officer and support agent cannot enumerate all profiles
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_user_a_id;
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-26): Finance officer enumerated arbitrary profile!';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_support_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_user_a_id;
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-26): Support agent enumerated arbitrary profile!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-27: Owner cannot promote operator membership to owner membership
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        UPDATE public.network_memberships SET membership_role = 'owner' WHERE network_id = v_net_1_id AND user_id = v_operator_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-27): Owner promoted operator membership to owner!';
+    END IF;
+
+    RAISE NOTICE 'SUCCESS: All 27 Negative Authorization Tests Passed.';
 END $$;
 
 ROLLBACK;

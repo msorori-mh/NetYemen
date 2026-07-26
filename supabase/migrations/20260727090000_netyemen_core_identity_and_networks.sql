@@ -141,7 +141,12 @@ CREATE TABLE IF NOT EXISTS public.networks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_networks_commercial_name_length CHECK (length(trim(commercial_name)) > 0),
     CONSTRAINT chk_networks_status CHECK (status IN ('pending_approval', 'active', 'suspended', 'rejected')),
-    CONSTRAINT chk_networks_verification_status CHECK (verification_status IN ('unverified', 'verified', 'rejected'))
+    CONSTRAINT chk_networks_verification_status CHECK (verification_status IN ('unverified', 'verified', 'rejected')),
+    CONSTRAINT chk_networks_approval_state_coherence CHECK (
+        (status = 'active' AND verification_status = 'verified' AND approved_by IS NOT NULL AND approved_at IS NOT NULL) OR
+        (status = 'pending_approval' AND verification_status = 'unverified' AND approved_by IS NULL AND approved_at IS NULL) OR
+        (status IN ('suspended', 'rejected'))
+    )
 );
 
 COMMENT ON TABLE public.networks IS 'Commercial Wi-Fi hotspot network parent entities.';
@@ -208,7 +213,12 @@ CREATE TABLE IF NOT EXISTS public.network_ssid_aliases (
     CONSTRAINT chk_ssid_aliases_display_length CHECK (char_length(ssid_display) <= 32),
     CONSTRAINT chk_ssid_aliases_normalized_non_empty CHECK (length(trim(ssid_normalized)) > 0),
     CONSTRAINT chk_ssid_aliases_normalized_length CHECK (char_length(ssid_normalized) <= 64),
-    CONSTRAINT chk_ssid_aliases_status CHECK (status IN ('pending_verification', 'active', 'suspended', 'rejected'))
+    CONSTRAINT chk_ssid_aliases_status CHECK (status IN ('pending_verification', 'active', 'suspended', 'rejected')),
+    CONSTRAINT chk_ssid_aliases_verification_coherence CHECK (
+        (status = 'active' AND verified_by IS NOT NULL AND verified_at IS NOT NULL) OR
+        (status = 'pending_verification' AND verified_by IS NULL AND verified_at IS NULL) OR
+        (status IN ('suspended', 'rejected'))
+    )
 );
 
 COMMENT ON TABLE public.network_ssid_aliases IS 'Wi-Fi SSID broadcast aliases mapping to parent networks. Excludes BSSID and hardware serial numbers.';
@@ -239,16 +249,23 @@ REVOKE ALL ON TABLE public.networks FROM PUBLIC;
 REVOKE ALL ON TABLE public.network_memberships FROM PUBLIC;
 REVOKE ALL ON TABLE public.network_ssid_aliases FROM PUBLIC;
 
--- Profile creation strictly via trusted auth trigger; no INSERT grant for clients!
-GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
-GRANT SELECT ON TABLE public.user_roles TO authenticated;
+-- Profile creation strictly via trusted auth trigger; no direct INSERT grant for clients!
+REVOKE ALL ON TABLE public.profiles FROM authenticated;
+GRANT SELECT ON TABLE public.profiles TO authenticated;
+GRANT UPDATE (full_name, default_governorate, default_city) ON TABLE public.profiles TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.user_roles TO authenticated;
 
 -- Network creation strictly via create_network_draft RPC; no direct INSERT grant for clients!
+REVOKE ALL ON TABLE public.networks FROM authenticated;
 GRANT SELECT, UPDATE ON TABLE public.networks TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.network_memberships TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.network_ssid_aliases TO authenticated;
 
 -- Anonymous catalog visibility (RLS further restricts to active+verified)
-GRANT SELECT ON TABLE public.networks TO anon;
-GRANT SELECT ON TABLE public.network_ssid_aliases TO anon;
+REVOKE ALL ON TABLE public.networks FROM anon;
+GRANT SELECT (id, commercial_name, description, governorate, city, district, status, verification_status) ON TABLE public.networks TO anon;
+
+REVOKE ALL ON TABLE public.network_ssid_aliases FROM anon;
+GRANT SELECT (id, network_id, ssid_display, ssid_normalized, status) ON TABLE public.network_ssid_aliases TO anon;

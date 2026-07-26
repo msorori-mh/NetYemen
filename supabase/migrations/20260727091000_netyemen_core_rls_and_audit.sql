@@ -7,7 +7,7 @@
 -- 1. Authorization Helper Functions (SECURITY DEFINER)
 -- ============================================================================
 
--- Helper: Check if current authenticated user has a specific platform role
+-- Helper: Check if current authenticated user has a specific platform role and active account
 CREATE OR REPLACE FUNCTION public.has_platform_role(p_role TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -16,14 +16,16 @@ BEGIN
     END IF;
     RETURN EXISTS (
         SELECT 1
-        FROM public.user_roles
-        WHERE user_id = auth.uid()
-          AND role = p_role
+        FROM public.user_roles ur
+        JOIN public.profiles p ON p.id = ur.user_id
+        WHERE ur.user_id = auth.uid()
+          AND ur.role = p_role
+          AND p.account_status = 'active'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
--- Helper: Check if current authenticated user is an active member (owner or operator) of a network
+-- Helper: Check if current authenticated user is an active member (owner or operator) with active profile of a network
 CREATE OR REPLACE FUNCTION public.is_network_member(p_network_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -32,15 +34,17 @@ BEGIN
     END IF;
     RETURN EXISTS (
         SELECT 1
-        FROM public.network_memberships
-        WHERE network_id = p_network_id
-          AND user_id = auth.uid()
-          AND status = 'active'
+        FROM public.network_memberships nm
+        JOIN public.profiles p ON p.id = nm.user_id
+        WHERE nm.network_id = p_network_id
+          AND nm.user_id = auth.uid()
+          AND nm.status = 'active'
+          AND p.account_status = 'active'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
--- Helper: Check if current authenticated user is an active OWNER of a network
+-- Helper: Check if current authenticated user is an active OWNER with active profile & network_owner role of a network
 CREATE OR REPLACE FUNCTION public.can_manage_network(p_network_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -49,11 +53,14 @@ BEGIN
     END IF;
     RETURN EXISTS (
         SELECT 1
-        FROM public.network_memberships
-        WHERE network_id = p_network_id
-          AND user_id = auth.uid()
-          AND membership_role = 'owner'
-          AND status = 'active'
+        FROM public.network_memberships nm
+        JOIN public.profiles p ON p.id = nm.user_id
+        JOIN public.user_roles ur ON ur.user_id = nm.user_id AND ur.role = 'network_owner'
+        WHERE nm.network_id = p_network_id
+          AND nm.user_id = auth.uid()
+          AND nm.membership_role = 'owner'
+          AND nm.status = 'active'
+          AND p.account_status = 'active'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
@@ -67,8 +74,16 @@ BEGIN
     IF p_ssid IS NULL OR length(trim(p_ssid)) = 0 THEN
         RETURN '';
     END IF;
+
+    -- Feature detect & apply Unicode NFC normalization where available
+    BEGIN
+        v_normalized := unicode_normalize(p_ssid, 'NFC');
+    EXCEPTION WHEN OTHERS THEN
+        v_normalized := p_ssid;
+    END;
+
     -- Lowercase English letters while preserving Unicode/Arabic characters, trim surrounding whitespace
-    v_normalized := lower(trim(p_ssid));
+    v_normalized := lower(trim(v_normalized));
     -- Replace multiple whitespace characters with a single hyphen
     v_normalized := regexp_replace(v_normalized, '\s+', '-', 'g');
     RETURN v_normalized;
@@ -189,13 +204,48 @@ END $$;
 -- Trigger: Validate Membership Target Platform Role (Owner -> network_owner, Operator -> network_operator)
 CREATE OR REPLACE FUNCTION public.validate_membership_target_role()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_target_status TEXT;
 BEGIN
+    -- Derive created_by for non-admin callers on insert
+    IF TG_OP = 'INSERT' THEN
+        IF auth.uid() IS NOT NULL AND NOT public.has_platform_role('platform_admin') THEN
+            NEW.created_by := auth.uid();
+        END IF;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
+            RAISE EXCEPTION 'MUTATION_FORBIDDEN: Membership created_by field is immutable.'
+                USING ERRCODE = '42501';
+        END IF;
+
+        IF NOT public.has_platform_role('platform_admin') THEN
+            IF OLD.membership_role = 'operator' AND NEW.membership_role = 'owner' THEN
+                RAISE EXCEPTION 'FORBIDDEN_PROMOTION: Network owners cannot convert operator memberships to owner memberships.'
+                    USING ERRCODE = '42501';
+            END IF;
+            IF OLD.network_id IS DISTINCT FROM NEW.network_id THEN
+                RAISE EXCEPTION 'FORBIDDEN_REASSIGNMENT: Memberships cannot be moved across networks.'
+                    USING ERRCODE = '42501';
+            END IF;
+        END IF;
+    END IF;
+
+    -- Target user profile must be active
+    SELECT account_status INTO v_target_status
+    FROM public.profiles
+    WHERE id = NEW.user_id;
+
+    IF v_target_status IS NULL OR v_target_status != 'active' THEN
+        RAISE EXCEPTION 'TARGET_ACCOUNT_INACTIVE: Membership target profile must be active.'
+            USING ERRCODE = '42501';
+    END IF;
+
     IF NEW.membership_role = 'owner' THEN
         IF NOT EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = NEW.user_id AND role = 'network_owner'
         ) THEN
-            RAISE EXCEPTION 'TARGET_ROLE_INVALID: Target user must possess network_owner platform role to be assigned owner membership.'
+            RAISE EXCEPTION 'TARGET_ROLE_INVALID: Target user must possess active network_owner platform role to be assigned owner membership.'
                 USING ERRCODE = '42501';
         END IF;
     ELSIF NEW.membership_role = 'operator' THEN
@@ -203,7 +253,7 @@ BEGIN
             SELECT 1 FROM public.user_roles
             WHERE user_id = NEW.user_id AND role = 'network_operator'
         ) THEN
-            RAISE EXCEPTION 'TARGET_ROLE_INVALID: Target user must possess network_operator platform role to be assigned operator membership.'
+            RAISE EXCEPTION 'TARGET_ROLE_INVALID: Target user must possess active network_operator platform role to be assigned operator membership.'
                 USING ERRCODE = '42501';
         END IF;
     END IF;
@@ -221,25 +271,35 @@ BEGIN
     END IF;
 END $$;
 
--- Trigger: Prevent Deletion, Deactivation, or Demotion of Final Active Network Owner
+-- Trigger: Prevent Deletion, Deactivation, or Demotion of Final Active Network Owner (With Concurrency Locking)
 CREATE OR REPLACE FUNCTION public.protect_final_active_owner()
 RETURNS TRIGGER AS $$
 DECLARE
     v_active_owner_count INT;
+    v_dummy INT;
 BEGIN
     IF OLD.membership_role = 'owner' AND OLD.status = 'active' THEN
         IF (TG_OP = 'DELETE') OR
-           (TG_OP = 'UPDATE' AND (NEW.status != 'active' OR NEW.membership_role != 'owner')) THEN
+           (TG_OP = 'UPDATE' AND (NEW.status != 'active' OR NEW.membership_role != 'owner' OR NEW.network_id != OLD.network_id)) THEN
+
+            -- Per-network row lock to serialize concurrent owner mutations
+            SELECT 1 INTO v_dummy
+            FROM public.networks
+            WHERE id = OLD.network_id
+            FOR UPDATE;
 
             SELECT COUNT(*) INTO v_active_owner_count
-            FROM public.network_memberships
-            WHERE network_id = OLD.network_id
-              AND membership_role = 'owner'
-              AND status = 'active'
-              AND user_id != OLD.user_id;
+            FROM public.network_memberships nm
+            JOIN public.profiles p ON p.id = nm.user_id
+            JOIN public.user_roles ur ON ur.user_id = nm.user_id AND ur.role = 'network_owner'
+            WHERE nm.network_id = OLD.network_id
+              AND nm.membership_role = 'owner'
+              AND nm.status = 'active'
+              AND p.account_status = 'active'
+              AND nm.user_id != OLD.user_id;
 
             IF v_active_owner_count = 0 THEN
-                RAISE EXCEPTION 'FINAL_OWNER_PROTECTION: Cannot remove, deactivate, or demote the final active owner of a network.'
+                RAISE EXCEPTION 'FINAL_OWNER_PROTECTION: Cannot remove, deactivate, demote, or move the final active owner of a network.'
                     USING ERRCODE = '42501';
             END IF;
         END IF;
@@ -300,6 +360,16 @@ BEGIN
 
             IF NEW.status = 'active' AND OLD.status != 'active' THEN
                 RAISE EXCEPTION 'FORBIDDEN_VERIFICATION: Network owners cannot self-activate SSID aliases.'
+                    USING ERRCODE = '42501';
+            END IF;
+
+            IF OLD.status = 'active' AND NEW.ssid_display IS DISTINCT FROM OLD.ssid_display THEN
+                RAISE EXCEPTION 'FORBIDDEN_RENAME: Network owners cannot modify display name of an active, verified SSID alias.'
+                    USING ERRCODE = '42501';
+            END IF;
+
+            IF OLD.status IN ('suspended', 'rejected') AND NEW.status NOT IN ('suspended', 'rejected') THEN
+                RAISE EXCEPTION 'FORBIDDEN_REACTIVATION: Network owners cannot reactivate suspended or rejected SSID aliases.'
                     USING ERRCODE = '42501';
             END IF;
 
@@ -488,19 +558,13 @@ CREATE POLICY profiles_select_policy ON public.profiles
         auth.uid() = id
         OR public.has_platform_role('platform_admin')
         OR public.has_platform_role('system_auditor')
-        OR public.has_platform_role('support_agent')
-        OR public.has_platform_role('finance_officer')
     );
 
 DROP POLICY IF EXISTS profiles_update_policy ON public.profiles;
 CREATE POLICY profiles_update_policy ON public.profiles
     FOR UPDATE
     USING (auth.uid() = id)
-    WITH CHECK (
-        auth.uid() = id
-        -- Prevent customer from self-mutating account_status
-        AND account_status = (SELECT p.account_status FROM public.profiles p WHERE p.id = auth.uid())
-    );
+    WITH CHECK (auth.uid() = id);
 
 -- Note: No profiles_insert_policy. Profile creation is strictly via handle_new_user auth trigger.
 

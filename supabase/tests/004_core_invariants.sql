@@ -54,8 +54,10 @@ BEGIN
         RAISE EXCEPTION 'TEST_FAIL (INV-01): Expected 8 approved roles, got %', v_count;
     END IF;
 
-    -- Cleanup test roles for user_id
-    DELETE FROM public.user_roles WHERE user_id = v_user_id AND role != 'network_owner';
+    -- Switch connection to postgres role for fixture cleanup
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_user_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     -- ------------------------------------------------------------------------
     -- Invariant 2: Unknown and deferred roles are rejected
@@ -88,13 +90,14 @@ BEGIN
     -- ------------------------------------------------------------------------
     -- Invariant 4: Trigger provisioning creates one profile and one customer role
     -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
     IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
         INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
             (v_new_user_id, 'newprovisioned@netyemen.local', '{"full_name":"New Provisioned User"}'::jsonb);
     ELSE
-        -- Execute trigger logic directly
         PERFORM public.handle_new_user();
     END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_new_user_id;
     IF v_count <> 1 THEN
@@ -109,8 +112,10 @@ BEGIN
     -- ------------------------------------------------------------------------
     -- Invariant 5: Duplicate provisioning remains idempotent
     -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
     INSERT INTO public.profiles (id, full_name, account_status) VALUES (v_new_user_id, 'New Provisioned User', 'active') ON CONFLICT (id) DO NOTHING;
     INSERT INTO public.user_roles (user_id, role) VALUES (v_new_user_id, 'customer') ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_new_user_id;
     IF v_count <> 1 THEN
@@ -120,18 +125,20 @@ BEGIN
     -- ------------------------------------------------------------------------
     -- Invariant 6: Active SSID normalized uniqueness works
     -- ------------------------------------------------------------------------
-    INSERT INTO public.networks (id, commercial_name, status, verification_status) VALUES
-        (v_net_1_id, 'Hotspot Alpha', 'active', 'verified'),
-        (v_net_2_id, 'Hotspot Beta', 'active', 'verified')
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.networks (id, commercial_name, status, verification_status, approved_by, approved_at) VALUES
+        (v_net_1_id, 'Hotspot Alpha', 'active', 'verified', v_admin_id, NOW()),
+        (v_net_2_id, 'Hotspot Beta', 'active', 'verified', v_admin_id, NOW())
     ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status) VALUES
-        (v_net_1_id, 'Yemen Net Hotspot', 'active');
+    INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status, verified_by, verified_at) VALUES
+        (v_net_1_id, 'Yemen Net Hotspot', 'active', v_admin_id, NOW());
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     v_err_occurred := FALSE;
     BEGIN
-        INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status) VALUES
-            (v_net_2_id, 'Yemen-Net-Hotspot', 'active');
+        INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status, verified_by, verified_at) VALUES
+            (v_net_2_id, 'Yemen-Net-Hotspot', 'active', v_admin_id, NOW());
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
     END;
@@ -154,8 +161,10 @@ BEGIN
     -- ------------------------------------------------------------------------
     -- Invariant 8: Final active owner cannot be removed or deactivated
     -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
     INSERT INTO public.user_roles (user_id, role) VALUES (v_user_id, 'network_owner') ON CONFLICT (user_id, role) DO NOTHING;
     INSERT INTO public.network_memberships (network_id, user_id, membership_role, status) VALUES (v_net_1_id, v_user_id, 'owner', 'active') ON CONFLICT (network_id, user_id) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     v_err_occurred := FALSE;
     BEGIN
@@ -170,7 +179,9 @@ BEGIN
     -- ------------------------------------------------------------------------
     -- Invariant 9: Audit event cannot be updated
     -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
     v_audit_id := public.record_audit_event('SYSTEM_BOOT', 'system', 'sys-01', 'success');
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     v_err_occurred := FALSE;
     BEGIN

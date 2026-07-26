@@ -46,6 +46,9 @@ BEGIN
         (v_auditor_id, 'system_auditor')
     ON CONFLICT (user_id, role) DO NOTHING;
 
+    -- Set Admin context for initial setup of active/verified test fixtures
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+
     -- 3. Setup Approved Active Network
     INSERT INTO public.networks (id, commercial_name, description, governorate, city, status, verification_status, created_by, approved_by, approved_at) VALUES
         (v_network_id, 'Al-Badr HighSpeed Net', 'Premium Wi-Fi Sanaa', 'Amanat Al Asimah', 'Sanaa', 'active', 'verified', v_owner_id, v_admin_id, NOW())
@@ -139,7 +142,64 @@ BEGIN
         RAISE EXCEPTION 'TEST_FAIL (POS-08): System Auditor could not read audit events.';
     END IF;
 
-    RAISE NOTICE 'SUCCESS: All 8 Positive Authorization Tests Passed.';
+    -- ------------------------------------------------------------------------
+    -- Test 9: Active network_owner creates draft network via RPC
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_id::text, true);
+    SELECT public.create_network_draft('Pos Draft Network', 'Desc', 'Sanaa', 'Sanaa City', 'District 1') INTO v_network_id;
+    IF v_network_id IS NULL THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-09): Active network_owner RPC create_network_draft returned NULL.';
+    END IF;
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_network_id AND status = 'pending_approval' AND verification_status = 'unverified';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-09): Draft network state incoherence after creation.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- Test 10: Owner updates display name of pending SSID alias
+    -- ------------------------------------------------------------------------
+    INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status)
+    VALUES (v_network_id, 'Pending Wifi 1', 'pending_verification')
+    RETURNING id INTO v_alias_id;
+
+    UPDATE public.network_ssid_aliases
+    SET ssid_display = 'Pending Wifi Renamed'
+    WHERE id = v_alias_id;
+
+    SELECT COUNT(*) INTO v_count FROM public.network_ssid_aliases
+    WHERE id = v_alias_id AND ssid_display = 'Pending Wifi Renamed' AND ssid_normalized = 'pending-wifi-renamed';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-10): Owner could not update display name of pending SSID alias.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- Test 11: Admin activates SSID alias with valid verification metadata
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    -- Update parent network to active+verified first so RLS policy allows active alias
+    UPDATE public.networks SET status = 'active', verification_status = 'verified', approved_by = v_admin_id, approved_at = NOW() WHERE id = v_network_id;
+
+    UPDATE public.network_ssid_aliases
+    SET status = 'active', verified_by = v_admin_id, verified_at = NOW()
+    WHERE id = v_alias_id;
+
+    SELECT COUNT(*) INTO v_count FROM public.network_ssid_aliases
+    WHERE id = v_alias_id AND status = 'active' AND verified_by = v_admin_id;
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-11): Admin could not activate SSID alias with valid metadata.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- Test 12: Owner updates own allowed profile fields
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_id::text, true);
+    UPDATE public.profiles SET full_name = 'Updated Owner Name', default_city = 'Sanaa City' WHERE id = v_owner_id;
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_owner_id AND full_name = 'Updated Owner Name';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-12): Owner could not update allowed profile fields.';
+    END IF;
+
+    RAISE NOTICE 'SUCCESS: All 12 Positive Authorization Tests Passed.';
 END $$;
 
 ROLLBACK;

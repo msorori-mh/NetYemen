@@ -1,12 +1,12 @@
 # NetYemen Core Foundation Static Verification Script
-# Task ID: NY-GOV-BE-001 / NY-GOV-BE-001B
+# Task ID: NY-GOV-BE-001 / NY-GOV-BE-001C
 # File: scripts/verify_netyemen_core_foundation.ps1
 # Description: Performs static code and security verification on NetYemen core Supabase backend source.
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "NetYemen Core Backend Foundation Static Verifier (NY-GOV-BE-001B)" -ForegroundColor Cyan
+Write-Host "NetYemen Core Backend Foundation Static Verifier (NY-GOV-BE-001C)" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 
 $violations = @()
@@ -21,9 +21,46 @@ if ($currentBranch -eq "main") {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Migration Files Order and Existence
+# 2. Required Test Files & Governance Documents Validation
 # -----------------------------------------------------------------------------
-Write-Host "[2/8] Validating Migration Manifest Order..." -ForegroundColor Yellow
+Write-Host "[2/8] Validating Required Files Non-Empty Integrity..." -ForegroundColor Yellow
+
+$requiredTestFiles = @(
+    "supabase/tests/001_core_schema_contract.sql",
+    "supabase/tests/002_core_authorization_positive.sql",
+    "supabase/tests/003_core_authorization_negative.sql",
+    "supabase/tests/004_core_invariants.sql"
+)
+
+$requiredDocFiles = @(
+    "docs/NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md",
+    "docs/NETYEMEN-CORE-BACKEND-MIGRATION-MANIFEST-01.md",
+    "docs/adr/ADR-002-ROLE-AND-RLS-FOUNDATION.md",
+    "docs/adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md",
+    "docs/adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md"
+)
+
+$allRequiredFiles = $requiredTestFiles + $requiredDocFiles
+
+foreach ($file in $allRequiredFiles) {
+    if (-not (Test-Path $file)) {
+        $violations += "Required file missing: $file"
+    } else {
+        $item = Get-Item $file
+        $content = Get-Content $file -Raw
+        if ($item.Length -eq 0 -or [string]::IsNullOrWhiteSpace($content)) {
+            $violations += "Required file is empty or whitespace-only: $file (bytes=$($item.Length))"
+        } else {
+            $lineCount = (Get-Content $file).Count
+            Write-Host "  [OK] $file | bytes=$($item.Length) | lines=$lineCount" -ForegroundColor Green
+        }
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 3. Migration Files Order and Existence
+# -----------------------------------------------------------------------------
+Write-Host "[3/8] Validating Migration Manifest Order..." -ForegroundColor Yellow
 $expectedMigrations = @(
     "supabase/migrations/20260727090000_netyemen_core_identity_and_networks.sql",
     "supabase/migrations/20260727091000_netyemen_core_rls_and_audit.sql"
@@ -33,14 +70,20 @@ foreach ($mig in $expectedMigrations) {
     if (-not (Test-Path $mig)) {
         $violations += "Missing expected migration file: $mig"
     } else {
-        Write-Host "  [OK] Found migration: $mig" -ForegroundColor Green
+        $item = Get-Item $mig
+        $content = Get-Content $mig -Raw
+        if ($item.Length -eq 0 -or [string]::IsNullOrWhiteSpace($content)) {
+            $violations += "Migration file is empty: $mig"
+        } else {
+            Write-Host "  [OK] Found migration: $mig | bytes=$($item.Length)" -ForegroundColor Green
+        }
     }
 }
 
 # -----------------------------------------------------------------------------
-# 3. Forbidden Deferred Terms Search in Migrations
+# 4. Forbidden Deferred Terms Search in Migrations
 # -----------------------------------------------------------------------------
-Write-Host "[3/8] Checking for Forbidden Deferred V1.5/V2 Terms..." -ForegroundColor Yellow
+Write-Host "[4/8] Checking for Forbidden Deferred V1.5/V2 Terms..." -ForegroundColor Yellow
 $forbiddenTerms = @("merchant", "distributor", "telecom", "mobile_topup", "adsl", "p2p")
 
 foreach ($mig in $expectedMigrations) {
@@ -55,9 +98,9 @@ foreach ($mig in $expectedMigrations) {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Row-Level Security Enablement Verification
+# 5. Row-Level Security Enablement Verification
 # -----------------------------------------------------------------------------
-Write-Host "[4/8] Verifying Row-Level Security (RLS) Enablement..." -ForegroundColor Yellow
+Write-Host "[5/8] Verifying Row-Level Security (RLS) Enablement..." -ForegroundColor Yellow
 $coreTables = @("profiles", "user_roles", "networks", "network_memberships", "network_ssid_aliases", "audit_events")
 $mig1Content = if (Test-Path $expectedMigrations[0]) { Get-Content $expectedMigrations[0] -Raw } else { "" }
 $mig2Content = if (Test-Path $expectedMigrations[1]) { Get-Content $expectedMigrations[1] -Raw } else { "" }
@@ -73,9 +116,9 @@ foreach ($table in $coreTables) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Security Red Flags & Audit Write Locks Search
+# 6. Security Red Flags & Audit Write Locks Search
 # -----------------------------------------------------------------------------
-Write-Host "[5/8] Auditing Security Red Flags & Audit Write Locks..." -ForegroundColor Yellow
+Write-Host "[6/8] Auditing Security Red Flags & Audit Write Locks..." -ForegroundColor Yellow
 if ($combinedSql -match "(?i)(?<!REVOKE\s)GRANT\s+ALL\b") {
     $violations += "Security Red Flag: 'GRANT ALL' discovered in migration SQL."
 }
@@ -100,20 +143,16 @@ foreach ($match in $secDefinerMatches) {
 }
 
 # -----------------------------------------------------------------------------
-# 6. Absence of Wallet/Card/Purchase Domain Objects
+# 7. Absence of Deferred Objects & Test Harness Metrics Thresholds
 # -----------------------------------------------------------------------------
-Write-Host "[6/8] Verifying Absence of Deferred Financial/Card Objects..." -ForegroundColor Yellow
+Write-Host "[7/8] Verifying Test Metrics Minimum Thresholds & Invariants..." -ForegroundColor Yellow
+
 $financialObjects = @("wallets", "wallet_ledger_entries", "cards", "card_batches", "purchases", "settlements", "deposit_requests")
 foreach ($obj in $financialObjects) {
     if ($combinedSql -match "(?i)CREATE\s+TABLE[^\n]*\b$obj\b") {
         $violations += "Prohibited deferred domain table discovered: $obj"
     }
 }
-
-# -----------------------------------------------------------------------------
-# 7. Inventory and Test Harness Metrics
-# -----------------------------------------------------------------------------
-Write-Host "[7/8] Counting Database Objects and Test Harness Metrics..." -ForegroundColor Yellow
 
 $tableCount    = ([regex]::Matches($combinedSql, "(?i)CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS")).Count
 $functionCount = ([regex]::Matches($combinedSql, "(?i)CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION")).Count
@@ -134,9 +173,30 @@ Write-Host "  Functions      : $functionCount" -ForegroundColor Cyan
 Write-Host "  Triggers       : $triggerCount" -ForegroundColor Cyan
 Write-Host "  RLS Policies   : $policyCount" -ForegroundColor Cyan
 Write-Host "  Indexes        : $indexCount" -ForegroundColor Cyan
-Write-Host "  Positive Tests : $posTestCount" -ForegroundColor Cyan
-Write-Host "  Negative Tests : $negTestCount" -ForegroundColor Cyan
-Write-Host "  Invariant Tests: $invTestCount" -ForegroundColor Cyan
+Write-Host "  Positive Tests : $posTestCount (min: 10)" -ForegroundColor Cyan
+Write-Host "  Negative Tests : $negTestCount (min: 18)" -ForegroundColor Cyan
+Write-Host "  Invariant Tests: $invTestCount (min: 12)" -ForegroundColor Cyan
+
+if ($posTestCount -lt 10) {
+    $violations += "Positive test count ($posTestCount) is below minimum threshold (10)."
+}
+if ($negTestCount -lt 18) {
+    $violations += "Negative test count ($negTestCount) is below minimum threshold (18)."
+}
+if ($invTestCount -lt 12) {
+    $violations += "Invariant test count ($invTestCount) is below minimum threshold (12)."
+}
+
+# Verify required SUCCESS notices in test harnesses
+if ($posTestContent -notmatch "SUCCESS: All \d+ Positive Authorization Tests Passed") {
+    $violations += "002_core_authorization_positive.sql missing required SUCCESS notice."
+}
+if ($negTestContent -notmatch "SUCCESS: All \d+ Negative Authorization Tests Passed") {
+    $violations += "003_core_authorization_negative.sql missing required SUCCESS notice."
+}
+if ($invTestContent -notmatch "SUCCESS: All \d+ Core Invariants Passed") {
+    $violations += "004_core_invariants.sql missing required SUCCESS notice."
+}
 
 # -----------------------------------------------------------------------------
 # 8. Summary & Exit Code
@@ -154,6 +214,10 @@ if ($violations.Count -gt 0) {
 } else {
     Write-Host "================================================================" -ForegroundColor Green
     Write-Host "STATIC VERIFICATION RESULT: PASS (All Rules Satisfied)" -ForegroundColor Green
+    Write-Host "  Files Verified : $($allRequiredFiles.Count + $expectedMigrations.Count)" -ForegroundColor Green
+    Write-Host "  Positive Tests : $posTestCount" -ForegroundColor Green
+    Write-Host "  Negative Tests : $negTestCount" -ForegroundColor Green
+    Write-Host "  Invariant Tests: $invTestCount" -ForegroundColor Green
     Write-Host "================================================================" -ForegroundColor Green
     exit 0
 }
