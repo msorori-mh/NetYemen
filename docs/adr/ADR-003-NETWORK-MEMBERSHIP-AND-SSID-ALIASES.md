@@ -30,9 +30,12 @@ We establish the following network, membership, and SSID alias model:
    * Owners hold full administrative control over the network, staff operators, and SSID aliases.
    * Operators hold operational access (e.g. inventory upload) but CANNOT manage memberships, approve networks, or view settlement payouts.
    * Operational Invariant: Every active network must have at least one active `owner` membership.
-3. **SSID Alias Normalization (`public.network_ssid_aliases`):**
+   * Concurrency Serialization: `protect_final_active_owner` trigger executes `SELECT 1 FROM public.networks WHERE id = OLD.network_id FOR UPDATE;` to lock the parent network row, preventing concurrent race conditions where two simultaneous transactions could delete different owners and leave zero active owners.
+3. **SSID Alias Normalization & Verification Integrity (`public.network_ssid_aliases`):**
    * Multiple SSID aliases can map to a single parent network.
-   * Function `public.normalize_ssid(p_ssid text)` standardizes SSIDs (lowercasing, trimming, replacing spaces/special characters with single hyphens).
+   * Function `public.normalize_ssid(p_ssid text)` standardizes SSIDs using `unicode_normalize(p_ssid, 'NFC')` (preserving Arabic characters, lowercasing English, trimming surrounding whitespace, and replacing internal whitespace with hyphens).
+   * Verification Lifecycle: Owners create aliases in `pending_verification` status only. Owners may edit display names only while pending. Owners cannot self-activate aliases or modify display names of active verified aliases.
+   * Administrative Activation: Admin activation requires explicit `verified_by` UUID and `verified_at` timestamp metadata (`chk_ssid_aliases_verification_coherence`).
    * Uniqueness Constraint: A normalized active SSID alias (`ssid_normalized`) MUST be globally unique across all active networks via partial unique index.
    * Privacy Protection: Raw BSSID (MAC addresses), access point hardware serial numbers, and customer device scan locations are strictly EXCLUDED from the schema.
 
