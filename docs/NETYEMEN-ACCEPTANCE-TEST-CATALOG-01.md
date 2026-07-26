@@ -1,9 +1,9 @@
 # NETYEMEN ACCEPTANCE & ADVERSARIAL TEST CATALOG (V1.0 + V1.1 REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001F  
-**Document Code:** `NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md`  
-**Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Complete Functional Acceptance Tests, Baseline Restored Tests, Concurrency Controls, and Security Tests  
+**Task ID:** NY-PRODUCT-001G
+**Document Code:** `NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md`
+**Classification:** `PROPOSED_CONTRACT`
+**Scope:** Complete Functional Acceptance Tests, Baseline Restored Tests, Concurrency Controls, and Security Tests
 
 ---
 
@@ -20,7 +20,7 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 | Domain Group | Detailed Test Count | Automation Layers Covered |
 |---|---|---|
 | `AUTH` | 3 | Unit, Widget, Integration |
-| `AUTHORIZATION` | 4 | RPC / SQL, Pen-Test |
+| `AUTHORIZATION` | 3 | RPC / SQL, Pen-Test |
 | `PURCHASE` | 1 | Widget, RPC / SQL |
 | `CONCURRENCY` | 2 | DB Stress Harness |
 | `IDEMPOTENCY` | 1 | RPC / SQL |
@@ -31,11 +31,11 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 | `CUSTOMER` | 5 | Widget, Integration |
 | `NETWORK` | 6 | Widget, RPC / SQL |
 | `SECURITY` | 3 | Pen-Test, Web E2E |
-| **TOTAL** | **33 Detailed TEST- Sections** | Full Coverage Across All Layers |
+| **TOTAL** | **32 Detailed TEST- Sections** | Full Coverage Across All Layers |
 
 ---
 
-## Detailed Test Specifications (33 Complete Sections)
+## Detailed Test Specifications (32 Complete Sections)
 
 ### 1. Domain: AUTH (Authentication & Identity)
 
@@ -124,20 +124,6 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 * **Expected User-Visible Result:** RPC exception: "لا يمكن تنفيذ العملية نيابة عن مستخدم آخر" (Cannot execute on behalf of another user).
 * **Expected Audit Event:** `SECURITY_ADMIN_BYPASS_REJECTED`.
 * **Negative Expectations:** Card MUST NOT be sold; victim wallet MUST NOT be debited.
-* **Cleanup:** None.
-* **Automation Layer:** `RPC / SQL Pen-Test`.
-
-#### TEST-AUTHORIZATION-007: Merchant Role Deferred Access Denial
-* **Test ID:** `TEST-AUTHORIZATION-007`
-* **Purpose:** Verify that merchant sub-distributor endpoints are rejected in V1 (`DEFERRED_POST_LAUNCH`).
-* **Preconditions:** Account attempting access to merchant distributor portal.
-* **Actor:** Customer / Merchant Applicant
-* **Input:** API call to `/merchant/v1/topup`.
-* **Execution Path:** API router checks feature status.
-* **Expected Database Effect:** Zero rows updated.
-* **Expected User-Visible Result:** `403 Forbidden` / Feature deferred to V1.5 error.
-* **Expected Audit Event:** `MERCHANT_ROLE_ACCESS_DENIED`.
-* **Negative Expectations:** No sub-distributor wallet credit permitted.
 * **Cleanup:** None.
 * **Automation Layer:** `RPC / SQL Pen-Test`.
 
@@ -323,7 +309,7 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 
 ---
 
-### 6. Domain: CUSTOMER & PRIVACY SCANNING (NY-PRODUCT-001F)
+### 6. Domain: CUSTOMER & PRIVACY SCANNING
 
 #### TEST-CUSTOMER-005: User-Triggered Nearby Wi-Fi Scan (Permission Granted)
 * **Test ID:** `TEST-CUSTOMER-005`
@@ -397,7 +383,7 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 
 ---
 
-### 7. Domain: NETWORK & MULTI-SSID (NY-PRODUCT-001F)
+### 7. Domain: NETWORK & MULTI-SSID
 
 #### TEST-NETWORK-004: Multi-SSID Alias Mapping to Single Inventory Stock
 * **Test ID:** `TEST-NETWORK-004`
@@ -485,7 +471,7 @@ All baseline tests from contract release `95eec54` have been preserved, and appr
 
 ---
 
-### 8. Domain: SECURITY & MASKING (NY-PRODUCT-001F)
+### 8. Domain: SECURITY & MASKING
 
 #### TEST-SECURITY-006: Masked Last Card & Plaintext Reveal Restrictions
 * **Test ID:** `TEST-SECURITY-006`

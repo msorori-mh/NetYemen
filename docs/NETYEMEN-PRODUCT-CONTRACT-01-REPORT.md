@@ -1,20 +1,20 @@
-# NETYEMEN PRODUCT CONTRACT & DESIGN SUMMARY REPORT (NY-PRODUCT-001F REMEDIATED)
+# NETYEMEN PRODUCT CONTRACT & DESIGN SUMMARY REPORT (NY-PRODUCT-001G REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001 / NY-PRODUCT-001F  
-**Title:** NETYEMEN-DOCUMENT-PRESERVATION-COMPETITOR-CONTRACT-REMEDIATION-01  
-**Report File Path:** `docs/NETYEMEN-PRODUCT-CONTRACT-01-REPORT.md`  
-**Repository:** `msorori-mh/NetYemen`  
-**Branch:** `antigravity/NY-PRODUCT-001`  
-**Execution Date:** 2026-07-27  
-**Lead Agent:** Antigravity Autonomous Agent  
+**Task ID:** NY-PRODUCT-001 / NY-PRODUCT-001G
+**Title:** NETYEMEN-V1-DEFERRED-SCOPE-EXCLUSION-CORRECTION-01
+**Report File Path:** `docs/NETYEMEN-PRODUCT-CONTRACT-01-REPORT.md`
+**Repository:** `msorori-mh/NetYemen`
+**Branch:** `antigravity/NY-PRODUCT-001`
+**Execution Date:** 2026-07-27
+**Lead Agent:** Antigravity Autonomous Agent
 
 ---
 
 ## 1. Executive Summary & Remediation Context
 
-Task `NY-PRODUCT-001F` was executed as a corrective remediation to repair documentation contract preservation. In prior task `NY-PRODUCT-001E`, documentation edits erroneously replaced and removed baseline acceptance test specifications (`TEST-`) and workflow contracts instead of preserving them.
+Task `NY-PRODUCT-001G` was executed to strictly remove all deferred V1.5 and V2 functionality (merchant/sub-distributor kiosks, telecom balance recharge, fixed-line/ADSL payments, P2P wallet transfers, automatic bank API links, and iOS builds) from active NetYemen V1 contracts, active role matrices, active acceptance tests, active implementation tasks, and delivery metrics.
 
-This task successfully restored 100% of baseline acceptance test specifications from release `95eec54` and expanded the contract suite to incorporate competitor visual benchmarks, user-triggered scan privacy controls, configuration-driven bank directories, and 44 detailed threat vectors.
+All deferred functionality has been consolidated into a single, explicit future-scope section: `OUT_OF_SCOPE_V1 / FUTURE ROADMAP`. Deferred features do not participate in active V1 roles, actions, tests, tables, RPCs, interfaces, migrations, implementation tasks, or launch gates.
 
 Zero application source code, SQL scripts, or build files were modified, and zero production database reads or writes occurred.
 
@@ -25,8 +25,8 @@ Zero application source code, SQL scripts, or build files were modified, and zer
 ### **Decision: PASS_WITH_OPEN_DECISIONS**
 
 **Justification:**
-1. **Complete Contract Baseline & Preservation:** All 10 workflow state machines and 33 detailed acceptance test specifications (`#### TEST-`) have been fully restored, validated, and mathematically reconciled.
-2. **Strict Boundary Adherence:** Zero forbidden files were touched (`lib/`, `android/`, `test/`, `pubspec.yaml`, `.github/` unmodified). Zero SQL/database migrations were created.
+1. **Strict Active V1 Scope Boundaries:** Active V1 roles are strictly fixed at 8. Deferred merchant/distributor and telecom features have zero V1 acceptance tests, zero V1 implementation tasks, zero V1 workflows, zero V1 tables, and zero V1 RPC contracts.
+2. **Complete Contract Baseline & Preservation:** All 10 workflow state machines and 32 detailed acceptance test specifications (`#### TEST-`) have been fully validated and mathematically reconciled.
 3. **Provisional Execution Readiness:** 11 business decisions are registered as `OPEN_DECISION` with 2–4 options and clearly labeled `PROVISIONAL_RECOMMENDATION` entries, allowing technical teams to proceed into Wave 2 backend database development autonomously.
 
 ---
@@ -38,8 +38,7 @@ Zero application source code, SQL scripts, or build files were modified, and zer
 | **Working Directory** | `C:\projects\NetYemen-antigravity` |
 | **Current Branch** | `antigravity/NY-PRODUCT-001` |
 | **Base Branch** | `main` |
-| **Pre-Remediation SHA** | `88fa84a5d5454ad8d7699faabe36af20ef57131a` |
-| **Baseline Preservation SHA** | `95eec54b0696c5d6395d372a8e5213bc86289e85` |
+| **Pre-Remediation SHA** | `dd36d422003c7fc82acb9dd94eca14b380899897` |
 | **Draft Pull Request** | [Pull Request #3](https://github.com/msorori-mh/NetYemen/pull/3) (OPEN / DRAFT) |
 | **Working Tree Hygiene** | Clean |
 
@@ -62,7 +61,7 @@ All metrics reported in this document are calculated directly from physical Mark
 # 4. Negative Authorization Tests Count (8 tests):
 (Select-String -Path docs/NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md -Pattern '^\| `NEG-AUTH-').Count
 
-# 5. Detailed Acceptance Tests Count (33 TEST- sections):
+# 5. Detailed Acceptance Tests Count (32 TEST- sections):
 (Select-String -Path docs/NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md -Pattern '^#### TEST-').Count
 
 # 6. Detailed Threat Vectors Count (44 THR- records):
@@ -76,14 +75,18 @@ All metrics reported in this document are calculated directly from physical Mark
 
 ## 5. Metric Summary Matrix
 
+* **Number of Active V1 Platform Roles:** 8 (`unauthenticated`, `customer`, `network_owner`, `network_operator`, `finance_officer`, `support_agent`, `platform_admin`, `system_auditor`)
+* **Merchant / Distributor V1 Status:** Deferred (`DEFERRED_POST_LAUNCH — not part of V1 authorization or implementation`)
+* **Telecom Recharge V1 Status:** Deferred (`OUT_OF_SCOPE_V1 — future release`)
+* **Deferred Functionality V1 Tests:** 0
+* **Deferred Functionality Implementation Tasks:** 0
 * **Number of Business Rules:** 57 (`BR-AUTH-001` through `BR-AUDIT-002`)
 * **Number of Open Decisions:** 11 (`OD-AUTH-01` through `OD-NOTIF-01`)
 * **Number of Workflow State Machines:** 10 (+ 1 Customer Lifecycle)
-* **Number of Roles Defined:** 8 (+ Merchant/Distributor V1.5 Deferred)
 * **Number of Authorization Matrix Actions:** 28
 * **Number of Negative Authorization Tests:** 8
 * **Number of Threat Model Vectors:** 44 (`THR-01` through `THR-44`)
-* **Number of Detailed Acceptance Tests:** 33 (`TEST-AUTH-001` through `TEST-SECURITY-008`)
+* **Number of Detailed Acceptance Tests:** 32 (`TEST-AUTH-001` through `TEST-SECURITY-008`)
 * **Number of Implementation Tasks:** 14 (`NY-GOV-001` through `NY-REL-001`)
 * **Number of Delivery Waves:** 7
 
@@ -93,17 +96,17 @@ All metrics reported in this document are calculated directly from physical Mark
 
 The following 13 documentation artifacts exist under `docs/`:
 
-1. `docs/NETYEMEN-PRODUCT-REQUIREMENTS-01.md` — Product scope, user-triggered scan privacy, V1 surfaces, multi-SSID, bank directory, V1 exclusions, NFRs.
-2. `docs/NETYEMEN-BUSINESS-RULES-CATALOG-01.md` — 57 uniquely numbered business rules across 10 functional domains.
-3. `docs/NETYEMEN-DECISION-REGISTER-01.md` — 11 registered open decisions with multi-option analyses and provisional recommendations.
-4. `docs/NETYEMEN-WORKFLOW-STATE-MACHINES-01.md` — 10 complete workflow state machines (+ 1 customer lifecycle).
-5. `docs/NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md` — 8 roles (+ V1.5 Merchant), 28 actions matrix, 8 anti-bypass rules, 8 negative authorization tests.
-6. `docs/NETYEMEN-FINANCIAL-OPERATING-CONTRACT-01.md` — Double-entry accounting model, 6 financial invariants, 10-step atomic purchase RPC contract, 3 reconciliation formulas.
-7. `docs/NETYEMEN-DATA-CLASSIFICATION-AND-PRIVACY-01.md` — 7 data classification levels, asset mapping, privacy protection & retention policy (`OD-PRIV-01`).
-8. `docs/NETYEMEN-THREAT-AND-FRAUD-MODEL-01.md` — 44 comprehensive threat vectors with preventive/detective/recovery controls.
-9. `docs/NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md` — 33 detailed `#### TEST-` sections across 12 domain groups.
-10. `docs/NETYEMEN-MULTI-AGENT-IMPLEMENTATION-BACKLOG-01.md` — 14 delivery tasks across 7 waves for 5 agents.
-11. `docs/NETYEMEN-COMPETITOR-BENCHMARK-01.md` — Benchmark visual analysis of Competitor A & Competitor B.
+1. `docs/NETYEMEN-PRODUCT-REQUIREMENTS-01.md` — Product scope, user-triggered scan privacy, V1 surfaces, multi-SSID, bank directory, `OUT_OF_SCOPE_V1 / FUTURE ROADMAP`, NFRs.
+2. `docs/NETYEMEN-COMPETITOR-BENCHMARK-01.md` — Dedicated visual screenshot benchmark analysis of Competitor A & Competitor B.
+3. `docs/NETYEMEN-BUSINESS-RULES-CATALOG-01.md` — 57 uniquely numbered business rules across 10 functional domains.
+4. `docs/NETYEMEN-DECISION-REGISTER-01.md` — 11 registered open decisions with multi-option analyses and provisional recommendations.
+5. `docs/NETYEMEN-WORKFLOW-STATE-MACHINES-01.md` — 10 complete workflow state machines (+ 1 customer lifecycle).
+6. `docs/NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md` — 8 active V1 roles, 28 actions matrix, 8 anti-bypass rules, 8 negative authorization tests.
+7. `docs/NETYEMEN-FINANCIAL-OPERATING-CONTRACT-01.md` — Double-entry accounting model, 6 financial invariants, 10-step atomic purchase RPC contract, 3 reconciliation formulas.
+8. `docs/NETYEMEN-DATA-CLASSIFICATION-AND-PRIVACY-01.md` — 7 data classification levels, asset mapping, privacy protection & retention policy (`OD-PRIV-01`).
+9. `docs/NETYEMEN-THREAT-AND-FRAUD-MODEL-01.md` — 44 comprehensive threat vectors with preventive/detective/recovery controls.
+10. `docs/NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md` — 32 detailed `#### TEST-` sections across 12 domain groups.
+11. `docs/NETYEMEN-MULTI-AGENT-IMPLEMENTATION-BACKLOG-01.md` — 14 delivery tasks across 7 waves for Codex, Cursor, K3, Antigravity, and Human Approval.
 12. `docs/NETYEMEN-PRODUCT-CONTRACT-01-REPORT.md` — Executive summary report (This document).
 13. `docs/README.md` — Master documentation index.
 
@@ -124,5 +127,5 @@ I explicitly confirm that:
 4. **NO** Supabase commands were run.
 5. **NO** connection or read/write access to Production occurred.
 6. **NO** real customer, owner, card, or wallet data was created.
-7. **NO** Git history rewrite, reset, or force-push was performed (Commit `88fa84a` preserved).
+7. **NO** Git history rewrite, reset, or force-push was performed.
 8. **NO** Pull Request was merged or marked ready for review. PR #3 remains OPEN and DRAFT.

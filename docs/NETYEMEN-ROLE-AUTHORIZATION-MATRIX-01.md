@@ -1,9 +1,9 @@
-# NETYEMEN ROLE AUTHORIZATION MATRIX (V1.0 + V1.1 ENHANCEMENTS)
+# NETYEMEN ROLE AUTHORIZATION MATRIX (V1.0 + V1.1 REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001  
-**Document Code:** `NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md`  
-**Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Security Access Control, Role Governance, and RLS Matrix (Updated with NY-PRODUCT-001E Policy Rules)  
+**Task ID:** NY-PRODUCT-001G
+**Document Code:** `NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md`
+**Classification:** `PROPOSED_CONTRACT`
+**Scope:** Security Access Control, Role Governance, and RLS Matrix
 
 ---
 
@@ -13,7 +13,7 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 
 ```
 +-----------------------------------------------------------------------------------+
-|                            NETYEMEN PLATFORM ROLES                                |
+|                          ACTIVE V1 PLATFORM ROLES (8 ROLES)                       |
 +-----------------------------------------------------------------------------------+
 |  1. UNAUTHENTICATED (Anonymous Public Guest)                                      |
 |  2. CUSTOMER (Authenticated Retail Card Purchaser)                                |
@@ -23,11 +23,13 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 |  6. SUPPORT_AGENT (Customer Care & Dispute Resolution Specialist)                |
 |  7. PLATFORM_ADMIN (System Superadmin & Role Authority)                           |
 |  8. SYSTEM_AUDITOR (Read-Only Compliance & Forensic Auditor)                      |
-|  [V1.5] MERCHANT_DISTRIBUTOR (Retail Kiosk Sub-Distributor - DEFERRED V1.5)       |
 +-----------------------------------------------------------------------------------+
 ```
 
-### 1.1 Detailed Role Definitions
+> **Note on Deferred Roles:**
+> `DEFERRED_POST_LAUNCH — not part of V1 authorization or implementation.` (Sub-distributor / merchant kiosk roles are deferred to future releases and do not participate in V1 access control matrices, endpoints, or backend schemas).
+
+### 1.1 Detailed Role Definitions (Active V1 Roles Only)
 * **`UNAUTHENTICATED`:** Anonymous public app visitors. Restricted exclusively to viewing active/approved networks, public package prices, and bank directory.
 * **`CUSTOMER`:** Authenticated retail phone user. Permitted to maintain wallet balance, request deposits with payment proofs, execute atomic card purchases, view own purchased cards, submit network addition leads, and submit card complaints.
 * **`NETWORK_OWNER`:** Verified proprietor of one or more Wi-Fi networks. Permitted to configure network details, multi-SSID aliases, manage package pricing catalogs, upload card batches, void unsold stock, assign operators, and view own network settlement reports.
@@ -46,7 +48,7 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 * `DENIED`: Strictly prohibited by backend RBAC and RLS policies (`FORBIDDEN_BEHAVIOR`).
 * `CONDITIONAL`: Permitted ONLY IF specific resource ownership or contextual constraint evaluates to `TRUE`.
 
-### 2.2 Complete Action Matrix
+### 2.2 Complete Action Matrix (Active V1 Roles)
 
 | Operation Category | Action Description | UNAUTH | CUST | OWNER | OPERATOR | FINANCE | SUPPORT | ADMIN | AUDITOR |
 |---|---|---|---|---|---|---|---|---|---|

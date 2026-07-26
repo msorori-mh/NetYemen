@@ -1,10 +1,10 @@
 # NETYEMEN PRODUCT REQUIREMENTS SPECIFICATION (V1.0 + V1.1 ENHANCEMENTS)
 
-**Task ID:** NY-PRODUCT-001F  
-**Document Code:** `NETYEMEN-PRODUCT-REQUIREMENTS-01.md`  
-**Classification:** `PROPOSED_CONTRACT`  
-**Target Platform:** NetYemen Platform (Customer Mobile, Network Owner Mobile, Administration Web)  
-**Status:** Approved for Design Baseline (Remediated for User-Triggered Scan Privacy & Provider Alignment)  
+**Task ID:** NY-PRODUCT-001G
+**Document Code:** `NETYEMEN-PRODUCT-REQUIREMENTS-01.md`
+**Classification:** `PROPOSED_CONTRACT`
+**Target Platform:** NetYemen Platform (Customer Mobile, Network Owner Mobile, Administration Web)
+**Status:** Approved for Design Baseline (Remediated to Exclude Deferred Features from Active Scope)
 
 ---
 
@@ -40,10 +40,7 @@ Based on visual analysis of regional competitors (`NETYEMEN-COMPETITOR-BENCHMARK
 3. **Verified Account Badges:** Visual shield icons for verified network owners and networks (`F-OWN-09`).
 4. **Detailed Package Metadata:** Package specs displaying price, denomination, GB/MB data quota, validity duration (hours/days), and speed caps (`F-CUST-04`).
 5. **Account Deletion & Data Retention:** 30-day grace period with PII anonymization upon deletion. Financial retention duration is classified as `OPEN_DECISION` (with a 5-year provisional recommendation, `PROVISIONAL_RECOMMENDATION`).
-6. **Merchant / Sub-Distributor Role (V1.5):** Sub-distributor portal for retail kiosks classified as `V1.5` (`DEFERRED_POST_LAUNCH`).
-7. **Telecom Recharge Services (V2):** Mobile phone balance top-ups (Yemen Mobile / MTN / Sabafon) explicitly deferred to `V2` (`OUT_OF_SCOPE_V1`). NetYemen V1 focuses 100% on Wi-Fi hotspot card distribution.
-8. **WhatsApp Integration Policy:** WhatsApp is used EXCLUSIVELY for text customer support routing (`F-CUST-08`). Financial approvals, deposit confirmations, or wallet credits via WhatsApp are strictly `FORBIDDEN_BEHAVIOR`.
-9. **P2P Wallet Transfer Policy:** Peer-to-peer wallet transfers between ordinary users are strictly `FORBIDDEN_BEHAVIOR` in V1.
+6. **WhatsApp Integration Policy:** WhatsApp is used EXCLUSIVELY for text customer support routing (`F-CUST-08`). Financial approvals, deposit confirmations, or wallet credits via WhatsApp are strictly `FORBIDDEN_BEHAVIOR`.
 
 ---
 
@@ -71,7 +68,6 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 2. **Network Owners & Operators:** Local Wi-Fi network proprietors who manage hotspot infrastructure, set card pricing/denominations, upload card batches, and receive periodic financial payouts.
 3. **Platform Finance & Support Personnel:** NetYemen administrative staff responsible for approving owner onboarding, reviewing wallet deposit payment proofs, handling card disputes/refunds, executing owner payouts, and monitoring system integrity.
 4. **System Auditors & Administrators:** Operations leads managing security settings, platform role assignments, dispute escalation, and regulatory compliance.
-5. **Merchant Sub-Distributors (V1.5):** Local neighborhood retail kiosks authorized to perform cash top-ups for walk-in customers (`DEFERRED_POST_LAUNCH`).
 
 ---
 
@@ -202,24 +198,20 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 
 ---
 
-## 4. Explicit V1 Exclusions & Scope Boundaries
+## 4. OUT_OF_SCOPE_V1 / FUTURE ROADMAP
 
-### 4.1 Out of Scope for V1 (`OUT_OF_SCOPE_V1`)
+The following items are explicitly excluded from V1 active contracts, roles, schemas, RPCs, acceptance tests, interfaces, and delivery backlogs:
 
-1. **Flutter Web Administration Portal:** Admin portal will be built as a standalone React/Vite web application.
-2. **Direct Telecom / Mobile Money API Integration:** Wallet deposits will rely on manual receipt upload and administrative verification queue rather than automated bank API callbacks in V1.
-3. **Telecom Balance Recharge Services (Yemen Mobile / MTN / Sabafon):** Explicitly deferred to `V2`. NetYemen V1 focuses strictly on local Wi-Fi hotspot cards.
-4. **Multi-Country / Currency Operations:** V1 is strictly restricted to Yemeni network cards and Yemeni Rial (YER) financial accounting.
-5. **Offline Card Purchases:** Customer app requires active internet connectivity to execute atomic card purchases via backend RPC.
+- **Merchant / distributor program** — future release (`DEFERRED_POST_LAUNCH`).
+- **Telecom recharge** — future release (`OUT_OF_SCOPE_V1`).
+- **Fixed-line and ADSL payments** — future release (`OUT_OF_SCOPE_V1`).
+- **P2P wallet transfers** — not part of V1 (`FORBIDDEN_BEHAVIOR` safety rule).
+- **Automatic bank integration** — future release (`OUT_OF_SCOPE_V1`).
+- **iOS** — future release (`DEFERRED_POST_LAUNCH`).
 
-### 4.2 Deferred Post-Launch (`DEFERRED_POST_LAUNCH`)
+---
 
-1. **Merchant / Sub-Distributor Application Surface (V1.5):** Dedicated portal for local retail kiosks to act as cash top-up agents or bulk sub-distributors deferred to `V1.5`.
-2. **iOS Customer & Owner Applications:** iOS release builds and App Store submission are deferred until Android market launch stabilizes.
-3. **Automated OCR Receipt Scanning:** Automated image text recognition for deposit receipt processing deferred to V2.
-4. **In-App Live Chat Support:** Customer support in V1 relies on ticket submission and WhatsApp link integration rather than real-time custom socket chat.
-
-### 4.3 Strictly Forbidden Features (`FORBIDDEN_BEHAVIOR`)
+## 5. Strictly Forbidden Behaviors (`FORBIDDEN_BEHAVIOR`)
 
 1. **Silent / Background Wi-Fi Scanning:** Continuous or background Wi-Fi scanning without explicit user trigger and consent is FORBIDDEN.
 2. **Negative Wallet Balances:** Wallet balances must never drop below 0 under any circumstance.
@@ -232,7 +224,7 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 
 ---
 
-## 5. Nonfunctional Requirements (NFR)
+## 6. Nonfunctional Requirements (NFR)
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -248,7 +240,7 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 
 ---
 
-## 6. Document Governance & Traceability
+## 7. Document Governance & Traceability
 
 | Requirement Item | Primary Verification Method | Traceability Matrix Target |
 |---|---|---|
