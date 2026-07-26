@@ -210,11 +210,12 @@ REVOKE EXECUTE ON FUNCTION public.prevent_audit_events_mutation() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.set_updated_at() FROM PUBLIC;
 
-GRANT EXECUTE ON FUNCTION public.has_platform_role(TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.is_network_member(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.can_manage_network(UUID) TO authenticated;
+-- RLS policies may invoke these helpers for anon and authenticated callers.
+GRANT EXECUTE ON FUNCTION public.has_platform_role(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.is_network_member(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.can_manage_network(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_audit_event(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.normalize_ssid(TEXT) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.normalize_ssid(TEXT) TO anon, authenticated;
 
 REVOKE ALL ON TABLE public.audit_events FROM PUBLIC;
 GRANT SELECT ON TABLE public.audit_events TO authenticated;

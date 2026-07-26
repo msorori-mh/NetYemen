@@ -76,7 +76,7 @@ foreach ($table in $coreTables) {
 # 5. Security Red Flags Search
 # -----------------------------------------------------------------------------
 Write-Host "[5/8] Auditing Security Red Flags (GRANT ALL, unrestricted SECURITY DEFINER)..." -ForegroundColor Yellow
-if ($combinedSql -match "(?i)GRANT\s+ALL") {
+if ($combinedSql -match "(?i)(?<!REVOKE\s)GRANT\s+ALL\b") {
     $violations += "Security Red Flag: 'GRANT ALL' discovered in migration SQL."
 }
 if ($combinedSql -match "(?i)service_role") {

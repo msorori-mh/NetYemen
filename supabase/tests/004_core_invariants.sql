@@ -58,7 +58,7 @@ BEGIN
         INSERT INTO public.user_roles (user_id, role) VALUES (v_user_id, 'merchant');
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
-    END BEGIN;
+    END;
     IF NOT v_err_occurred THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-02): Deferred merchant role was accepted!';
     END IF;
@@ -80,7 +80,7 @@ BEGIN
             (v_net_2_id, 'Yemen-Net-Hotspot', public.normalize_ssid('Yemen-Net-Hotspot'), 'active');
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
-    END BEGIN;
+    END;
     IF NOT v_err_occurred THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-03): Duplicate active normalized SSID alias was accepted!';
     END IF;
@@ -107,7 +107,7 @@ BEGIN
         UPDATE public.audit_events SET action = 'TAMPERED' WHERE id = v_audit_id;
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
-    END BEGIN;
+    END;
     IF NOT v_err_occurred THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-05): Audit event row was updated!';
     END IF;
@@ -120,7 +120,7 @@ BEGIN
         DELETE FROM public.audit_events WHERE id = v_audit_id;
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
-    END BEGIN;
+    END;
     IF NOT v_err_occurred THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-06): Audit event row was deleted!';
     END IF;

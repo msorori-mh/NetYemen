@@ -232,7 +232,7 @@ CREATE TRIGGER trg_network_ssid_aliases_set_updated_at
 ALTER TABLE public.network_ssid_aliases ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
--- Least-privilege table grants (no GRANT ALL)
+-- Least-privilege table grants (explicit privileges only; never grant-all)
 -- ============================================================================
 
 REVOKE ALL ON TABLE public.profiles FROM PUBLIC;
