@@ -91,8 +91,8 @@ class WalletScreen extends ConsumerWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: isCredit
-                            ? AppTheme.accent.withOpacity(0.1)
-                            : AppTheme.error.withOpacity(0.1),
+                            ? AppTheme.accent.withValues(alpha: 0.1)
+                            : AppTheme.error.withValues(alpha: 0.1),
                         child: Icon(
                           isCredit ? Icons.arrow_downward : Icons.arrow_upward,
                           color: isCredit ? AppTheme.accent : AppTheme.error,

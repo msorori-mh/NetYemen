@@ -165,7 +165,25 @@ Confirmed: Scope was strictly limited to repository hygiene, Android restoration
 As part of `NY-RESTORE-001B`:
 * **`.metadata` Tracking**: Removed `.metadata` from `.gitignore` and added `.metadata` to Git tracking. Verified that `.metadata` contains only standard Flutter version/migration properties (`revision: "3b62efc2a3da49882f43c372e0bc53daef7295a6"`, `channel: "stable"`, `project_type: app`) without any secrets or environment-sensitive paths.
 * **CI Workflow Tightening**: Updated `.github/workflows/flutter-ci.yml` to run `flutter analyze` directly without `--no-fatal-infos`.
-* **Local Verification**:
-  * `flutter analyze`: Standard analysis passed (0 errors, 0 warnings, 23 info lints).
+* **Local Verification**: Standard analysis passed (0 errors, 0 warnings, 23 info lints), 6 tests passed, debug APK built in 50.9s.
+
+## 20. Subtask NY-RESTORE-001C: Strict Analysis Lint Remediation
+
+* **Failed CI Context**: CI run `30181631696` failed at the `Analyze Static Code` step because strict `flutter analyze` on GitHub Actions treated 23 informational findings as fatal errors (exit code 1).
+* **Root Cause & Inventory**:
+  * `deprecated_member_use`: 14 occurrences (1 `anonKey` -> `publishableKey` in `lib/main.dart`, 13 `withOpacity` -> `withValues` across UI screens).
+  * `prefer_const_constructors`: 8 occurrences (`lib/screens/auth/login_screen.dart`, `lib/screens/purchases/purchases_screen.dart`).
+  * `prefer_const_literals_to_create_immutables`: 1 occurrence (`lib/screens/purchases/purchases_screen.dart`).
+* **Corrected Files**: 10 files in `lib/` (`lib/main.dart`, `lib/screens/auth/login_screen.dart`, `lib/screens/home/home_screen.dart`, `lib/screens/home/network_detail_screen.dart`, `lib/screens/home/purchase_success_screen.dart`, `lib/screens/profile/profile_screen.dart`, `lib/screens/purchases/purchases_screen.dart`, `lib/screens/splash_screen.dart`, `lib/screens/wallet/deposit_screen.dart`, `lib/screens/wallet/wallet_screen.dart`).
+* **Behavior Preservation**: All fixes were strictly mechanical and non-functional. Zero business logic, Supabase calls, RPC parameters, prices, roles, or navigation flows were modified.
+* **Validation Results**:
+  * Plain `flutter analyze`: **No issues found!** (0 errors, 0 warnings, 0 infos, Exit code 0).
+  * Strict `CI=true flutter analyze`: **No issues found!** (Exit code 0).
   * `flutter test`: 6 tests passed (0 failed).
-  * `flutter build apk --debug`: Built `build\app\outputs\flutter-apk\app-debug.apk` successfully in 50.9s.
+  * `flutter build apk --debug`: Built `build\app\outputs\flutter-apk\app-debug.apk` successfully in 50.3s.
+* **Governance & Security Confirmations**:
+  * Zero analyzer rules disabled or suppressed (`analysis_options.yaml` unmodified, 0 ignore annotations).
+  * Zero Dart business logic changed.
+  * Zero Android, dependency (`pubspec.yaml`), test, or CI workflow files changed in NY-RESTORE-001C.
+  * Zero Supabase commands run.
+  * Zero Production reads or writes executed.

@@ -120,7 +120,7 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                             widget.network.locationText,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -190,7 +190,7 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
                                     'ريال يمني',
                                     style: TextStyle(
                                       color: isSelected
-                                          ? Colors.white.withOpacity(0.8)
+                                          ? Colors.white.withValues(alpha: 0.8)
                                           : AppTheme.textSecondary,
                                     ),
                                   ),

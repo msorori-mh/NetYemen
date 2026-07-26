@@ -112,7 +112,8 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               final isSelected = _selectedMethod == method['id'];
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
-                color: isSelected ? AppTheme.primary.withOpacity(0.1) : null,
+                color:
+                    isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
                 child: ListTile(
                   leading: Icon(
                     method['icon'] as IconData,
