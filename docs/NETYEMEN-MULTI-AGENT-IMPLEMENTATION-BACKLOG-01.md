@@ -1,9 +1,9 @@
-# NETYEMEN MULTI-AGENT IMPLEMENTATION BACKLOG (V1.0)
+# NETYEMEN MULTI-AGENT IMPLEMENTATION BACKLOG (V1.0 + V1.1 ENHANCEMENTS)
 
 **Task ID:** NY-PRODUCT-001  
 **Document Code:** `NETYEMEN-MULTI-AGENT-IMPLEMENTATION-BACKLOG-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Multi-Agent Work Allocation, Delivery Waves, Task Backlog, and Merge Sequence  
+**Scope:** Multi-Agent Work Allocation, Delivery Waves, Task Backlog, and Merge Sequence (Updated with NY-PRODUCT-001E Tasks)  
 
 ---
 
@@ -37,10 +37,10 @@ flowchart TD
     W1[Wave 1: Governance & Product Decisions] --> W2[Wave 2: Supabase Local Foundation & Auth]
     W2 --> W3[Wave 3: Inventory & Wallet Foundation]
     W3 --> W4[Wave 4: Atomic Purchase Transaction Engine]
-    W4 --> W5A[Wave 5A: Cursor - Customer App]
-    W4 --> W5B[Wave 5B: K3 - Owner App]
-    W4 --> W5C[Wave 5C: Antigravity - Admin Web Portal]
-    W4 --> W5D[Wave 5D: Codex - Backend & Security Review]
+    W4 --> W5A[Wave 5A: Cursor - Customer App & Discovery]
+    W4 --> W5B[Wave 5B: K3 - Owner App & Multi-SSID]
+    W4 --> W5C[Wave 5C: Antigravity - Admin Web Portal & Directory]
+    W4 --> W5D[Wave 5D: Codex - Backend Extensions & Security Review]
     W5A --> W6[Wave 6: Communications, OTP & Support]
     W5B --> W6
     W5C --> W6
@@ -167,14 +167,31 @@ flowchart TD
 * **Dependencies:** `NY-BE-004`
 * **Allowed Files:** `supabase/migrations/`
 * **Forbidden Files:** `lib/`
-* **Database Impact:** Creates security-definer `purchase_card` RPC with 10-step atomic pipeline.
+* **Database Impact:** Creates security-definer `purchase_card` RPC with 10-step atomic pipeline and `SKIP LOCKED` last-card race handling.
 * **Production Impact:** Zero.
 * **Acceptance Criteria:** 10-step atomic purchase pipeline executed inside PostgreSQL transaction block with `FOR UPDATE` lock.
 * **Positive Tests:** Valid purchase debits balance, marks card sold, returns decrypted PIN.
-* **Negative Tests:** `TEST-CONCURRENCY-001` (Last card race condition test passes).
+* **Negative Tests:** `TEST-CONCURRENCY-001`, `TEST-CONCURRENCY-002` (Last card race condition tests pass).
 * **Rollback Strategy:** Drop `purchase_card` RPC function.
 * **PR Size Expectation:** Medium (~ 250 lines SQL).
 * **Merge Order:** Merge Sequence 006.
+
+#### NY-BE-007: Multi-SSID Aliases, Bank Directory & Lead Queue Schema (NY-PRODUCT-001E)
+* **Task ID:** `NY-BE-007`
+* **Title:** Multi-SSID Mapping, Bank Directory & Network Lead Queue Database Extensions
+* **Primary Owner:** `Codex`
+* **Reviewers:** `Antigravity`
+* **Dependencies:** `NY-BE-005`
+* **Allowed Files:** `supabase/migrations/`
+* **Forbidden Files:** `lib/`
+* **Database Impact:** Creates `network_ssids`, `bank_accounts`, `network_addition_leads` tables with RLS.
+* **Production Impact:** Zero.
+* **Acceptance Criteria:** Multi-SSID mapping resolved to parent `network_id`; bank directory RLS public read; lead queue RLS customer insert.
+* **Positive Tests:** Customer inserts lead cleanly; multi-SSID query returns unified network.
+* **Negative Tests:** Unauthenticated insertion of bank account records rejected.
+* **Rollback Strategy:** Revert migration script.
+* **PR Size Expectation:** Medium (~ 200 lines SQL).
+* **Merge Order:** Merge Sequence 006B.
 
 ---
 
@@ -199,38 +216,55 @@ flowchart TD
 * **PR Size Expectation:** Large (~ 1,200 lines Dart).
 * **Merge Order:** Merge Sequence 007 (Parallel branch).
 
-#### NY-OWNER-001: Network Owner Android Application Baseline
+#### NY-CUST-002: Nearby Wi-Fi Discovery, Bank Directory & Lead Suggestion UI (NY-PRODUCT-001E)
+* **Task ID:** `NY-CUST-002`
+* **Title:** Nearby Wi-Fi Hotspot Auto-Scan, Bank Directory UI & Network Addition Requests
+* **Primary Owner:** `Cursor`
+* **Reviewers:** `Antigravity`
+* **Dependencies:** `NY-CUST-001`, `NY-BE-007`
+* **Allowed Files:** `lib/screens/discovery/`, `lib/screens/wallet/`, `lib/services/`
+* **Forbidden Files:** `sql/`, `supabase/`, `admin/`
+* **Database Impact:** None.
+* **Production Impact:** Zero.
+* **Acceptance Criteria:** In-app Nearby Wi-Fi scanner matching SSIDs; Bank Directory copy actions; Suggest New Network form.
+* **Positive Tests:** Scanned SSID displays "Near [Network]" banner; Bank account copied to clipboard.
+* **Negative Tests:** Denied Wi-Fi location permissions handled gracefully.
+* **Rollback Strategy:** Revert discovery feature files.
+* **PR Size Expectation:** Medium (~ 600 lines Dart).
+* **Merge Order:** Merge Sequence 007B (Parallel branch).
+
+#### NY-OWNER-001: Network Owner Android Application Baseline & Multi-SSID
 * **Task ID:** `NY-OWNER-001`
-* **Title:** Network Owner App Initialization, Batch Import & Sales Dashboard
+* **Title:** Network Owner App Initialization, Batch Import, Sales Dashboard & Multi-SSID Mapping
 * **Primary Owner:** `K3 / Kimi Code`
 * **Reviewers:** `Antigravity`
-* **Dependencies:** `NY-BE-005`
+* **Dependencies:** `NY-BE-005`, `NY-BE-007`
 * **Allowed Files:** `owner_app/` (or dedicated owner codebase folder)
 * **Forbidden Files:** `lib/`, `admin/`
 * **Database Impact:** None (Invokes RPCs).
 * **Production Impact:** Zero.
-* **Acceptance Criteria:** Network owners can register, manage price tiers, preview/import CSV card batches, and view sales summaries.
-* **Positive Tests:** Owner imports valid CSV card batch cleanly.
+* **Acceptance Criteria:** Network owners can register, manage price tiers, add multi-SSID aliases, preview/import CSV card batches, and view sales summaries.
+* **Positive Tests:** Owner adds multi-SSID alias and imports valid CSV card batch cleanly.
 * **Negative Tests:** Duplicate lines flagged and rejected during pre-import validation.
 * **Rollback Strategy:** Revert owner app directory.
-* **PR Size Expectation:** Large (~ 1,500 lines Dart).
+* **PR Size Expectation:** Large (~ 1,600 lines Dart).
 * **Merge Order:** Merge Sequence 008 (Parallel branch).
 
-#### NY-ADMIN-001: Administration Web Portal (React / Vite)
+#### NY-ADMIN-001: Administration Web Portal (React / Vite) & Lead Management
 * **Task ID:** `NY-ADMIN-001`
-* **Title:** Admin & Finance Web Application Development
+* **Title:** Admin & Finance Web Application Development, Lead Queue & Directory Management
 * **Primary Owner:** `Antigravity`
 * **Reviewers:** `Human Approval`
-* **Dependencies:** `NY-BE-005`
+* **Dependencies:** `NY-BE-005`, `NY-BE-007`
 * **Allowed Files:** `admin_web/`
 * **Forbidden Files:** `lib/`, `owner_app/`
 * **Database Impact:** None.
 * **Production Impact:** Zero.
-* **Acceptance Criteria:** Web portal supports owner onboarding review, deposit proof verification queue, purchase monitoring, and settlement calculation.
+* **Acceptance Criteria:** Web portal supports owner onboarding review, deposit proof verification queue, Bank Directory management, network addition lead queue review, purchase monitoring, and settlement calculation.
 * **Positive Tests:** Finance Officer approves pending deposit; wallet credited instantly.
 * **Negative Tests:** Non-admin role denied access to admin Web portal.
 * **Rollback Strategy:** Revert `admin_web/` folder.
-* **PR Size Expectation:** Large (~ 2,000 lines TypeScript/React).
+* **PR Size Expectation:** Large (~ 2,200 lines TypeScript/React).
 * **Merge Order:** Merge Sequence 009 (Parallel branch).
 
 #### NY-SEC-001: Independent Security Review & Pen-Testing Suite
@@ -289,7 +323,7 @@ flowchart TD
 * **Forbidden Files:** Production code
 * **Database Impact:** Zero.
 * **Production Impact:** Staging deployment verification.
-* **Acceptance Criteria:** 100% of 64 acceptance tests pass; zero financial discrepancies; human approval sign-off.
+* **Acceptance Criteria:** 100% of 73 acceptance tests pass; zero financial discrepancies; human approval sign-off.
 * **Positive Tests:** Complete customer journey executed cleanly on staging environment.
 * **Negative Tests:** Zero critical security findings or RLS bypasses.
 * **Rollback Strategy:** Abort staging release candidate.

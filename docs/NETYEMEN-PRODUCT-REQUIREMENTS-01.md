@@ -1,10 +1,10 @@
-# NETYEMEN PRODUCT REQUIREMENTS SPECIFICATION (V1.0)
+# NETYEMEN PRODUCT REQUIREMENTS SPECIFICATION (V1.0 + V1.1 ENHANCEMENTS)
 
 **Task ID:** NY-PRODUCT-001  
 **Document Code:** `NETYEMEN-PRODUCT-REQUIREMENTS-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
 **Target Platform:** NetYemen Platform (Customer Mobile, Network Owner Mobile, Administration Web)  
-**Status:** Approved for Design Baseline  
+**Status:** Approved for Design Baseline (Updated with NY-PRODUCT-001E Competitor & Discovery Specs)  
 
 ---
 
@@ -19,15 +19,36 @@ Based on the forensic audit of the existing codebase (`VERIFIED_CURRENT_STATE`),
 | Feature / Artifact Area | Current Repository Implementation State | Audit Status | Required V1 Contract Classification |
 |---|---|---|---|
 | **Phone Authentication & OTP** | `signInWithPhone` & `verifyOTP` present in `SupabaseService`; direct upsert to `users` table post-login | `VERIFIED_CURRENT_STATE` (Incomplete) | `PROPOSED_CONTRACT` (Require DB Trigger & SMS gateway integration) |
-| **Network Discovery** | `getNetworks()` fetches active networks; governorate filter UI present | `VERIFIED_CURRENT_STATE` (Partial) | `PROPOSED_CONTRACT` (Dynamic search query integration & geolocation support) |
-| **Network Details & Prices** | Static hardcoded price buttons `[200, 500, 1000, 5000]` in UI; `getNetworkPrices` exists in service | `VERIFIED_CURRENT_STATE` (Buggy) | `PROPOSED_CONTRACT` (Dynamic server-driven `network_prices` rendering) |
-| **Atomic Card Purchase** | UI invokes `purchase_card` RPC with client-supplied `userId` and denomination | `VERIFIED_CURRENT_STATE` (Security risk) | `PROPOSED_CONTRACT` (Atomic RPC with implicit `auth.uid()`, balance check & locking) |
+| **Network Discovery** | `getNetworks()` fetches active networks; governorate filter UI present | `VERIFIED_CURRENT_STATE` (Partial) | `PROPOSED_CONTRACT` (Dynamic search query integration, nearby Wi-Fi scan & geolocation support) |
+| **Network Details & Prices** | Static hardcoded price buttons `[200, 500, 1000, 5000]` in UI; `getNetworkPrices` exists in service | `VERIFIED_CURRENT_STATE` (Buggy) | `PROPOSED_CONTRACT` (Dynamic server-driven `network_prices` rendering with package GB/validity metadata) |
+| **Atomic Card Purchase** | UI invokes `purchase_card` RPC with client-supplied `userId` and denomination | `VERIFIED_CURRENT_STATE` (Security risk) | `PROPOSED_CONTRACT` (Atomic RPC with implicit `auth.uid()`, balance check & secure last-card locking) |
 | **Card Reveal & Copy** | Plaintext card reveal in UI (`purchases_screen.dart`); copy to clipboard supported | `VERIFIED_CURRENT_STATE` | `PROPOSED_CONTRACT` (Strict Purchaser-Only RLS & reveal audit logging) |
-| **Wallet Deposit Request** | Simple form in `deposit_screen.dart` inserting into `wallet_deposit_requests` | `VERIFIED_CURRENT_STATE` (Basic) | `PROPOSED_CONTRACT` (Include payment receipt image upload & admin review workflow) |
-| **Network Owner Surface** | Absent from repository | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Dedicated Owner Mobile Application) |
-| **Administration Web Surface** | Absent from repository | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Dedicated React/Vite Admin Web Portal) |
+| **Wallet Deposit Request** | Simple form in `deposit_screen.dart` inserting into `wallet_deposit_requests` | `VERIFIED_CURRENT_STATE` (Basic) | `PROPOSED_CONTRACT` (Include payment receipt image upload, bank directory & admin status review workflow) |
+| **Network Owner Surface** | Absent from repository | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Dedicated Owner Mobile Application with Multi-SSID mapping) |
+| **Administration Web Surface** | Absent from repository | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Dedicated React/Vite Admin Web Portal with Lead Queue & Bank Directory management) |
 | **Database Schema & RLS** | `sql/netyemen_schema_fixed.sql` missing from version control | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Supabase Postgres Schema with strict RLS) |
 | **Audit & Governance** | No audit tables, ledger tables, or security tracking | `VERIFIED_CURRENT_STATE` (Missing) | `PROPOSED_CONTRACT` (Immutable append-only ledger & audit log) |
+
+---
+
+### 1.2 Competitor Benchmarking & Strategic Positioning Analysis
+
+An extensive forensic product benchmark was conducted against existing local Yemeni Wi-Fi card applications and digital payment platforms (Competitor A & Competitor B):
+
+| Feature Benchmark Area | Competitor A (Legacy Local App) | Competitor B (Regional Market App) | NetYemen Proposed V1 Architecture |
+|---|---|---|---|
+| **Wallet Account & Visible Balance** | Static balance string; manual sync | Visible real-time ledger balance | Immutable cached `wallet_balance` synced via append-only triggers |
+| **In-App Deposit Request** | Plain SMS text reference | In-app form with receipt image upload | In-app deposit request + high-res receipt screenshot + bank ref validation |
+| **Deposit Status Tracking** | None (User checks balance later) | Basic status text (`pending`/`approved`) | Full lifecycle tracking (`pending` -> `under_review` -> `approved`/`rejected`) + reason log |
+| **Bank & Exchange Directory** | Static text pinned in social media | Static in-app list | Dynamic, admin-managed Bank Directory UI (Kuraimi, OneCash, Al-Amqi, Floosak, Al-Najm) |
+| **Verified Account Badges** | None | Basic checkmark icon | Strict Owner Identity Verification + Verified Network Shield Badges |
+| **Package / Card Metadata** | Price only | Price + Validity days | Full package specs: Denomination, Selling Price, GB Quota, Validity (Hours/Days), Speed Cap |
+| **Transaction History** | Simple purchase list | Categorized transaction history | Filterable ledger timeline (Deposits, Purchases, Refunds, Adjustments) with receipt view |
+| **Account Deletion & Data** | Immediate hard delete / none | No self-serve deletion | 30-day grace period, PII anonymization, 5-year statutory financial retention (`OD-PRIV-01`) |
+| **Merchant / Sub-Distributor Role**| Manual unmonitored resellers | Dedicated agent tier | Classified as `V1.5` (`DEFERRED_POST_LAUNCH`) for local retail kiosks |
+| **Telecom Recharge Services** | Integrated mobile top-up | Integrated multi-service top-up | Explicitly deferred to `V2` (`OUT_OF_SCOPE_V1`) to focus 100% on Wi-Fi hotspot card distribution |
+| **WhatsApp Integration Policy** | Financial approvals via WhatsApp | Support & manual approval | WhatsApp used EXCLUSIVELY for support routing; Financial approvals over WhatsApp are `FORBIDDEN_BEHAVIOR` |
+| **P2P Wallet Transfers** | Unrestricted user-to-user transfers | Restricted transfer tier | P2P transfers between ordinary users are `FORBIDDEN_BEHAVIOR` in V1 to prevent illicit clearing |
 
 ---
 
@@ -55,6 +76,7 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 2. **Network Owners & Operators:** Local Wi-Fi network proprietors who manage hotspot infrastructure, set card pricing/denominations, upload card batches, and receive periodic financial payouts.
 3. **Platform Finance & Support Personnel:** NetYemen administrative staff responsible for approving owner onboarding, reviewing wallet deposit payment proofs, handling card disputes/refunds, executing owner payouts, and monitoring system integrity.
 4. **System Auditors & Administrators:** Operations leads managing security settings, platform role assignments, dispute escalation, and regulatory compliance.
+5. **Merchant Sub-Distributors (V1.5):** Local neighborhood retail kiosks authorized to perform cash top-ups for walk-in customers (`DEFERRED_POST_LAUNCH`).
 
 ---
 
@@ -71,20 +93,24 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 * **F-CUST-02: User Profile Management:**
   * Capture user full name, default governorate, city, and optional district preference.
   * View current wallet balance and account status (`active`, `suspended`).
-* **F-CUST-03: Network Discovery & Search:**
-  * Browse active, approved networks filtered by Governorate and City.
+* **F-CUST-03: Network Discovery & Filtering:**
+  * Browse active, approved networks filtered by Governorate, City, and District.
   * Search networks by name, SSID, or locality with dynamic debounced client query.
+  * Display verified network indicators (Verified Shield Badge for Admin-approved networks).
   * Display network status (Online/Active), customer service contact numbers, and optional map location coordinates.
-* **F-CUST-04: Dynamic Card Pricing & Denominations:**
+* **F-CUST-04: Dynamic Card Pricing & Package Details:**
   * Fetch real-time active price tiers (`network_prices`) per network.
-  * Display card denomination (e.g., 500 YER, 1,000 YER, 2,000 YER, 5,000 YER) alongside selling price and stock availability indicator (In Stock / Out of Stock).
-* **F-CUST-05: Prepaid Customer Wallet:**
+  * Display card denomination (e.g., 500 YER, 1,000 YER, 2,000 YER, 5,000 YER) alongside selling price and stock availability indicator (In Stock / Out of Stock / Only 1 Left!).
+  * Render detailed package specs: Data Quota (GB / MB), Validity Duration (Hours / Days), Speed Limits (Mbps), and expiration terms.
+* **F-CUST-05: Prepaid Customer Wallet & Deposit Workflow:**
   * Display immutable closing wallet balance calculated from valid ledger entries.
-  * Render transaction history (Deposits, Card Purchases, Refund Credits, Adjustments).
-  * Request wallet deposit by selecting payment channel (e.g., Kuraimi, OneCash, Al-Amqi, Floosak), entering transaction reference number, and uploading receipt screenshot image.
-* **F-CUST-06: Atomic Card Purchase & Reveal Contract:**
-  * Require explicit purchase confirmation modal displaying network name, card denomination, and wallet deduction amount.
+  * Render comprehensive transaction history (Deposits, Card Purchases, Refund Credits, Adjustments) with status filters.
+  * Request wallet deposit by selecting target bank/exchange, entering transaction reference number, and uploading receipt screenshot image.
+  * Real-time deposit review status tracking (`pending` -> `under_review` -> `approved` / `rejected`).
+* **F-CUST-06: Atomic Card Purchase & Secure Last-Card Behavior:**
+  * Require explicit purchase confirmation modal displaying network name, card package details, and wallet deduction amount.
   * Execute atomic `purchase_card` RPC transaction ensuring zero race conditions on the last available card in stock.
+  * **Secure Last-Card Behavior:** When stock = 1, row locking (`FOR UPDATE SKIP LOCKED`) ensures first buyer acquires lock; second buyer receives clean failure notification: *"تم شراء آخر كرت متوفر من قِبل مستخدم آخر"* without double-debit.
   * Upon transaction success, immediately display complete card number in plaintext with a one-tap "Copy Card Number" action.
   * Provide direct button to launch local Wi-Fi Hotspot login page if configured by the network.
 * **F-CUST-07: Purchase History & Card Storage:**
@@ -94,10 +120,20 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 * **F-CUST-08: Support & Card Complaints:**
   * Submit card complaint (e.g., "Card already used", "Invalid PIN") within 24 hours of purchase.
   * Attach dispute explanation; track ticket resolution status.
-* **F-CUST-09: Account Lifecycle & Notifications:**
+  * WhatsApp customer support link integration (strictly for text support inquiries).
+* **F-CUST-09: Account Lifecycle & Secure Deletion:**
   * Receive push notifications for deposit approvals, purchase confirmations, and support responses.
   * Secure logout clearing local session and tokens.
-  * Request account suspension or formal closure.
+  * Request account suspension or formal closure with 30-day grace period and statutory 5-year financial data retention.
+* **F-CUST-10: Nearby Wi-Fi Hotspot Discovery & Multi-SSID Auto-Matching (NY-PRODUCT-001E):**
+  * Auto-scan active Wi-Fi SSIDs in range (with Android Wi-Fi scan permissions) or match typed SSIDs against platform network registry.
+  * Highlight "Connected to [Network Name]" or "Nearby Network Found" banners on home screen for 1-tap card purchasing.
+* **F-CUST-11: Network Addition Request Submission (NY-PRODUCT-001E):**
+  * Allow customers to submit a "Suggest New Network" request if their local Wi-Fi hotspot is unlisted.
+  * Capture network SSID, approximate location/city, and optional owner contact details to feed Admin lead queue.
+* **F-CUST-12: Bank & Exchange Account Directory (NY-PRODUCT-001E):**
+  * Dedicated in-app Directory of official platform deposit accounts (Kuraimi Bank, OneCash, Al-Amqi Exchange, Floosak, Al-Najm Exchange).
+  * One-tap copy action for account numbers and IBANs to facilitate error-free mobile banking transfers.
 
 ---
 
@@ -111,8 +147,8 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
 * **F-OWN-02: Network Profile & Location Management:**
   * Configure network name, broadcast SSIDs, operating governorate, city, district, and contact numbers.
   * Set geographic location (latitude/longitude) for network discovery.
-* **F-OWN-03: Denomination & Price Catalog:**
-  * Define available card denominations and retail selling prices.
+* **F-OWN-03: Denomination & Package Catalog:**
+  * Define available card packages: Denomination, retail selling price, GB quota, and validity duration.
   * Enable or disable specific price tiers based on inventory availability.
 * **F-OWN-04: Secure Card Batch Upload & Import Validation:**
   * Import internet card batches via text paste or CSV file.
@@ -128,6 +164,11 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
   * View historical payout settlement records and payment vouchers.
 * **F-OWN-07: Operator Staff Delegation:**
   * Owner can invite secondary `NETWORK_OPERATOR` accounts with restricted permissions (e.g., card upload allowed, settlement payout view denied).
+* **F-OWN-08: Multi-SSID Alias Mapping (NY-PRODUCT-001E):**
+  * Register multiple broadcast SSIDs under a single unified network entity (e.g., `NetYemen-North-1`, `NetYemen-North-2`, `NetYemen-5G`).
+  * All card purchases across mapped SSIDs draw from the same central card inventory batch.
+* **F-OWN-09: Verified Owner Badge & Reputation Shield (NY-PRODUCT-001E):**
+  * Verified owners receive a prominent "Verified Network Owner" badge on marketplace cards, increasing customer trust.
 
 ---
 
@@ -156,6 +197,9 @@ NetYemen functions as a secure, low-bandwidth, Arabic-first mobile marketplace f
   * Instantly suspend compromised customer accounts or fraudulent network owners, invalidating active sessions.
 * **F-ADM-08: Audit Log & Financial Ledger Inspector:**
   * Read-only interface to query immutable platform audit logs and system financial balance ledger.
+* **F-ADM-09: Bank Directory & Network Lead Queue Management (NY-PRODUCT-001E):**
+  * Manage official platform deposit bank/exchange accounts (Add, edit, toggle visibility).
+  * Review customer-submitted network addition leads, assign sales reps, and convert leads into network onboarding invitations.
 
 ---
 
@@ -165,24 +209,28 @@ To guarantee security, architectural stability, and rapid execution, the followi
 
 ### 4.1 Out of Scope for V1 (`OUT_OF_SCOPE_V1`)
 
-1. **Flutter Web Administration Portal:** Admin portal will be built as a standalone React/Vite web application, not compiled from Flutter Web codebase.
+1. **Flutter Web Administration Portal:** Admin portal will be built as a standalone React/Vite web application.
 2. **Direct Telecom / Mobile Money API Integration:** Wallet deposits will rely on manual receipt upload and administrative verification queue rather than automated bank API callbacks in V1.
-3. **Multi-Country / Currency Operations:** V1 is strictly restricted to Yemeni network cards and Yemeni Rial (YER) financial accounting.
-4. **Offline Card Purchases:** Customer app requires active internet connectivity to execute atomic card purchases via backend RPC.
+3. **Telecom Balance Recharge Services (Yemen Mobile / MTN / Sabafon):** Explicitly deferred to `V2`. NetYemen V1 focuses strictly on local Wi-Fi hotspot cards.
+4. **Multi-Country / Currency Operations:** V1 is strictly restricted to Yemeni network cards and Yemeni Rial (YER) financial accounting.
+5. **Offline Card Purchases:** Customer app requires active internet connectivity to execute atomic card purchases via backend RPC.
 
 ### 4.2 Deferred Post-Launch (`DEFERRED_POST_LAUNCH`)
 
-1. **iOS Customer & Owner Applications:** iOS release builds and App Store submission are deferred until Android market launch stabilizes.
-2. **Automated OCR Receipt Scanning:** Automated image text recognition for deposit receipt processing deferred to V2.
-3. **In-App Live Chat Support:** Customer support in V1 relies on ticket submission and WhatsApp integration rather than real-time custom socket chat.
+1. **Merchant / Sub-Distributor Application Surface (V1.5):** Dedicated portal for local retail kiosks to act as cash top-up agents or bulk sub-distributors deferred to `V1.5`.
+2. **iOS Customer & Owner Applications:** iOS release builds and App Store submission are deferred until Android market launch stabilizes.
+3. **Automated OCR Receipt Scanning:** Automated image text recognition for deposit receipt processing deferred to V2.
+4. **In-App Live Chat Support:** Customer support in V1 relies on ticket submission and WhatsApp link integration rather than real-time custom socket chat.
 
 ### 4.3 Strictly Forbidden Features (`FORBIDDEN_BEHAVIOR`)
 
 1. **Negative Wallet Balances:** Wallet balances must never drop below 0 under any circumstance.
-2. **Direct Database Wallet Balance Updates:** Updating `wallet_balance` via `UPDATE users SET wallet_balance = ...` is strictly forbidden; balance MUST derive from append-only ledger entries.
-3. **Public Marketplace Unverified Selling:** Unverified network owners cannot list or sell cards on the platform.
-4. **Manual Modification of Financial Ledger:** Deleting or editing completed ledger rows or audit logs is impossible by schema design and RLS.
-5. **Plaintext Card Number Exposure to Uninvolved Parties:** Network owners cannot view full card numbers once sold; third-party customers cannot view cards belonging to other users.
+2. **Financial Approvals over WhatsApp:** Approving deposits, issuing refunds, or updating ledger balances via WhatsApp messages is strictly FORBIDDEN. All financial approvals MUST occur inside the Admin Web portal.
+3. **P2P Wallet Transfers Between Ordinary Users:** Direct wallet balance transfers between customer accounts are FORBIDDEN in V1 to prevent unverified financial clearing.
+4. **Direct Database Wallet Balance Updates:** Updating `wallet_balance` via `UPDATE users SET wallet_balance = ...` is strictly forbidden; balance MUST derive from append-only ledger entries.
+5. **Public Marketplace Unverified Selling:** Unverified network owners cannot list or sell cards on the platform.
+6. **Manual Modification of Financial Ledger:** Deleting or editing completed ledger rows or audit logs is impossible by schema design and RLS.
+7. **Plaintext Card Number Exposure to Uninvolved Parties:** Network owners cannot view full card numbers once sold; third-party customers cannot view cards belonging to other users.
 
 ---
 
@@ -230,6 +278,7 @@ To guarantee security, architectural stability, and rapid execution, the followi
 | Requirement Item | Primary Verification Method | Traceability Matrix Target |
 |---|---|---|
 | Customer Authentication | Automated Integration Test | `TEST-AUTH-001`, `TEST-AUTH-002` |
-| Atomic Purchase RPC | Database Stress & Concurrency Test | `TEST-CONCURRENCY-001` |
-| Zero Negative Wallet | Financial Ledger Invariant Audit | `TEST-WALLET-001` |
+| Atomic Purchase & Last-Card Lock | Database Stress & Concurrency Test | `TEST-CONCURRENCY-001`, `TEST-CONCURRENCY-002` |
+| Zero Negative Wallet & No P2P Transfer | Financial Ledger Invariant Audit | `TEST-WALLET-001`, `TEST-WALLET-007` |
 | Data Isolation (RLS) | Security RLS Penetration Suite | `TEST-AUTHORIZATION-001` |
+| WhatsApp Financial Approval Exclusion | Security Policy Audit | `TEST-AUTHORIZATION-007` |

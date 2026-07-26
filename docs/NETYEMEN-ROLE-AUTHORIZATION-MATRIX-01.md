@@ -1,9 +1,9 @@
-# NETYEMEN ROLE AUTHORIZATION MATRIX (V1.0)
+# NETYEMEN ROLE AUTHORIZATION MATRIX (V1.0 + V1.1 ENHANCEMENTS)
 
 **Task ID:** NY-PRODUCT-001  
 **Document Code:** `NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Security Access Control, Role Governance, and RLS Matrix  
+**Scope:** Security Access Control, Role Governance, and RLS Matrix (Updated with NY-PRODUCT-001E Policy Rules)  
 
 ---
 
@@ -23,17 +23,18 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 |  6. SUPPORT_AGENT (Customer Care & Dispute Resolution Specialist)                |
 |  7. PLATFORM_ADMIN (System Superadmin & Role Authority)                           |
 |  8. SYSTEM_AUDITOR (Read-Only Compliance & Forensic Auditor)                      |
+|  [V1.5] MERCHANT_DISTRIBUTOR (Retail Kiosk Sub-Distributor - DEFERRED V1.5)       |
 +-----------------------------------------------------------------------------------+
 ```
 
 ### 1.1 Detailed Role Definitions
-* **`UNAUTHENTICATED`:** Anonymous public app visitors. Restricted exclusively to viewing active/approved networks and public prices.
-* **`CUSTOMER`:** Authenticated retail phone user. Permitted to maintain wallet balance, request deposits, execute atomic card purchases, view own purchased cards, and submit card complaints.
-* **`NETWORK_OWNER`:** Verified proprietor of one or more Wi-Fi networks. Permitted to configure network details, manage price catalogs, upload card batches, void unsold stock, assign operators, and view own network settlement reports.
+* **`UNAUTHENTICATED`:** Anonymous public app visitors. Restricted exclusively to viewing active/approved networks, public package prices, and bank directory.
+* **`CUSTOMER`:** Authenticated retail phone user. Permitted to maintain wallet balance, request deposits with payment proofs, execute atomic card purchases, view own purchased cards, submit network addition leads, and submit card complaints.
+* **`NETWORK_OWNER`:** Verified proprietor of one or more Wi-Fi networks. Permitted to configure network details, multi-SSID aliases, manage package pricing catalogs, upload card batches, void unsold stock, assign operators, and view own network settlement reports.
 * **`NETWORK_OPERATOR`:** Staff member delegated by a Network Owner. Permitted to upload card batches and view inventory for assigned networks only; prohibited from viewing settlement payouts.
-* **`FINANCE_OFFICER`:** Internal financial reviewer. Permitted to inspect deposit receipts, approve/reject wallet deposits, audit ledger entries, and calculate owner settlement vouchers.
+* **`FINANCE_OFFICER`:** Internal financial reviewer. Permitted to inspect deposit receipts, approve/reject wallet deposits, audit ledger entries, manage bank directories, and calculate owner settlement vouchers.
 * **`SUPPORT_AGENT`:** Customer care specialist. Permitted to view customer support tickets, investigate card disputes, quarantine reported cards, and issue approved wallet refunds.
-* **`PLATFORM_ADMIN`:** Full administrative lead. Permitted to verify owner accounts, approve network listings, suspend accounts, configure platform settings, and manage staff role assignments.
+* **`PLATFORM_ADMIN`:** Full administrative lead. Permitted to verify owner accounts, approve network listings, review lead queues, suspend accounts, configure platform settings, and manage staff role assignments.
 * **`SYSTEM_AUDITOR`:** Read-only compliance reviewer. Permitted global read access to audit logs, ledger entries, system activity, and security event streams; strictly prohibited from executing mutations or data changes.
 
 ---
@@ -50,14 +51,16 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 | Operation Category | Action Description | UNAUTH | CUST | OWNER | OPERATOR | FINANCE | SUPPORT | ADMIN | AUDITOR |
 |---|---|---|---|---|---|---|---|---|---|
 | **Public Marketplace** | View Active/Approved Networks | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` |
-| **Public Marketplace** | View Network Prices | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` |
+| **Public Marketplace** | View Network Prices & Packages | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` |
+| **Public Marketplace** | View Bank & Exchange Directory | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` |
+| **Public Marketplace** | Submit Network Addition Lead | `DENIED` | `ALLOWED` | `ALLOWED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Authentication** | Request SMS OTP | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Authentication** | Verify SMS OTP | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **User Profile** | Read Own Profile (`auth.uid()`) | `DENIED` | `COND-1` | `COND-1` | `COND-1` | `ALLOWED` | `ALLOWED` | `ALLOWED` | `ALLOWED` |
 | **User Profile** | Update Own Profile | `DENIED` | `COND-1` | `COND-1` | `COND-1` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **User Profile** | Suspend Any User Account | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Network Management** | Submit New Network | `DENIED` | `DENIED` | `COND-2` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
-| **Network Management** | Update Own Network Details | `DENIED` | `DENIED` | `COND-3` | `COND-4` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
+| **Network Management** | Update Own Network / SSIDs | `DENIED` | `DENIED` | `COND-3` | `COND-4` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Network Management** | Approve / Reject Network | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Card Inventory** | Upload Card Batch File | `DENIED` | `DENIED` | `COND-3` | `COND-4` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Card Inventory** | View Unsold Card PINs | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
@@ -66,8 +69,10 @@ The NetYemen security architecture implements strict **Role-Based Access Control
 | **Wallet & Purchases**| Review / Approve Deposit | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Wallet & Purchases**| Execute Atomic Purchase RPC | `DENIED` | `COND-5` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Wallet & Purchases**| Reveal Purchased Card PIN | `DENIED` | `COND-6` | `DENIED` | `DENIED` | `DENIED` | `COND-7` | `DENIED` | `DENIED` |
+| **Wallet & Purchases**| Peer-to-Peer (P2P) Transfer | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Disputes & Refunds**| File Card Complaint | `DENIED` | `COND-6` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Disputes & Refunds**| Approve Wallet Refund | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `ALLOWED` | `DENIED` |
+| **Disputes & Refunds**| Approve via WhatsApp Message| `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` |
 | **Settlements** | View Own Network Settlement | `DENIED` | `DENIED` | `COND-3` | `DENIED` | `ALLOWED` | `DENIED` | `ALLOWED` | `ALLOWED` |
 | **Settlements** | Approve Settlement Payout | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` | `ALLOWED` | `DENIED` |
 | **Platform Governance**| Assign Platform Roles | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `DENIED` | `ALLOWED` | `DENIED` |
@@ -112,5 +117,5 @@ The following matrix documents security tests designed to attempt unauthorized a
 | `NEG-AUTH-004` | `NETWORK_OPERATOR` | View Owner Payout Settlement | Network Owner | `403 Forbidden` | RLS `settlements` denies `NETWORK_OPERATOR` |
 | `NEG-AUTH-005` | `CUSTOMER` | Approve Pending Deposit | Self Wallet | `403 Forbidden` | RLS `wallet_deposit_requests` update restricted to `FINANCE_OFFICER` |
 | `NEG-AUTH-006` | `PLATFORM_ADMIN` | Delete Row in `audit_logs` | System Audit Table | `403 SQL Error (Immutable)`| Database trigger & RLS zero DELETE policy |
-| `NEG-AUTH-007` | `UNAUTHENTICATED` | Call `purchase_card` RPC | Any Available Card | `401 Unauthorized` | Supabase Auth JWT requirement |
-| `NEG-AUTH-008` | `SUPPORT_AGENT` | View Unsold Card PIN | Unsold Card Stock | `403 Forbidden` | RLS `cards.status = 'sold'` check |
+| `NEG-AUTH-007` | `CUSTOMER` (User A) | Execute P2P Wallet Transfer to User B | Customer (User B) | `403 Forbidden (No P2P)` | Endpoint/RPC non-existence & RLS DENY |
+| `NEG-AUTH-008` | `FINANCE_OFFICER` | Approve Deposit via WhatsApp Webhook | Target Customer | `403 Forbidden` | Approval endpoint restricted strictly to Admin Web JWT |

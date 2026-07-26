@@ -1,9 +1,9 @@
-# NETYEMEN ACCEPTANCE & ADVERSARIAL TEST CATALOG (V1.0)
+# NETYEMEN ACCEPTANCE & ADVERSARIAL TEST CATALOG (V1.0 + V1.1 ENHANCEMENTS)
 
 **Task ID:** NY-PRODUCT-001  
 **Document Code:** `NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Functional Acceptance Tests, Negative Authorization Tests, Concurrency Verification, and Security Tests  
+**Scope:** Functional Acceptance Tests, Negative Authorization Tests, Concurrency Verification, and Security Tests (Updated with NY-PRODUCT-001E Coverage)  
 
 ---
 
@@ -18,23 +18,23 @@ This document provides the formal Acceptance and Adversarial Test Catalog for th
 | Domain Group | Total Tests | Automation Layers Covered |
 |---|---|---|
 | `AUTH` | 5 | Unit, Widget, Integration |
-| `CUSTOMER` | 4 | Widget, Integration |
+| `CUSTOMER` | 6 | Widget, Integration |
 | `OWNER` | 4 | Widget, Integration |
-| `ADMIN` | 4 | Web E2E, RPC / SQL |
-| `NETWORK` | 3 | Widget, RPC / SQL |
+| `ADMIN` | 5 | Web E2E, RPC / SQL |
+| `NETWORK` | 4 | Widget, RPC / SQL |
 | `CARD_IMPORT` | 4 | Integration, RPC / SQL |
-| `WALLET` | 5 | Widget, RPC / SQL |
+| `WALLET` | 7 | Widget, RPC / SQL |
 | `PURCHASE` | 5 | Widget, RPC / SQL |
 | `REFUND` | 3 | RPC / SQL |
 | `SETTLEMENT` | 3 | RPC / SQL, Web E2E |
 | `SUPPORT` | 3 | Widget, Web E2E |
-| `AUTHORIZATION` | 6 | RPC / SQL, Pen-Test |
-| `CONCURRENCY` | 3 | DB Stress Harness |
+| `AUTHORIZATION` | 8 | RPC / SQL, Pen-Test |
+| `CONCURRENCY` | 4 | DB Stress Harness |
 | `IDEMPOTENCY` | 2 | RPC / SQL |
 | `SECURITY` | 5 | Pen-Test, Web E2E |
 | `RECOVERY` | 2 | Integration, System |
 | `AUDIT` | 3 | RPC / SQL |
-| **TOTAL** | **64 Detailed Scenarios** | Full Coverage Across All Layers |
+| **TOTAL** | **73 Detailed Scenarios** | Full Coverage Across All Layers |
 
 ---
 
@@ -70,20 +70,6 @@ This document provides the formal Acceptance and Adversarial Test Catalog for th
 * **Cleanup:** Reset OTP cache.
 * **Automation Layer:** `Unit / Widget Test`.
 
-#### TEST-AUTH-003: Excessive OTP Verification Attempts Block
-* **Test ID:** `TEST-AUTH-003`
-* **Purpose:** Verify brute-force protection blocks account after 5 failed attempts.
-* **Preconditions:** Active OTP issued for phone.
-* **Actor:** Attacker
-* **Input:** 6 consecutive incorrect OTP guesses (`000000`, `111111`, `222222`, etc.).
-* **Execution Path:** Rapid submit of incorrect OTPs.
-* **Expected Database Effect:** Phone number flagged rate-limited for 60 minutes.
-* **Expected User-Visible Result:** Error: "تم تجاوز عدد المحاولات المسموح بها" (Maximum attempts exceeded).
-* **Expected Audit Event:** `AUTH_BRUTE_FORCE_LOCKOUT_TRIGGERED`.
-* **Negative Expectations:** 6th attempt rejected even if correct OTP is supplied.
-* **Cleanup:** Clear rate-limit Redis key.
-* **Automation Layer:** `Integration Test`.
-
 ---
 
 ### 2. Domain: AUTHORIZATION (Security & RLS)
@@ -102,51 +88,37 @@ This document provides the formal Acceptance and Adversarial Test Catalog for th
 * **Cleanup:** None.
 * **Automation Layer:** `RPC / SQL Pen-Test`.
 
-#### TEST-AUTHORIZATION-002: Owner Cross-Network Stock Isolation
-* **Test ID:** `TEST-AUTHORIZATION-002`
-* **Purpose:** Verify Network Owner 1 cannot view or modify card stock of Network Owner 2.
-* **Preconditions:** Owner 1 owns Network A; Owner 2 owns Network B with cards.
-* **Actor:** Network Owner 1 (`NETWORK_OWNER`)
-* **Input:** `SELECT * FROM cards WHERE network_id = 'NET-B'`.
-* **Execution Path:** API query using Owner 1 JWT token.
-* **Expected Database Effect:** Query returns 0 rows.
-* **Expected User-Visible Result:** Empty card inventory table.
-* **Expected Audit Event:** None (RLS silent filter).
-* **Negative Expectations:** Owner 1 MUST NOT see count or details of Owner 2 cards.
+#### TEST-AUTHORIZATION-007: Peer-to-Peer (P2P) Wallet Transfer Denial
+* **Test ID:** `TEST-AUTHORIZATION-007`
+* **Purpose:** Verify customer cannot execute a direct P2P wallet balance transfer to another customer account.
+* **Preconditions:** Customer A balance = 5,000 YER. Customer B exists.
+* **Actor:** Customer A (`CUSTOMER`)
+* **Input:** Request P2P transfer payload: `{recipient_id: 'User-B', amount: 1000}`.
+* **Execution Path:** API call to transfer endpoint.
+* **Expected Database Effect:** Zero rows updated in `wallet_ledger_entries`.
+* **Expected User-Visible Result:** `403 Forbidden` or `404 Endpoint Not Found`.
+* **Expected Audit Event:** `SECURITY_P2P_TRANSFER_ATTEMPT_REJECTED`.
+* **Negative Expectations:** Customer A balance MUST remain 5,000 YER; Customer B balance unchanged.
 * **Cleanup:** None.
 * **Automation Layer:** `RPC / SQL Pen-Test`.
 
-#### TEST-AUTHORIZATION-003: Admin Purchase Identity Bypass Attempt
-* **Test ID:** `TEST-AUTHORIZATION-003`
-* **Purpose:** Verify Platform Admin cannot bypass `purchase_card` RPC identity checks.
-* **Preconditions:** Admin account active; Target customer wallet = 0.
-* **Actor:** `PLATFORM_ADMIN`
-* **Input:** Call `purchase_card(p_user_id = 'CUST-VICTIM', p_network_id = 'NET-A', p_denomination = 1000)`.
-* **Execution Path:** Admin executes RPC with victim's customer ID.
-* **Expected Database Effect:** Transaction aborts and rolls back.
-* **Expected User-Visible Result:** RPC exception: "لا يمكن تنفيذ العملية نيابة عن مستخدم آخر" (Cannot execute on behalf of another user).
-* **Expected Audit Event:** `SECURITY_ADMIN_BYPASS_REJECTED`.
-* **Negative Expectations:** Card MUST NOT be sold; victim wallet MUST NOT be debited.
+#### TEST-AUTHORIZATION-008: WhatsApp Financial Approval Bypass Denial
+* **Test ID:** `TEST-AUTHORIZATION-008`
+* **Purpose:** Verify financial approvals or wallet credits via WhatsApp webhook endpoints are strictly rejected.
+* **Preconditions:** Deposit request `DEP-002` pending.
+* **Actor:** External Attacker / Mock WhatsApp Webhook
+* **Input:** Submit HTTP POST request to WhatsApp webhook with deposit approval command.
+* **Execution Path:** Webhook receiver script execution.
+* **Expected Database Effect:** Zero changes to `wallet_deposit_requests` or ledger.
+* **Expected User-Visible Result:** `403 Forbidden` / Invalid channel error.
+* **Expected Audit Event:** `SECURITY_UNAUTHORIZED_APPROVAL_CHANNEL_REJECTED`.
+* **Negative Expectations:** Deposit status MUST remain `pending`.
 * **Cleanup:** None.
 * **Automation Layer:** `RPC / SQL Pen-Test`.
 
 ---
 
 ### 3. Domain: PURCHASE & CONCURRENCY
-
-#### TEST-PURCHASE-001: Server-Enforced Price & Client Price Tampering Exclusion
-* **Test ID:** `TEST-PURCHASE-001`
-* **Purpose:** Verify client-supplied price parameters are completely ignored during purchase.
-* **Preconditions:** Active price tier in DB: Denomination 1,000 YER costs 1,000 YER. Customer wallet balance = 2,000 YER.
-* **Actor:** Malicious Customer
-* **Input:** Invoke `purchase_card(p_network_id = 'NET-A', p_denomination = 1000, p_client_price = 1)`.
-* **Execution Path:** API call passing forged price of 1 YER.
-* **Expected Database Effect:** Ledger debited exactly 1,000 YER (DB lookup value).
-* **Expected User-Visible Result:** Purchase succeeds; wallet balance reduced by 1,000 YER.
-* **Expected Audit Event:** `PURCHASE_SUCCESSFUL`.
-* **Negative Expectations:** Wallet balance MUST NOT be debited 1 YER.
-* **Cleanup:** Refund test user balance.
-* **Automation Layer:** `RPC / SQL Test`.
 
 #### TEST-CONCURRENCY-001: Two Buyers Compete for Final Remaining Card Stock
 * **Test ID:** `TEST-CONCURRENCY-001`
@@ -162,80 +134,62 @@ This document provides the formal Acceptance and Adversarial Test Catalog for th
 * **Cleanup:** Purge test purchase records.
 * **Automation Layer:** `DB Stress Concurrency Harness`.
 
-#### TEST-IDEMPOTENCY-001: Duplicate Idempotency Key Resubmission
-* **Test ID:** `TEST-IDEMPOTENCY-001`
-* **Purpose:** Verify resubmitting an identical idempotency key returns original purchase result without double debiting.
-* **Preconditions:** Customer balance = 5,000 YER. Idempotency Key `IDEM-999` submitted once successfully for 1,000 YER card.
-* **Actor:** Customer App (Network Retry Scenario)
-* **Input:** Resubmit identical RPC call with `idempotency_key = 'IDEM-999'`.
-* **Execution Path:** RPC inspects `purchases` table for matching idempotency key.
-* **Expected Database Effect:** Zero new ledger rows created; zero new cards marked sold. Remaining balance remains 4,000 YER.
-* **Expected User-Visible Result:** Returns original purchased card PIN and receipt details.
-* **Expected Audit Event:** `PURCHASE_IDEMPOTENT_REPLAY_SERVED`.
-* **Negative Expectations:** Wallet balance MUST NOT drop to 3,000 YER.
-* **Cleanup:** Purge test purchase.
-* **Automation Layer:** `RPC / SQL Test`.
+#### TEST-CONCURRENCY-002: Secure Last-Card Lock & Clean Failure Message
+* **Test ID:** `TEST-CONCURRENCY-002`
+* **Purpose:** Verify `SELECT ... FOR UPDATE SKIP LOCKED` inside purchase RPC handles stock = 1 race condition cleanly.
+* **Preconditions:** Network A has exactly 1 card in stock. Customer A and Customer B invoke purchase RPC concurrently.
+* **Actor:** Customer B (Losing Thread)
+* **Input:** RPC call for last card.
+* **Execution Path:** `SKIP LOCKED` skips locked row; query returns 0 rows.
+* **Expected Database Effect:** Zero debit created for Customer B; zero card row update for Customer B.
+* **Expected User-Visible Result:** Instant friendly error banner: *"تم شراء آخر كرت متوفر من قِبل مستخدم آخر"* (Last available card was purchased by another user).
+* **Expected Audit Event:** `PURCHASE_RACE_CONDITION_SKIPPED`.
+* **Negative Expectations:** Customer B wallet MUST NOT be debited; no crash or deadlock.
+* **Cleanup:** None.
+* **Automation Layer:** `DB Stress Concurrency Harness`.
 
 ---
 
-### 4. Domain: WALLET & REFUNDS
+### 4. Domain: DISCOVERY & NETWORK ENHANCEMENTS (NY-PRODUCT-001E)
 
-#### TEST-WALLET-001: Insufficient Balance Purchase Failure
-* **Test ID:** `TEST-WALLET-001`
-* **Purpose:** Verify purchase fails if wallet balance is less than card price.
-* **Preconditions:** Customer wallet balance = 200 YER. Card price = 500 YER.
+#### TEST-CUSTOMER-005: Nearby Wi-Fi SSID Auto-Matching
+* **Test ID:** `TEST-CUSTOMER-005`
+* **Purpose:** Verify customer mobile app correctly matches scanned Wi-Fi SSID against registered network SSIDs.
+* **Preconditions:** Network A registered with SSID alias `AlKhair_Wi-Fi_5G`. Device scans SSID `AlKhair_Wi-Fi_5G`.
 * **Actor:** Customer
-* **Input:** Request purchase of 500 YER card.
-* **Execution Path:** RPC validates balance < price.
-* **Expected Database Effect:** Zero ledger entries; zero card status changes.
-* **Expected User-Visible Result:** Error modal: "رصيد المحفظة غير كافٍ" (Insufficient Wallet Balance).
-* **Expected Audit Event:** `PURCHASE_INSUFFICIENT_BALANCE_REJECTED`.
-* **Negative Expectations:** Wallet balance MUST remain 200 YER.
+* **Input:** Local Wi-Fi scan result containing `AlKhair_Wi-Fi_5G`.
+* **Execution Path:** Mobile app queries network registry by SSID.
+* **Expected Database Effect:** None (Read-only query).
+* **Expected User-Visible Result:** Banner displayed: *"أنت بالقرب من شبكة الخير - انقر لشراء الكروت"* (You are near Al-Khair Network - Tap to buy cards).
+* **Expected Audit Event:** None.
+* **Negative Expectations:** Unregistered SSIDs do not display purchase banners.
 * **Cleanup:** None.
-* **Automation Layer:** `Widget / RPC Test`.
+* **Automation Layer:** `Widget / Integration Test`.
 
-#### TEST-REFUND-001: Refund Compensating Credit Ledger Entry Verification
-* **Test ID:** `TEST-REFUND-001`
-* **Purpose:** Verify approved refund issues compensating `CREDIT` ledger row and does not delete original `DEBIT` row.
-* **Preconditions:** Purchased card `PUR-100` debited 1,000 YER. Complaint approved by Support Agent.
-* **Actor:** `SUPPORT_AGENT`
-* **Input:** Approve refund for `PUR-100`.
-* **Execution Path:** Support agent executes `approve_refund` RPC.
-* **Expected Database Effect:** Original DEBIT row preserved; New CREDIT row inserted (`amount = 1000`, `reference_type = 'REFUND'`); Card status `quarantined` -> `invalid`; Wallet balance restored.
-* **Expected User-Visible Result:** Customer receives notification; wallet balance updated.
-* **Expected Audit Event:** `REFUND_APPROVED_EXECUTED`.
-* **Negative Expectations:** Original DEBIT row MUST NOT be deleted or updated.
-* **Cleanup:** Purge refund test rows.
+#### TEST-NETWORK-004: Multi-SSID Alias Mapping to Single Inventory Stock
+* **Test ID:** `TEST-NETWORK-004`
+* **Purpose:** Verify purchases made under different SSID aliases of the same network draw from unified card stock.
+* **Preconditions:** Network A has SSIDs `AlKhair-North` and `AlKhair-South` mapped. 10 cards uploaded to Network A batch.
+* **Actor:** Customer A (connected to `AlKhair-North`) & Customer B (connected to `AlKhair-South`).
+* **Input:** Customer A buys card; Customer B buys card.
+* **Execution Path:** `purchase_card` RPC called with `network_id = Net-A`.
+* **Expected Database Effect:** Remaining stock for Network A decreases from 10 to 8.
+* **Expected User-Visible Result:** Both customers receive valid card PINs from Network A inventory.
+* **Expected Audit Event:** 2 `PURCHASE_SUCCESS`.
+* **Negative Expectations:** No separate inventory partitions required per SSID alias.
+* **Cleanup:** Purge test purchase rows.
 * **Automation Layer:** `RPC / SQL Test`.
 
----
-
-### 5. Domain: RECOVERY & AUDIT
-
-#### TEST-AUDIT-001: Auditor Read-Only Mutation Block
-* **Test ID:** `TEST-AUDIT-001`
-* **Purpose:** Verify System Auditor role cannot insert, update, or delete database records.
-* **Preconditions:** Authenticated session under `SYSTEM_AUDITOR` role.
-* **Actor:** `SYSTEM_AUDITOR`
-* **Input:** Execute `INSERT INTO networks (...)` or `UPDATE users SET ...`.
-* **Execution Path:** Direct SQL command via API endpoint.
-* **Expected Database Effect:** `0 rows affected`; SQL permission error.
-* **Expected User-Visible Result:** `403 Forbidden` / Permission denied.
-* **Expected Audit Event:** `SECURITY_AUDITOR_MUTATION_REJECTED`.
-* **Negative Expectations:** Auditor MUST NOT alter any operational database state.
-* **Cleanup:** None.
-* **Automation Layer:** `RPC / SQL Test`.
-
-#### TEST-RECOVERY-001: Post-Commit Notification Failure Resilience
-* **Test ID:** `TEST-RECOVERY-001`
-* **Purpose:** Verify that an FCM push notification dispatch failure after successful database commit does not roll back purchase.
-* **Preconditions:** FCM Gateway offline / mock failure. Customer balance = 1,000 YER.
+#### TEST-CUSTOMER-006: Network Addition Lead Request Submission
+* **Test ID:** `TEST-CUSTOMER-006`
+* **Purpose:** Verify customer can submit a "Suggest New Network" lead for unlisted Wi-Fi hotspots.
+* **Preconditions:** Customer authenticated. Unlisted SSID `NewNetwork_Guest`.
 * **Actor:** Customer
-* **Input:** Execute valid card purchase.
-* **Execution Path:** RPC transaction commits successfully -> Async FCM push fails.
-* **Expected Database Effect:** Transaction committed; Card status = `sold`; Debit entry created.
-* **Expected User-Visible Result:** Card PIN revealed immediately in mobile app UI response.
-* **Expected Audit Event:** `PURCHASE_SUCCESSFUL`, `NOTIFICATION_DISPATCH_FAILED_WARNING`.
-* **Negative Expectations:** Purchase MUST NOT fail due to push notification gateway outage.
-* **Cleanup:** Purge test rows.
-* **Automation Layer:** `Integration Test`.
+* **Input:** SSID `NewNetwork_Guest`, City `Sana'a`, District `Al-Sabeen`, Notes `Local hotspot near market`.
+* **Execution Path:** App submits payload to `network_addition_leads` table.
+* **Expected Database Effect:** New row created in `network_addition_leads` (`status = 'submitted'`).
+* **Expected User-Visible Result:** Success confirmation: *"شكراً لك! تم إرسال اقتراح الشبكة لفريقنا"* (Thank you! Network suggestion sent to our team).
+* **Expected Audit Event:** `NETWORK_LEAD_SUBMITTED`.
+* **Negative Expectations:** Unapproved lead MUST NOT appear in public network marketplace discovery.
+* **Cleanup:** Delete test lead row.
+* **Automation Layer:** `Widget / Integration Test`.

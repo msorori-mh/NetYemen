@@ -1,9 +1,9 @@
-# NETYEMEN BUSINESS RULES CATALOG (V1.0)
+# NETYEMEN BUSINESS RULES CATALOG (V1.0 + V1.1 ENHANCEMENTS)
 
 **Task ID:** NY-PRODUCT-001  
 **Document Code:** `NETYEMEN-BUSINESS-RULES-CATALOG-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Core Platform Business Logic, Financial Controls, and Data Rules  
+**Scope:** Core Platform Business Logic, Financial Controls, Data Rules, and Competitor Benchmark Enhancements  
 
 ---
 
@@ -15,7 +15,9 @@
 * **BR-AUTH-004 [Session Token Expiration]:** JWT user session tokens expire after 30 days. Session refresh must occur automatically in the background if the user account remains active. (`PROPOSED_CONTRACT`)
 * **BR-AUTH-005 [Immediate Suspension Session Revocation]:** If a user account status is updated to `suspended`, all active JWT sessions and refresh tokens for that `user_id` must be immediately revoked at the Supabase auth layer. (`PROPOSED_CONTRACT`)
 * **BR-AUTH-006 [Multi-Device Session Policy]:** A customer account may maintain up to 3 concurrent active mobile device sessions. Logging in on a 4th device automatically revokes the oldest session. (`PROPOSED_CONTRACT`)
-* **BR-AUTH-007 [Account Deletion Grace Period]:** Account deletion requests enter a 30-day `closure_pending` state during which financial reconciliation is completed. Hard deletion of historical wallet ledger entries is strictly forbidden; profile details are anonymized upon closure. (`PROPOSED_CONTRACT` / `FORBIDDEN_BEHAVIOR`)
+* **BR-AUTH-007 [Account Deletion Grace Period & Statutory Retention]:** Account deletion requests enter a 30-day `closure_pending` state during which financial reconciliation is completed. User PII is anonymized upon final deletion; historical wallet ledger entries are retained for 5 years per statutory financial regulations. Hard deletion of ledger entries is forbidden. (`PROPOSED_CONTRACT` / `FORBIDDEN_BEHAVIOR`)
+* **BR-AUTH-008 [Merchant / Sub-Distributor Role Scope]:** The `MERCHANT_DISTRIBUTOR` role for retail kiosks is classified as `V1.5` (`DEFERRED_POST_LAUNCH`). Kiosks cannot register as sub-distributors in V1. (`PROPOSED_CONTRACT` / `DEFERRED_POST_LAUNCH`)
+* **BR-AUTH-009 [Telecom Balance Recharge Scope]:** Mobile phone balance recharge services (Yemen Mobile / MTN / Sabafon) are classified as `V2` (`OUT_OF_SCOPE_V1`). V1 is strictly restricted to Wi-Fi hotspot cards. (`PROPOSED_CONTRACT` / `OUT_OF_SCOPE_V1`)
 
 ---
 
@@ -28,6 +30,9 @@
 * **BR-NETWORK-005 [Network Visibility Criteria]:** A network is visible in the customer discovery API if and only if `is_approved = true`, `is_active = true`, and the owner account status is `active`. (`PROPOSED_CONTRACT`)
 * **BR-NETWORK-006 [Featured Network Controls]:** Networks may be flagged as `is_featured = true` exclusively by `PLATFORM_ADMIN` for promotional placement. Network owners cannot self-assign featured status. (`PROPOSED_CONTRACT`)
 * **BR-NETWORK-007 [Network Suspension Freeze]:** If a network is suspended by Admin (`is_active = false`), ongoing card purchases for that network are immediately blocked. Available card stock is temporarily frozen. (`PROPOSED_CONTRACT`)
+* **BR-NETWORK-008 [Multi-SSID Alias Mapping]:** A single network entity may register multiple broadcast SSIDs (e.g. `NetYemen-North-1`, `NetYemen-North-2`). Card stock is drawn from the unified network inventory regardless of matching SSID alias. (`PROPOSED_CONTRACT`)
+* **BR-NETWORK-009 [Network Addition Lead Queue]:** Customer-submitted "Suggest New Network" requests enter an unapproved lead queue in the Admin Portal. Leads do not grant public listing until formally onboarded. (`PROPOSED_CONTRACT`)
+* **BR-NETWORK-010 [Verified Account Badge Criteria]:** A "Verified Network Owner" shield badge is granted exclusively to networks whose owner identity documents and commercial locations have been verified by `PLATFORM_ADMIN`. (`PROPOSED_CONTRACT`)
 
 ---
 
@@ -40,6 +45,8 @@
 * **BR-CARD-005 [Purchaser Reveal Contract]:** Full plaintext card numbers are disclosed exclusively to the verified customer who executed the successful purchase transaction for that specific `card_id`. (`PROPOSED_CONTRACT`)
 * **BR-CARD-006 [Card Complaint Quarantine]:** When a customer submits a valid complaint within 24 hours of purchase, the associated card status transitions to `quarantined` pending support investigation. (`PROPOSED_CONTRACT`)
 * **BR-CARD-007 [Batch Import Atomicity]:** Importing a card batch CSV/text file operates inside a single transaction. If > 5% of lines contain format or duplicate errors, the entire batch import is aborted. (`PROPOSED_CONTRACT`)
+* **BR-CARD-008 [Mandatory Package Attributes]:** Card price tiers (`network_prices`) must define complete package metadata: Denomination (YER), Selling Price (YER), Data Quota (GB/MB), Validity Duration (Hours/Days), and Speed Limit (Mbps). (`PROPOSED_CONTRACT`)
+* **BR-CARD-009 [Secure Last-Card Lock & Race Control]:** When card stock = 1, `purchase_card` RPC executes `SELECT ... FOR UPDATE SKIP LOCKED`. First buyer acquires lock and completes purchase; second buyer receives clean out-of-stock message without double debit. (`PROPOSED_CONTRACT`)
 
 ---
 
@@ -51,6 +58,10 @@
 * **BR-WALLET-004 [Deposit Rejection Rationale]:** Rejected deposit requests require a documented reason code (e.g., "Invalid reference number", "Unreadable receipt"). Customer receives instant notification. (`PROPOSED_CONTRACT`)
 * **BR-WALLET-005 [Compensating Reversal Entries]:** Financial corrections or deposit reversals MUST be recorded as new compensating ledger entries (`REVERSAL`). Deleting historical records is forbidden. (`PROPOSED_CONTRACT` / `FORBIDDEN_BEHAVIOR`)
 * **BR-WALLET-006 [Currency Standard]:** All wallet accounts, prices, deposits, and payouts are denominated in Yemeni Rial (YER). Fractional currency units are rounded to nearest whole YER. (`PROPOSED_CONTRACT`)
+* **BR-WALLET-007 [Bank & Exchange Account Directory]:** Official platform deposit channels (Kuraimi, OneCash, Al-Amqi, Floosak, Al-Najm) are managed in `bank_accounts` table. Customers can view active directory and copy account numbers. (`PROPOSED_CONTRACT`)
+* **BR-WALLET-008 [Deposit Review Status Lifecycle]:** Wallet deposit requests transition through: `pending` -> `under_review` -> `approved` / `rejected`. Status updates trigger customer notifications. (`PROPOSED_CONTRACT`)
+* **BR-WALLET-009 [WhatsApp Financial Approval Prohibition]:** Financial approvals, deposit confirmations, or wallet credits submitted via WhatsApp messages are strictly FORBIDDEN. All approvals MUST be executed inside the Admin Web portal. (`PROPOSED_CONTRACT` / `FORBIDDEN_BEHAVIOR`)
+* **BR-WALLET-010 [P2P Wallet Transfer Prohibition]:** Direct peer-to-peer wallet balance transfers between customer accounts are FORBIDDEN in V1. Wallets can only be used for card purchases. (`PROPOSED_CONTRACT` / `FORBIDDEN_BEHAVIOR`)
 
 ---
 
@@ -84,6 +95,7 @@
 
 * **BR-SUPPORT-001 [Ticket Assignment & Lifecycle]:** Customer support tickets are assigned to `SUPPORT_AGENT` personnel. Agents can communicate with customers and request card verification. (`PROPOSED_CONTRACT`)
 * **BR-SUPPORT-002 [Restricted Card Reveal in Support]:** A support agent may view a full card PIN ONLY within an active, assigned support ticket context. Uncontextual card lookup by support agents is logged as a security alert. (`PROPOSED_CONTRACT`)
+* **BR-SUPPORT-003 [WhatsApp Support Scope]:** WhatsApp links in client applications are strictly used for text support inquiries and routing to agents, NOT for financial transactions. (`PROPOSED_CONTRACT`)
 
 ---
 
