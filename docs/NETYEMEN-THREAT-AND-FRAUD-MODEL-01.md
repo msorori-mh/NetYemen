@@ -1,19 +1,19 @@
-# NETYEMEN THREAT & FRAUD MODEL CATALOG (V1.0)
+# NETYEMEN THREAT & FRAUD MODEL CATALOG (V1.0 + V1.1 REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001  
+**Task ID:** NY-PRODUCT-001F  
 **Document Code:** `NETYEMEN-THREAT-AND-FRAUD-MODEL-01.md`  
 **Classification:** `PROPOSED_CONTRACT`  
-**Scope:** Security Threat Vectors, Attack Paths, Mitigating Controls, and Verification Tests  
+**Scope:** Security Threat Vectors, Attack Paths, Mitigating Controls, and Verification Tests (Updated to 44 Detailed Threats)  
 
 ---
 
 ## Executive Overview
 
-This document establishes the formal Threat and Fraud Model for the NetYemen platform, systematically addressing 30 distinct security threat vectors spanning application API vulnerabilities, financial fraud, authorization bypasses, data privacy leaks, and infrastructure attacks.
+This document establishes the formal Threat and Fraud Model for the NetYemen platform, systematically addressing 44 distinct security threat vectors spanning application API vulnerabilities, financial fraud, authorization bypasses, data privacy leaks, scan privacy defense, and infrastructure attacks.
 
 ---
 
-## Complete Threat & Control Catalog
+## Complete Threat & Control Catalog (44 Detailed Threat Records)
 
 ### 1. THR-01: Insecure Direct Object Reference (IDOR) on Customer Wallet & Purchases
 * **Actor:** Malicious Customer / External Attacker
@@ -23,7 +23,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Strict PostgreSQL RLS policies checking `user_id = auth.uid()`.
 * **Detective Control:** Anomaly detection alert on API requests where payload `user_id != JWT auth.uid()`.
 * **Recovery Control:** Invalidate compromised JWT session; notify affected customer.
-* **Required Test:** `TEST-AUTHORIZATION-001` (Attempt fetching User B data with User A token).
+* **Required Test:** `TEST-AUTHORIZATION-001`.
 * **Residual Risk:** Low.
 
 ---
@@ -36,7 +36,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Enable `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on 100% of tables with `DEFAULT DENY`.
 * **Detective Control:** Supabase Security Advisor daily RLS audit scans.
 * **Recovery Control:** Immediate hotfix deployment of missing RLS rules.
-* **Required Test:** `TEST-SECURITY-001` (Execute REST query on un-owned table).
+* **Required Test:** `TEST-AUTHORIZATION-001`.
 * **Residual Risk:** Low.
 
 ---
@@ -49,7 +49,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Hardcode non-bypass checks in commercial RPCs (`auth.uid()` checks apply to all roles).
 * **Detective Control:** Immutable audit logging of all administrative actions.
 * **Recovery Control:** Revoke admin credentials; audit administrative actions.
-* **Required Test:** `TEST-AUTHORIZATION-002` (Admin attempts purchasing card without wallet funds).
+* **Required Test:** `TEST-AUTHORIZATION-003`.
 * **Residual Risk:** Medium.
 
 ---
@@ -62,7 +62,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Server-side price lookup from `network_prices` table within purchase RPC.
 * **Detective Control:** Validation check comparing ledger debit with database price tier.
 * **Recovery Control:** Transaction abort on price mismatch.
-* **Required Test:** `TEST-SECURITY-002` (Pass client-modified price parameter to purchase RPC).
+* **Required Test:** `TEST-PURCHASE-001`.
 * **Residual Risk:** Zero.
 
 ---
@@ -75,7 +75,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Hardcode `p_user_id := auth.uid()` inside `purchase_card` RPC.
 * **Detective Control:** RPC execution validation rejecting explicit client `p_user_id` overrides.
 * **Recovery Control:** Immediate RPC transaction rollback.
-* **Required Test:** `TEST-AUTHORIZATION-003` (Supply victim `user_id` to purchase RPC).
+* **Required Test:** `TEST-AUTHORIZATION-003`.
 * **Residual Risk:** Zero.
 
 ---
@@ -87,7 +87,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Mandatory client `idempotency_key` header enforced by unique constraint.
 * **Detective Control:** Idempotency key lookup check in database.
 * **Recovery Control:** Return cached first transaction result without re-executing debit.
-* **Required Test:** `TEST-IDEMPOTENCY-001` (Submit identical idempotency key twice concurrently).
+* **Required Test:** `TEST-IDEMPOTENCY-001`.
 * **Residual Risk:** Low.
 
 ---
@@ -99,7 +99,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Single atomic SQL transaction block enclosing debit write and card state update.
 * **Detective Control:** Daily wallet balance reconciliation formula check.
 * **Recovery Control:** Automated compensating credit entry issuance.
-* **Required Test:** `TEST-WALLET-002` (Audit purchase ledger debit count per purchase ID).
+* **Required Test:** `TEST-PURCHASE-001`.
 * **Residual Risk:** Zero.
 
 ---
@@ -111,7 +111,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` row locking inside purchase RPC.
 * **Detective Control:** Database unique constraint on `cards (sold_to)` for sold cards.
 * **Recovery Control:** Second transaction receives "Stock Unavailable" response and rolls back cleanly.
-* **Required Test:** `TEST-CONCURRENCY-001` (Simulate 10 concurrent purchase requests for 1 card).
+* **Required Test:** `TEST-CONCURRENCY-001`, `TEST-CONCURRENCY-002`.
 * **Residual Risk:** Low.
 
 ---
@@ -123,7 +123,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Mandatory manual verification of bank reference in official bank portal by Finance Officer.
 * **Detective Control:** Unique database index on `wallet_deposit_requests (reference_number)`.
 * **Recovery Control:** Reject deposit request; mark user account for fraud review.
-* **Required Test:** `TEST-WALLET-003` (Submit duplicate deposit reference number).
+* **Required Test:** `TEST-WALLET-006`.
 * **Residual Risk:** Low.
 
 ---
@@ -135,7 +135,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** High-resolution receipt image preview UI for Finance Officers with zoom & pan.
 * **Detective Control:** Finance Officer verification protocol before deposit approval.
 * **Recovery Control:** Reject deposit request with reason code "Unreadable / Fake Receipt".
-* **Required Test:** `TEST-WALLET-004` (Submit invalid receipt image file).
+* **Required Test:** `TEST-WALLET-006`.
 * **Residual Risk:** Medium.
 
 ---
@@ -147,7 +147,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Pre-import batch file validation & unique index `cards (network_id, card_number)`.
 * **Detective Control:** Batch import preview rendering duplicate count.
 * **Recovery Control:** Import process rejects duplicate lines while importing valid ones.
-* **Required Test:** `TEST-CARD-001` (Upload batch containing existing card PINs).
+* **Required Test:** `TEST-CARD-001`.
 * **Residual Risk:** Zero.
 
 ---
@@ -159,7 +159,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Global card uniqueness check or hashed card lookup across system.
 * **Detective Control:** Cross-network duplicate detection alert.
 * **Recovery Control:** Quarantine suspicious batch; suspend owner pending investigation.
-* **Required Test:** `TEST-CARD-002` (Upload card PIN belonging to Network B into Network A).
+* **Required Test:** `TEST-AUTHORIZATION-002`.
 * **Residual Risk:** Medium.
 
 ---
@@ -171,7 +171,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** RLS policies restrict unsold card visibility to `NONE` (Client API returns empty).
 * **Detective Control:** API rate limiting & security alert on bulk queries targeting `cards` table.
 * **Recovery Control:** Emergency rotation of exposed database keys.
-* **Required Test:** `TEST-SECURITY-003` (Query `cards` table with active customer token).
+* **Required Test:** `TEST-SECURITY-007`.
 * **Residual Risk:** Zero.
 
 ---
@@ -183,7 +183,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Auto-clear clipboard memory after 45 seconds; display security notification.
 * **Detective Control:** N/A (Client OS level).
 * **Recovery Control:** User advises prompt card redemption on local Wi-Fi hotspot.
-* **Required Test:** `TEST-CUSTOMER-001` (Verify clipboard clearing behavior).
+* **Required Test:** `TEST-SECURITY-006`.
 * **Residual Risk:** Medium.
 
 ---
@@ -195,7 +195,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Optional Android `FLAG_SECURE` window flag on card reveal screen.
 * **Detective Control:** N/A.
 * **Recovery Control:** Mask card numbers by default in purchase list views.
-* **Required Test:** `TEST-CUSTOMER-002` (Verify FLAG_SECURE window status).
+* **Required Test:** `TEST-SECURITY-006`.
 * **Residual Risk:** Low.
 
 ---
@@ -207,7 +207,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Strict log scrubbing rules filtering out card numbers, PINs, and OTP tokens.
 * **Detective Control:** Automated log pattern scanner for 10+ digit numeric patterns.
 * **Recovery Control:** Purge non-compliant log files immediately.
-* **Required Test:** `TEST-AUDIT-001` (Inspect output of app logs during card purchase flow).
+* **Required Test:** `TEST-SECURITY-008`.
 * **Residual Risk:** Zero.
 
 ---
@@ -219,7 +219,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Exclude card PIN from push notification payloads (Send "Purchase Successful" only).
 * **Detective Control:** Code review of FCM notification payload templates.
 * **Recovery Control:** Update FCM notification dispatch function.
-* **Required Test:** `TEST-CUSTOMER-003` (Inspect FCM notification JSON payload).
+* **Required Test:** `TEST-SECURITY-008`.
 * **Residual Risk:** Zero.
 
 ---
@@ -231,7 +231,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Maximum 5 failed OTP attempts allowed per phone number per hour before lock.
 * **Detective Control:** Alert on high-frequency failed OTP verification attempts.
 * **Recovery Control:** Invalidate active OTP token; block phone number for 60 minutes.
-* **Required Test:** `TEST-AUTH-004` (Submit 6 incorrect OTPs sequentially).
+* **Required Test:** `TEST-AUTH-003`.
 * **Residual Risk:** Low.
 
 ---
@@ -243,7 +243,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Generic response message ("OTP sent if number valid") for all auth requests.
 * **Detective Control:** Rate limit SMS OTP requests to 1 per 60 seconds per IP / Phone.
 * **Recovery Control:** IP rate limiting block.
-* **Required Test:** `TEST-AUTH-005` (Submit 10 phone auth requests in 10 seconds).
+* **Required Test:** `TEST-AUTH-003`.
 * **Residual Risk:** Low.
 
 ---
@@ -255,7 +255,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** App biometric / PIN lock option before confirming card purchases.
 * **Detective Control:** User remote account freeze option via support.
 * **Recovery Control:** User contacts support to immediately revoke active sessions.
-* **Required Test:** `TEST-CUSTOMER-004` (Verify biometric purchase confirmation setting).
+* **Required Test:** `TEST-AUTH-001`.
 * **Residual Risk:** Medium.
 
 ---
@@ -267,7 +267,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Database user status check (`is_active = true`) inside RLS and RPC execution.
 * **Detective Control:** Invalidate session token on administrative account status change.
 * **Recovery Control:** Revoke JWT refresh tokens in Supabase Auth service.
-* **Required Test:** `TEST-AUTH-006` (Execute API call with token of suspended account).
+* **Required Test:** `TEST-AUTH-002`.
 * **Residual Risk:** Low.
 
 ---
@@ -279,7 +279,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Require detailed complaint rationale; track customer complaint history ratio.
 * **Detective Control:** High dispute frequency alert (> 2 complaints per 5 purchases).
 * **Recovery Control:** Suspend customer account if fraudulent complaint pattern confirmed.
-* **Required Test:** `TEST-REFUND-001` (Submit multiple card complaints consecutively).
+* **Required Test:** `TEST-REFUND-001`.
 * **Residual Risk:** Medium.
 
 ---
@@ -291,7 +291,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Four-eyes principle on deposits > 50,000 YER; randomized deposit review audit queue.
 * **Detective Control:** Daily financial balance reconciliation comparing bank statements to deposit logs.
 * **Recovery Control:** Immediate revocation of Finance Officer role; reversal of fraudulent ledger credits.
-* **Required Test:** `TEST-WALLET-005` (Audit high-value deposit review logs).
+* **Required Test:** `TEST-AUTHORIZATION-001`.
 * **Residual Risk:** Medium.
 
 ---
@@ -303,7 +303,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Automated SQL voucher calculation script; manual override prohibited without Admin sign-off.
 * **Detective Control:** Automated settlement audit script comparing sales volume to payout voucher.
 * **Recovery Control:** Hold payout transfer; adjust voucher to true calculated net payable.
-* **Required Test:** `TEST-SETTLEMENT-001` (Verify settlement voucher calculation accuracy).
+* **Required Test:** `TEST-AUDIT-001`.
 * **Residual Risk:** Low.
 
 ---
@@ -315,7 +315,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** REVOKE `UPDATE` and `DELETE` privileges on `audit_logs` for ALL database roles.
 * **Detective Control:** Write-only database trigger monitoring `audit_logs`.
 * **Recovery Control:** Restore audit log state from encrypted PITR backups.
-* **Required Test:** `TEST-AUDIT-002` (Attempt SQL UPDATE on `audit_logs` table).
+* **Required Test:** `TEST-AUDIT-001`.
 * **Residual Risk:** Zero.
 
 ---
@@ -327,7 +327,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** File MIME-type strict validation (`image/jpeg`, `image/png` only); max 5 MB file size limit.
 * **Detective Control:** Storage bucket file extension and Content-Type inspection.
 * **Recovery Control:** Delete non-compliant file from storage bucket immediately.
-* **Required Test:** `TEST-SECURITY-004` (Attempt uploading `.php` / `.exe` file to storage bucket).
+* **Required Test:** `TEST-WALLET-006`.
 * **Residual Risk:** Low.
 
 ---
@@ -339,7 +339,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Sanitize all text fields starting with `=`, `+`, `-`, or `@` during batch parse.
 * **Detective Control:** Batch text sanitization parser.
 * **Recovery Control:** Strip formula characters during import processing.
-* **Required Test:** `TEST-CARD-003` (Import batch file containing Excel formula strings).
+* **Required Test:** `TEST-CARD-001`.
 * **Residual Risk:** Zero.
 
 ---
@@ -351,7 +351,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Cloudflare / Supabase API rate limiting (Max 100 req/min per IP).
 * **Detective Control:** Cloudflare WAF traffic anomaly detection.
 * **Recovery Control:** Automated IP blocking & Cloudflare Under Attack mode activation.
-* **Required Test:** `TEST-SECURITY-005` (Simulate API request flood).
+* **Required Test:** `TEST-PURCHASE-001`.
 * **Residual Risk:** Medium.
 
 ---
@@ -363,7 +363,7 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Restrict broadcast notification dispatch to `PLATFORM_ADMIN` role only.
 * **Detective Control:** Push dispatch rate limit (Max 1 broadcast per hour).
 * **Recovery Control:** Revoke notification dispatch access.
-* **Required Test:** `TEST-ADMIN-001` (Attempt broadcast push with Support role).
+* **Required Test:** `TEST-RECOVERY-001`.
 * **Residual Risk:** Low.
 
 ---
@@ -375,5 +375,173 @@ This document establishes the formal Threat and Fraud Model for the NetYemen pla
 * **Preventive Control:** Network status check (`networks.is_active = true AND networks.is_approved = true`) enforced inside purchase RPC.
 * **Detective Control:** Purchase RPC validation rejection.
 * **Recovery Control:** Immediate RPC transaction abort.
-* **Required Test:** `TEST-PURCHASE-002` (Attempt purchasing card from suspended network).
+* **Required Test:** `TEST-PURCHASE-001`.
 * **Residual Risk:** Zero.
+
+---
+
+### 31. THR-31: SSID Spoofing & Fake Hotspot Listing (NY-PRODUCT-001F)
+* **Actor:** Malicious Attacker / Unauthorized Hotspot Operator
+* **Attack Path:** Attacker broadcasts a legitimate network's SSID to trick nearby customers into buying cards.
+* **Impact:** Medium — Customer purchases card for wrong network.
+* **Preventive Control:** Verified Network Shield Badges + Location Governorate/City matching before card purchase confirmation.
+* **Detective Control:** Anomaly detection when card purchase location mismatches network registered area.
+* **Recovery Control:** Cancel invalid purchase and issue refund credit.
+* **Required Test:** `TEST-NETWORK-009`.
+* **Residual Risk:** Low.
+
+---
+
+### 32. THR-32: BSSID Tracking & User Surveillance Exploitation (NY-PRODUCT-001F)
+* **Actor:** Malicious Third-Party Network Sniffer
+* **Attack Path:** Attacker intercepts raw BSSID MAC addresses transmitted by client app to track physical user movement.
+* **Impact:** High — Violation of user physical location privacy.
+* **Preventive Control:** Strict stripping of BSSIDs from all API payloads. User-Triggered scans match SSID names only.
+* **Detective Control:** API payload pattern analyzer ensuring 0 MAC addresses in request body.
+* **Recovery Control:** Block non-compliant client versions.
+* **Required Test:** `TEST-CUSTOMER-009`.
+* **Residual Risk:** Zero.
+
+---
+
+### 33. THR-33: Location Inference via Nearby Scan Queries (NY-PRODUCT-001F)
+* **Actor:** Malicious Observer
+* **Attack Path:** Attacker infers precise user coordinates from nearby Wi-Fi SSID list queries.
+* **Impact:** Medium — Customer physical location leakage.
+* **Preventive Control:** User-Triggered scanning only. Queries sent with Governorate/City ID only; zero precise GPS coordinates uploaded.
+* **Detective Control:** Audit API query parameters for exact coordinate parameters.
+* **Recovery Control:** Scrub query logs.
+* **Required Test:** `TEST-CUSTOMER-009`.
+* **Residual Risk:** Low.
+
+---
+
+### 34. THR-34: Permission Misuse & Background Scanning Attempt (NY-PRODUCT-001F)
+* **Actor:** Flawed / Compromised Client SDK
+* **Attack Path:** Application invokes location / Wi-Fi scan APIs in background without user knowledge.
+* **Impact:** Medium — Battery drain, OS permission violation, privacy leak.
+* **Preventive Control:** Explicit code isolation enforcing scan execution ONLY on active UI button tap (`F-CUST-10`).
+* **Detective Control:** Client telemetry verifying zero background scan tasks.
+* **Recovery Control:** Disable background worker execution.
+* **Required Test:** `TEST-CUSTOMER-008`.
+* **Residual Risk:** Zero.
+
+---
+
+### 35. THR-35: Wi-Fi Scan Data Leakage in Telemetry Payloads (NY-PRODUCT-001F)
+* **Actor:** External Analytics / Crash Reporting Service
+* **Attack Path:** Raw Wi-Fi scan results containing surrounding SSIDs sent to third-party crash reporting tools.
+* **Impact:** Low — Indirect location telemetry leak.
+* **Preventive Control:** Exclude raw scan results from crash report attachments and diagnostic logs.
+* **Detective Control:** Telemetry payload inspector.
+* **Recovery Control:** Update crash reporting filter rules.
+* **Required Test:** `TEST-CUSTOMER-009`.
+* **Residual Risk:** Zero.
+
+---
+
+### 36. THR-36: Fake Demand Generation for Unlisted Networks (NY-PRODUCT-001F)
+* **Actor:** Malicious Competitor / Botnet
+* **Attack Path:** Attacker submits thousands of fake "Suggest New Network" requests to artificially inflate demand for a specific location.
+* **Impact:** Medium — Waste of sales team outreach resources.
+* **Preventive Control:** Rate limit lead suggestions to 1 request per customer account per SSID per 30 days. Demand counting requires distinct authenticated users.
+* **Detective Control:** Lead queue spam detection algorithm flagging IP/device clusters.
+* **Recovery Control:** Flag fake leads as `cancelled`.
+* **Required Test:** `TEST-NETWORK-007`.
+* **Residual Risk:** Low.
+
+---
+
+### 37. THR-37: Network Addition Request Spam & DoS (NY-PRODUCT-001F)
+* **Actor:** Automated Bot
+* **Attack Path:** Bot floods `/network-leads/submit` endpoint with random text SSIDs.
+* **Impact:** Low — Database bloat in lead queue.
+* **Preventive Control:** Captcha / Rate-limiting on lead submission endpoint (Max 3 leads/hour per user).
+* **Detective Control:** Rate limit monitor on lead submission table.
+* **Recovery Control:** Auto-purge un-verified single-request leads after 90 days.
+* **Required Test:** `TEST-NETWORK-007`.
+* **Residual Risk:** Low.
+
+---
+
+### 38. THR-38: Network Alias Takeover & Multi-SSID Hijacking (NY-PRODUCT-001F)
+* **Actor:** Rogue Network Owner B
+* **Attack Path:** Owner B registers SSID alias belonging to Owner A (`AlKhair-Hotspot`) to hijack customer traffic.
+* **Impact:** High — Brand confusion and card purchase routing errors.
+* **Preventive Control:** Database unique index on `network_ssids (ssid_name)` preventing duplicate alias registration across different networks.
+* **Detective Control:** Admin alert on multi-SSID collision attempt.
+* **Recovery Control:** Reject duplicate alias registration.
+* **Required Test:** `TEST-NETWORK-005`.
+* **Residual Risk:** Zero.
+
+---
+
+### 39. THR-39: Competitor Poisoning & Malicious Lead Flagging (NY-PRODUCT-001F)
+* **Actor:** Malicious Owner
+* **Attack Path:** Owner submits fake network addition leads using competitor brand names to trigger fraudulent admin outreach.
+* **Impact:** Low — Administrative confusion.
+* **Preventive Control:** Automated lead deduplication and cross-reference against verified network list (`TEST-NETWORK-009`).
+* **Detective Control:** Lead moderation review in Admin portal.
+* **Recovery Control:** Cancel malicious lead.
+* **Required Test:** `TEST-NETWORK-009`.
+* **Residual Risk:** Low.
+
+---
+
+### 40. THR-40: Requester Deanonymization on Lead Queue (NY-PRODUCT-001F)
+* **Actor:** Rogue Network Owner / Admin Staff
+* **Attack Path:** Owner inspecting network addition lead attempts to extract customer phone numbers who requested their network.
+* **Impact:** High — Violation of customer privacy rights.
+* **Preventive Control:** RLS policies on `network_addition_leads` strictly omit `user_id` and `phone` from owner/public view models.
+* **Detective Control:** RLS projection audit.
+* **Recovery Control:** Restrict lead view projections.
+* **Required Test:** `TEST-NETWORK-008`.
+* **Residual Risk:** Zero.
+
+---
+
+### 41. THR-41: Deposit Receipt Image Duplication (NY-PRODUCT-001F)
+* **Actor:** Fraudulent Customer
+* **Attack Path:** Customer re-uploads a previously approved deposit receipt screenshot for a new deposit request.
+* **Impact:** High — Fraudulent double credit for single bank transfer.
+* **Preventive Control:** Perceptual image hashing (pHash) check comparing new receipt uploads against historical deposit image hashes.
+* **Detective Control:** Admin review UI flags duplicate image hashes.
+* **Recovery Control:** Reject duplicate request; flag customer for fraud review.
+* **Required Test:** `TEST-WALLET-006`.
+* **Residual Risk:** Medium.
+
+---
+
+### 42. THR-42: Forged Deposit Receipt Image Upload (NY-PRODUCT-001F)
+* **Actor:** Fraudulent Customer
+* **Attack Path:** Customer edits transaction amount on bank receipt image using photo editing software.
+* **Impact:** High — Over-crediting wallet balance.
+* **Preventive Control:** Mandatory cross-verification of bank reference number directly in official bank portal by Finance Officer before approval.
+* **Detective Control:** Finance Officer verification protocol.
+* **Recovery Control:** Reject deposit request; audit Finance Officer approval logs.
+* **Required Test:** `TEST-WALLET-006`.
+* **Residual Risk:** Medium.
+
+---
+
+### 43. THR-43: WhatsApp Approval Impersonation Attack (NY-PRODUCT-001F)
+* **Actor:** External Attacker
+* **Attack Path:** Attacker sends fake WhatsApp messages to support staff attempting to trigger deposit approvals or wallet credits.
+* **Impact:** Critical — Unauthorized wallet credit.
+* **Preventive Control:** Direct financial approval via WhatsApp is strictly `FORBIDDEN_BEHAVIOR`. Approvals MUST be executed inside authenticated Admin Web portal.
+* **Detective Control:** System audit verification ensuring 100% of deposit approvals originate from Admin Web JWT sessions.
+* **Recovery Control:** Revert unauthorized credits; block compromised channel.
+* **Required Test:** `TEST-WALLET-008`.
+* **Residual Risk:** Zero.
+
+---
+
+### 44. THR-44: Provider Account Directory Tampering (NY-PRODUCT-001F)
+* **Actor:** Compromised Admin Account / External Attacker
+* **Attack Path:** Attacker modifies bank account numbers in public Bank Directory to redirect customer deposits to attacker's bank account.
+* **Impact:** Critical — Theft of customer deposit funds.
+* **Preventive Control:** Updating `bank_accounts` directory requires `PLATFORM_ADMIN` role + multi-factor re-authentication.
+* **Detective Control:** Real-time audit log alert on any modification to `bank_accounts` table.
+* **Recovery Control:** Restore true bank account numbers; issue urgent customer alert.
+* **Required Test:** `TEST-AUDIT-001`.
+* **Residual Risk:** Low.

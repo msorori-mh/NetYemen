@@ -1,6 +1,6 @@
-# NETYEMEN OPEN DECISION REGISTER (V1.0)
+# NETYEMEN OPEN DECISION REGISTER (V1.0 + V1.1 REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001  
+**Task ID:** NY-PRODUCT-001F  
 **Document Code:** `NETYEMEN-DECISION-REGISTER-01.md`  
 **Classification:** `OPEN_DECISION`  
 **Status:** Provisional Recommendations Recorded for Architecture & Governance Review  
@@ -20,10 +20,11 @@ Where business rules or technical parameters cannot be definitively established 
 | `OD-AUTH-01` | SMS OTP Gateway Provider Selection | Auth & Infrastructure | High | `OPEN_DECISION` |
 | `OD-FIN-01` | Customer Deposit Verification & Proof Method | Wallet & Finance | Critical | `OPEN_DECISION` |
 | `OD-FIN-02` | Platform Commission Architecture | Business Model | High | `OPEN_DECISION` |
+| `OD-FIN-03` | Deposit Bank Directory Accounts Selection | Financial Operations | High | `OPEN_DECISION` |
 | `OD-CARD-01` | Internet Card Encryption & Storage Architecture | Security & Data | Critical | `OPEN_DECISION` |
 | `OD-CARD-02` | Customer Card Dispute & Quarantine Window | Operations & Support | Medium | `OPEN_DECISION` |
 | `OD-SETTLE-01` | Network Owner Settlement Payout Schedule | Finance & Operations | High | `OPEN_DECISION` |
-| `OD-PRIV-01` | User Data Retention & Account Anonymization Policy | Privacy & Governance | Medium | `OPEN_DECISION` |
+| `OD-PRIV-01` | User Data Retention & Anonymization Policy | Privacy & Governance | Medium | `OPEN_DECISION` |
 | `OD-ARCH-01` | Administration Web Portal Technology Stack | Frontend Architecture | High | `OPEN_DECISION` |
 | `OD-WALLET-01` | Wallet Balance Storage: Cached vs Real-Time Aggregation | Database Architecture | Critical | `OPEN_DECISION` |
 | `OD-NOTIF-01` | Push Notification Infrastructure & Gateway | Mobile Architecture | Medium | `OPEN_DECISION` |
@@ -54,13 +55,13 @@ Where business rules or technical parameters cannot be definitively established 
 * **Options:**
   * **Option 1:** Manual Verification Queue — Customer uploads receipt screenshot and reference number; Finance Officer verifies in bank portal and approves manually.
   * **Option 2:** Semi-Automated OCR — Uploaded receipt screenshot is parsed by OCR service to extract reference number and amount for automated comparison, requiring manual approval only on mismatch.
-  * **Option 3:** Direct API Integration with Yemeni Financial Institutions (Kuraimi / OneCash API).
+  * **Option 3:** Direct API Integration with Yemeni Financial Institutions.
 * **Advantages & Risks:**
   * *Option 1:* Zero financial institution integration dependencies; zero API integration risk. Risk: Operational bottleneck during peak deposit hours.
   * *Option 2:* Reduces manual review workload by 70%. Risk: Image quality variations in Yemen leading to false negatives.
   * *Option 3:* Real-time instant wallet credit. Risk: Complex institutional approvals, long integration lead times, high compliance barrier.
 * **Operational Impact:** Determines initial finance staffing requirements and deposit processing turnaround time (Target: < 15 minutes).
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Manual Verification Queue)** for V1 launch to achieve rapid market deployment without banking API blockers, transitioning to Option 2 in post-launch phase.
+* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Manual Verification Queue)** for V1 launch to achieve rapid market deployment without banking API blockers.
 
 ---
 
@@ -80,7 +81,21 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 4. OD-CARD-01: Internet Card Encryption & Storage Architecture
+### 4. OD-FIN-03: Deposit Bank Directory Accounts Selection (NY-PRODUCT-001F)
+
+* **Context:** The deposit directory displays financial channels for customer top-ups. Specific provider names (such as Kuraimi, OneCash, Al-Amqi, Floosak, Al-Najm) are illustrative examples in contract specifications and are NOT official platform accounts until approved by user management.
+* **Options:**
+  * **Option 1:** Configuration-Driven Bank Directory — Financial channels are created, enabled, or disabled dynamically via Admin Web portal (`F-ADM-09`) by authorized Platform Finance personnel.
+  * **Option 2:** Hardcoded In-App Accounts — Accounts embedded in client application builds.
+* **Advantages & Risks:**
+  * *Option 1:* Instant flexibility to add, update, or remove accounts without mobile app updates. Zero risk of hardcoding invalid accounts.
+  * *Option 2:* Zero database read query. Risk: Mobile app release required whenever a bank account number changes.
+* **Operational Impact:** Directly affects liquidity routing and customer deposit UX.
+* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Configuration-Driven Bank Directory)**. Specific provider names remain illustrative examples pending official account selection.
+
+---
+
+### 5. OD-CARD-01: Internet Card Encryption & Storage Architecture
 
 * **Context:** Current prototype stores `card_number` in plaintext in `cards` table model.
 * **Options:**
@@ -96,7 +111,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 5. OD-CARD-02: Customer Card Dispute & Quarantine Window
+### 6. OD-CARD-02: Customer Card Dispute & Quarantine Window
 
 * **Context:** No dispute window timeframe is defined in existing code.
 * **Options:**
@@ -112,7 +127,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 6. OD-SETTLE-01: Network Owner Settlement Payout Schedule
+### 7. OD-SETTLE-01: Network Owner Settlement Payout Schedule
 
 * **Context:** Owner payout frequency is un-specified in current repository.
 * **Options:**
@@ -128,23 +143,23 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 7. OD-PRIV-01: User Data Retention & Account Anonymization Policy
+### 8. OD-PRIV-01: User Data Retention & Account Anonymization Policy (NY-PRODUCT-001F)
 
-* **Context:** No data retention policy exists in codebase or documentation.
+* **Context:** Data retention duration is unconfirmed by official legal references and is registered as `OPEN_DECISION`.
 * **Options:**
-  * **Option A:** 5-Year Financial Record Retention with Immediate Profile Anonymization upon Account Deletion.
+  * **Option A:** 5-Year Financial Record Retention with Immediate Profile Anonymization upon Account Deletion (`PROVISIONAL_RECOMMENDATION`).
   * **Option B:** Indefinite Retention of all activity logs for fraud monitoring.
   * **Option C:** 1-Year Retention followed by hard purging of completed transaction logs.
 * **Advantages & Risks:**
-  * *Option A:* Fully compliant with standard financial auditing practices while respecting user privacy deletion rights. Risk: Requires automated data scrubbing cron tasks.
+  * *Option A:* Aligns with standard financial auditing practices while respecting user privacy deletion rights. Risk: Requires automated data scrubbing cron tasks.
   * *Option B:* Maximum historical forensic capability. Risk: Privacy non-compliance and unnecessary database storage growth.
-  * *Option C:* Low storage footprint. Risk: Violates Yemeni commercial record-keeping norms for tax and audit compliance.
+  * *Option C:* Low storage footprint. Risk: Insufficient historical records for long-term dispute or tax auditing.
 * **Operational Impact:** Controls database growth, backup storage sizes, and privacy compliance posture.
-* **PROVISIONAL_RECOMMENDATION:** **Option A (5-Year Financial Retention with Instant Profile Anonymization)**.
+* **PROVISIONAL_RECOMMENDATION:** **Option A (5-Year Financial Retention + Instant Profile Anonymization)**. Financial history is preserved; PII is anonymized upon account deletion. Hard deletion of ledger entries is forbidden.
 
 ---
 
-### 8. OD-ARCH-01: Administration Web Portal Technology Stack
+### 9. OD-ARCH-01: Administration Web Portal Technology Stack
 
 * **Context:** The README lists "Lovable (Web)" as a placeholder, but audit confirmed no Web application code exists.
 * **Options:**
@@ -160,7 +175,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 9. OD-WALLET-01: Wallet Balance Storage: Cached vs Real-Time Aggregation
+### 10. OD-WALLET-01: Wallet Balance Storage: Cached vs Real-Time Aggregation
 
 * **Context:** Prototype model `user_model.dart` contains `walletBalance` field, while financial best practices mandate append-only ledger entries.
 * **Options:**
@@ -174,7 +189,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 10. OD-NOTIF-01: Push Notification Infrastructure & Gateway
+### 11. OD-NOTIF-01: Push Notification Infrastructure & Gateway
 
 * **Context:** README notes "Firebase Cloud Messaging (later)", but no notification setup exists in code.
 * **Options:**
