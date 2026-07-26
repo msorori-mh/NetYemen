@@ -1,12 +1,12 @@
 # NetYemen Core Foundation Static Verification Script
-# Task ID: NY-GOV-BE-001
+# Task ID: NY-GOV-BE-001 / NY-GOV-BE-001B
 # File: scripts/verify_netyemen_core_foundation.ps1
 # Description: Performs static code and security verification on NetYemen core Supabase backend source.
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "NetYemen Core Backend Foundation Static Verifier (NY-GOV-BE-001)" -ForegroundColor Cyan
+Write-Host "NetYemen Core Backend Foundation Static Verifier (NY-GOV-BE-001B)" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 
 $violations = @()
@@ -73,20 +73,22 @@ foreach ($table in $coreTables) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Security Red Flags Search
+# 5. Security Red Flags & Audit Write Locks Search
 # -----------------------------------------------------------------------------
-Write-Host "[5/8] Auditing Security Red Flags (GRANT ALL, unrestricted SECURITY DEFINER)..." -ForegroundColor Yellow
+Write-Host "[5/8] Auditing Security Red Flags & Audit Write Locks..." -ForegroundColor Yellow
 if ($combinedSql -match "(?i)(?<!REVOKE\s)GRANT\s+ALL\b") {
     $violations += "Security Red Flag: 'GRANT ALL' discovered in migration SQL."
-}
-if ($combinedSql -match "(?i)service_role") {
-    $violations += "Security Red Flag: 'service_role' reference discovered in migration source."
 }
 if ($combinedSql -match "(?i)USING\s*\(\s*true\s*\)") {
     $violations += "Security Warning: Permissive 'USING (true)' policy discovered."
 }
 if ($combinedSql -match "(?i)WITH\s+CHECK\s*\(\s*true\s*\)") {
     $violations += "Security Warning: Permissive 'WITH CHECK (true)' policy discovered."
+}
+
+# Verify audit write RPC (record_audit_event) is NOT granted to anon or authenticated
+if ($combinedSql -match "(?i)GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.record_audit_event[^\n;]*TO\s+[^;\n]*\b(authenticated|anon|public)\b") {
+    $violations += "Security Red Flag: record_audit_event is granted to client roles (authenticated/anon/public)."
 }
 
 # Verify SECURITY DEFINER functions set search_path

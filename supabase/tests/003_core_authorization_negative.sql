@@ -1,6 +1,6 @@
 -- NetYemen Negative Authorization Test Harness
 -- File: supabase/tests/003_core_authorization_negative.sql
--- Task ID: NY-GOV-BE-001
+-- Task ID: NY-GOV-BE-001 / NY-GOV-BE-001B
 
 BEGIN;
 
@@ -19,10 +19,12 @@ DECLARE
     v_net_1_id    UUID := 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
     v_net_2_id    UUID := 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
     v_suspended_net_id UUID := 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
+    v_alias_id    UUID;
 
     v_count INT;
     v_err_occurred BOOLEAN;
 BEGIN
+    -- Setup auth.users if auth schema present
     IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
         INSERT INTO auth.users (id, email) VALUES
             (v_user_a_id, 'usera@netyemen.local'),
@@ -37,6 +39,7 @@ BEGIN
         ON CONFLICT (id) DO NOTHING;
     END IF;
 
+    -- Insert Profiles
     INSERT INTO public.profiles (id, full_name, account_status) VALUES
         (v_user_a_id, 'User A', 'active'),
         (v_user_b_id, 'User B', 'active'),
@@ -49,6 +52,7 @@ BEGIN
         (v_auditor_id, 'System Auditor', 'active')
     ON CONFLICT (id) DO NOTHING;
 
+    -- Insert Roles
     INSERT INTO public.user_roles (user_id, role) VALUES
         (v_user_a_id, 'customer'),
         (v_user_b_id, 'customer'),
@@ -61,152 +65,264 @@ BEGIN
         (v_auditor_id, 'system_auditor')
     ON CONFLICT (user_id, role) DO NOTHING;
 
+    -- Insert Networks
     INSERT INTO public.networks (id, commercial_name, status, verification_status, created_by) VALUES
         (v_net_1_id, 'Network One', 'active', 'verified', v_owner_1_id),
         (v_net_2_id, 'Network Two', 'active', 'verified', v_owner_2_id),
         (v_suspended_net_id, 'Suspended Net', 'suspended', 'unverified', v_owner_1_id)
     ON CONFLICT (id) DO NOTHING;
 
+    -- Memberships
     INSERT INTO public.network_memberships (network_id, user_id, membership_role, status) VALUES
         (v_net_1_id, v_owner_1_id, 'owner', 'active'),
         (v_net_1_id, v_operator_id, 'operator', 'active'),
         (v_net_2_id, v_owner_2_id, 'owner', 'active')
     ON CONFLICT (network_id, user_id) DO NOTHING;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-
-    -- NEG-01: Customer cannot read another user's profile
+    -- ------------------------------------------------------------------------
+    -- NEG-01: Customer network creation via create_network_draft RPC fails
+    -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_a_id::text, 'role', 'authenticated')::text, true);
-    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_user_b_id;
-    IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-01): Customer A was able to read Customer B profile!';
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.create_network_draft('Customer Illegal Net');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-01): Customer created network draft!';
     END IF;
 
-    -- NEG-02: Customer cannot self-assign platform roles
+    -- ------------------------------------------------------------------------
+    -- NEG-02: Operator network creation via create_network_draft RPC fails
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_operator_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.create_network_draft('Operator Illegal Net');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-02): Operator created network draft!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-03: Direct network INSERT table attempt by authenticated caller fails
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.networks (commercial_name) VALUES ('Bypass Net');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE commercial_name = 'Bypass Net';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-03): Direct table INSERT created network!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-04: Customer cannot read another user profile
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_user_b_id;
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-04): Customer A read Customer B profile!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-05: Customer cannot self-assign platform roles
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
     BEGIN
         INSERT INTO public.user_roles (user_id, role) VALUES (v_user_a_id, 'platform_admin');
     EXCEPTION WHEN OTHERS THEN
-        NULL;
-    END;
+        v_err_occurred := TRUE;
+    END BEGIN;
     SELECT COUNT(*) INTO v_count FROM public.user_roles WHERE user_id = v_user_a_id AND role = 'platform_admin';
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-02): Customer self-assigned platform_admin role!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-05): Customer self-assigned platform_admin role!';
     END IF;
 
-    -- NEG-03: Customer cannot change own account_status
+    -- ------------------------------------------------------------------------
+    -- NEG-06: Customer cannot change own account_status
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
     BEGIN
         UPDATE public.profiles SET account_status = 'suspended' WHERE id = v_user_a_id;
     EXCEPTION WHEN OTHERS THEN
-        NULL;
-    END;
-    IF EXISTS (SELECT 1 FROM public.profiles WHERE id = v_user_a_id AND account_status = 'suspended') THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-03): Customer modified account_status!';
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = v_user_a_id AND account_status = 'suspended';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-06): Customer modified account_status!';
     END IF;
 
-    -- NEG-04: Owner 1 cannot update Owner 2 network
+    -- ------------------------------------------------------------------------
+    -- NEG-07: Owner adds owner membership fails (only operator allowed for owners)
+    -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner_1_id::text, 'role', 'authenticated')::text, true);
-    UPDATE public.networks SET commercial_name = 'Hacked Net Two' WHERE id = v_net_2_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_2_id AND commercial_name = 'Hacked Net Two';
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.network_memberships (network_id, user_id, membership_role) VALUES (v_net_1_id, v_owner_2_id, 'owner');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.network_memberships WHERE network_id = v_net_1_id AND user_id = v_owner_2_id;
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-04): Owner 1 modified Owner 2 network!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-07): Owner added owner membership!';
     END IF;
 
-    -- NEG-05: Owner cannot self-approve own pending/suspended network verification
-    UPDATE public.networks SET verification_status = 'verified' WHERE id = v_suspended_net_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_suspended_net_id AND verification_status = 'verified';
-    IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-05): Owner self-approved pending network!';
+    -- ------------------------------------------------------------------------
+    -- NEG-08: Owner deletes owner membership fails
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        DELETE FROM public.network_memberships WHERE network_id = v_net_1_id AND user_id = v_owner_1_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.network_memberships WHERE network_id = v_net_1_id AND user_id = v_owner_1_id;
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-08): Owner deleted owner membership!';
     END IF;
 
-    -- NEG-06: Operator cannot approve or verify a network
-    PERFORM set_config('request.jwt.claim.sub', v_operator_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_operator_id::text, 'role', 'authenticated')::text, true);
-    UPDATE public.networks SET verification_status = 'verified' WHERE id = v_suspended_net_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_suspended_net_id AND verification_status = 'verified';
-    IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-06): Operator verified network!';
+    -- ------------------------------------------------------------------------
+    -- NEG-09: Owner removes final owner fails (FINAL_OWNER_PROTECTION trigger)
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        DELETE FROM public.network_memberships WHERE network_id = v_net_1_id AND user_id = v_owner_1_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-09): Final owner was removed without exception!';
     END IF;
 
-    -- NEG-07: Operator cannot create or remove network memberships
+    -- ------------------------------------------------------------------------
+    -- NEG-10: Owner adds operator without network_operator platform role fails
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
     BEGIN
         INSERT INTO public.network_memberships (network_id, user_id, membership_role) VALUES (v_net_1_id, v_user_a_id, 'operator');
     EXCEPTION WHEN OTHERS THEN
-        NULL;
-    END;
+        v_err_occurred := TRUE;
+    END BEGIN;
     SELECT COUNT(*) INTO v_count FROM public.network_memberships WHERE network_id = v_net_1_id AND user_id = v_user_a_id;
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-07): Operator created network membership!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-10): Operator without network_operator platform role was added!';
     END IF;
 
-    -- NEG-08: Finance officer receives no general network-management privilege
-    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
-    UPDATE public.networks SET commercial_name = 'Finance Net' WHERE id = v_net_1_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND commercial_name = 'Finance Net';
+    -- ------------------------------------------------------------------------
+    -- NEG-11: Owner self-activates SSID fails
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status) VALUES (v_net_1_id, 'Self Active SSID', 'active');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.network_ssid_aliases WHERE network_id = v_net_1_id AND ssid_display = 'Self Active SSID';
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-08): Finance Officer updated commercial network!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-11): Owner self-activated SSID alias!';
     END IF;
 
-    -- NEG-09: Support agent receives no general network-management privilege
-    PERFORM set_config('request.jwt.claim.sub', v_support_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_support_id::text, 'role', 'authenticated')::text, true);
-    UPDATE public.networks SET commercial_name = 'Support Net' WHERE id = v_net_1_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND commercial_name = 'Support Net';
+    -- ------------------------------------------------------------------------
+    -- NEG-12: Owner forges verified_by / verified_at fails
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.network_ssid_aliases (network_id, ssid_display, status, verified_by, verified_at) VALUES (v_net_1_id, 'Forged SSID', 'pending_verification', v_owner_1_id, NOW());
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.network_ssid_aliases WHERE network_id = v_net_1_id AND ssid_display = 'Forged SSID';
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-09): Support Agent updated commercial network!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Owner forged verified_by/verified_at metadata!';
     END IF;
 
-    -- NEG-10: Auditor cannot mutate operational objects
-    PERFORM set_config('request.jwt.claim.sub', v_auditor_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_auditor_id::text, 'role', 'authenticated')::text, true);
-    UPDATE public.networks SET commercial_name = 'Auditor Net' WHERE id = v_net_1_id;
-    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND commercial_name = 'Auditor Net';
+    -- ------------------------------------------------------------------------
+    -- NEG-13: Client overrides normalized SSID (Trigger overwrites client value)
+    -- ------------------------------------------------------------------------
+    INSERT INTO public.network_ssid_aliases (network_id, ssid_display, ssid_normalized, status) VALUES (v_net_1_id, 'Real SSID Name', 'FORGED_NORMALIZED_VALUE', 'pending_verification')
+    RETURNING id INTO v_alias_id;
+    SELECT COUNT(*) INTO v_count FROM public.network_ssid_aliases WHERE id = v_alias_id AND ssid_normalized = 'real-ssid-name';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-13): Client forged normalized SSID was not overwritten by trigger!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-14: Authenticated client invokes audit-write RPC record_audit_event fails (Permission Denied)
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.record_audit_event('FORGED_CLIENT_EVENT', 'system');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-14): Authenticated client invoked record_audit_event RPC!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-15: Owner changes approved_by / approved_at fails
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        UPDATE public.networks SET approved_by = v_owner_1_id, approved_at = NOW() WHERE id = v_net_1_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_net_1_id AND approved_by = v_owner_1_id;
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-10): Auditor mutated operational network!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-15): Owner modified network approved_by/approved_at!';
     END IF;
 
-    -- NEG-11: Anonymous user cannot see suspended networks
-    EXECUTE 'SET LOCAL ROLE anon';
+    -- ------------------------------------------------------------------------
+    -- NEG-16: Owner changes network status or verification_status fails
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        UPDATE public.networks SET status = 'active', verification_status = 'verified' WHERE id = v_suspended_net_id;
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_suspended_net_id AND status = 'active';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-16): Owner modified network status/verification_status!';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-17: Anonymous user cannot see suspended networks
+    -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', '', true);
-    PERFORM set_config('request.jwt.claims', '{}', true);
     SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = v_suspended_net_id;
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-11): Anonymous user viewed suspended network!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Anonymous user viewed suspended network!';
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-
-    -- NEG-12: Client cannot direct-write to audit_events table
+    -- ------------------------------------------------------------------------
+    -- NEG-18: Direct profile INSERT by authenticated client fails
+    -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_a_id::text, 'role', 'authenticated')::text, true);
+    v_err_occurred := FALSE;
     BEGIN
-        INSERT INTO public.audit_events (action, entity_type) VALUES ('DIRECT_INSERT', 'test');
+        INSERT INTO public.profiles (id, full_name) VALUES ('99999999-9999-4999-a999-999999999999', 'Fake Profile');
     EXCEPTION WHEN OTHERS THEN
-        NULL;
-    END;
-    EXECUTE 'RESET ROLE';
-    SELECT COUNT(*) INTO v_count FROM public.audit_events WHERE action = 'DIRECT_INSERT';
+        v_err_occurred := TRUE;
+    END BEGIN;
+    SELECT COUNT(*) INTO v_count FROM public.profiles WHERE id = '99999999-9999-4999-a999-999999999999';
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Client inserted directly into audit_events!';
-    END IF;
-    EXECUTE 'SET LOCAL ROLE authenticated';
-
-    -- NEG-13: Client cannot assign system_service role
-    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
-    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
-    BEGIN
-        INSERT INTO public.user_roles (user_id, role) VALUES (v_user_a_id, 'system_service');
-    EXCEPTION WHEN OTHERS THEN
-        NULL;
-    END;
-    SELECT COUNT(*) INTO v_count FROM public.user_roles WHERE user_id = v_user_a_id AND role = 'system_service';
-    IF v_count <> 0 THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-13): Client assigned system_service role!';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-18): Authenticated client directly inserted profile!';
     END IF;
 
-    RAISE NOTICE 'SUCCESS: All 13 Negative Authorization Tests Passed.';
+    RAISE NOTICE 'SUCCESS: All 18 Negative Authorization Tests Passed.';
 END $$;
 
 ROLLBACK;

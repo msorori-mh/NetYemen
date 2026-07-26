@@ -1,6 +1,6 @@
 -- NetYemen Core Identity and Networks Schema Migration
 -- Migration: 20260727090000_netyemen_core_identity_and_networks.sql
--- Task ID: NY-GOV-BE-001
+-- Task ID: NY-GOV-BE-001 / NY-GOV-BE-001B
 -- Scope: Core Identity (profiles, user_roles) and Networks (networks, network_memberships, network_ssid_aliases)
 
 -- Enable pgcrypto extension for UUID generation if needed
@@ -82,6 +82,7 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- Trigger: Automatic Profile and Customer Role Creation on auth.users Signup
+-- (Fail-closed: No exception swallowing to guarantee atomic provisioning)
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -101,9 +102,6 @@ BEGIN
     VALUES (NEW.id, 'customer', NOW())
     ON CONFLICT (user_id, role) DO NOTHING;
 
-    RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-    -- Fail safely without interrupting auth creation if profile already exists
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
@@ -241,9 +239,13 @@ REVOKE ALL ON TABLE public.networks FROM PUBLIC;
 REVOKE ALL ON TABLE public.network_memberships FROM PUBLIC;
 REVOKE ALL ON TABLE public.network_ssid_aliases FROM PUBLIC;
 
-GRANT SELECT, INSERT, UPDATE ON TABLE public.profiles TO authenticated;
+-- Profile creation strictly via trusted auth trigger; no INSERT grant for clients!
+GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
 GRANT SELECT ON TABLE public.user_roles TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON TABLE public.networks TO authenticated;
+
+-- Network creation strictly via create_network_draft RPC; no direct INSERT grant for clients!
+GRANT SELECT, UPDATE ON TABLE public.networks TO authenticated;
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.network_memberships TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.network_ssid_aliases TO authenticated;
 

@@ -1,6 +1,6 @@
 -- NetYemen Core Schema Contract Test
 -- File: supabase/tests/001_core_schema_contract.sql
--- Task ID: NY-GOV-BE-001
+-- Task ID: NY-GOV-BE-001 / NY-GOV-BE-001B
 
 BEGIN;
 
