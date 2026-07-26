@@ -187,3 +187,19 @@ As part of `NY-RESTORE-001B`:
   * Zero Android, dependency (`pubspec.yaml`), test, or CI workflow files changed in NY-RESTORE-001C.
   * Zero Supabase commands run.
   * Zero Production reads or writes executed.
+
+## 21. Subtask NY-RESTORE-001D: Android Release Signing Safety Correction
+
+* **Safety Objective**: Prevent Android release builds from inadvertently signing with debug keys.
+* **Gradle Configuration Fix**: Removed `signingConfig = signingConfigs.getByName("debug")` from the `release` build type block in `android/app/build.gradle.kts`.
+* **No Secret Generation**: No keystore file (`*.jks`/`*.keystore`), `key.properties`, or replacement release signing configuration was created.
+* **Local Verification**:
+  * `flutter pub get`: Exit code 0.
+  * Plain `flutter analyze`: **No issues found!** (0 errors, 0 warnings, 0 infos).
+  * `flutter test`: 6 tests passed (0 failed).
+  * `flutter build apk --debug`: Built `build\app\outputs\flutter-apk\app-debug.apk` successfully.
+* **Governance Confirmations**:
+  * Scope restricted strictly to `android/app/build.gradle.kts` and `docs/NETYEMEN-REPOSITORY-RESTORATION-AND-HYGIENE-01-REPORT.md`.
+  * Zero Dart application source files modified in NY-RESTORE-001D.
+  * Zero Supabase or Production commands executed.
+  * Zero Production reads or writes performed.
