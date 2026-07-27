@@ -1,6 +1,6 @@
 # NETYEMEN CORE BACKEND FOUNDATION 01 REPORT
 
-**Task ID:** `NY-GOV-BE-001C`
+**Task ID:** `NY-GOV-BE-001C` + `NY-GOV-BE-001D`
 **Document Code:** `NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md`
 **Classification:** `FOUNDATION_READINESS_REPORT`
 **Date:** 2026-07-27
@@ -9,7 +9,7 @@
 
 ## 1. Executive Decision
 
-**`PASS_LOCAL_VALIDATED`**
+**`PASS_LOCAL_AND_CI_VALIDATED`**
 
 | Item | Value |
 |---|---|
@@ -21,9 +21,9 @@
 
 ---
 
-## 2. Accidental Truncation Incident and Recovery
+## 2. Accidental Truncation Incident, Non-Bypass Proof & Recovery
 
-### Incident Details
+### Incident & Hardening Details
 - **Bad Commit SHA:** `bd1624350ae6d9106da95b327dbd69bbda5795a0`
 - **Impacted / Empty Files:**
   - `supabase/tests/002_core_authorization_positive.sql`
@@ -35,13 +35,18 @@
   - `docs/adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md`
   - `docs/adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md`
 - **Restoration Source:** Historical commit graph prior to bad commit (`bd162435^`, `57a5d46`, `12e1ef2`).
-- **Root Cause:** Executing unvalidated pipeline formatting/replacement scripts without checking file length or input/output byte counts, causing 0-byte/empty file writes.
+- **Non-Bypass Authorization Hardening (NY-GOV-BE-001D):**
+  - Rebuilt `002_core_authorization_positive.sql` so that every permission-sensitive assertion explicitly executes under `SET LOCAL ROLE authenticated`, `SET LOCAL ROLE anon`, or `SET LOCAL ROLE service_role`.
+  - Updated `is_network_member` to require matching active platform role (`network_owner` / `network_operator`).
+  - Added role revocation tests (NEG-28, NEG-29) verifying that revoking platform roles immediately revokes membership privileges.
+  - Added real anonymous column privilege tests (NEG-30) verifying `created_by`, `approved_by`, and `verified_by` SELECT attempts raise 42501 permission denied exceptions.
+  - Implemented standard PostgreSQL native `normalize(p_ssid, NFC)` without silent exception masking.
 
 ### Preventive Controls Implemented
 1. **Static Non-Empty File Validation:** `scripts/verify_netyemen_core_foundation.ps1` explicitly checks all 9 core SQL test and governance files for non-zero byte size and non-whitespace content.
 2. **Static Minimum Test Count Gates:** Enforced thresholds in static verifier:
-   - Positive authorization tests: **>= 10** (actual: 12)
-   - Negative authorization tests: **>= 18** (actual: 27)
+   - Positive non-bypass authorization tests: **>= 10** (actual: 14)
+   - Negative authorization tests: **>= 18** (actual: 30)
    - Core invariant tests: **>= 12** (actual: 12)
 3. **Real Local Supabase CI Workflow:** `.github/workflows/supabase-core-ci.yml` runs disposable local Supabase CLI, applies `db reset --no-seed`, and executes tests with `psql ON_ERROR_STOP=1`.
 4. **Error-Stop Pipeline Execution:** All SQL harnesses are executed with `ON_ERROR_STOP=1`.
@@ -86,8 +91,10 @@ Remote apply status: **`NOT_AUTHORIZED`**
 | Triggers | 11 |
 | RLS policies | 11 |
 | Indexes | 15 |
-| Positive authorization tests | 12 (min: 10) |
-| Negative authorization tests | 27 (min: 18) |
+| Positive non-bypass tests (Authenticated) | 14 (min: 10) |
+| Positive non-bypass tests (Anonymous) | 2 |
+| Positive non-bypass tests (Service Role) | 1 |
+| Negative authorization tests | 30 (min: 18) |
 | Invariant tests | 12 (min: 12) |
 
 Tables: `profiles`, `user_roles`, `networks`, `network_memberships`, `network_ssid_aliases`, `audit_events`.

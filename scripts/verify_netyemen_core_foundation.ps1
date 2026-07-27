@@ -188,6 +188,35 @@ if ($invTestCount -lt 12) {
     $violations += "Invariant test count ($invTestCount) is below minimum threshold (12)."
 }
 
+# Machine-verifiable non-bypass role context checks for positive test harness
+if ($posTestContent -notmatch "(?i)SET\s+LOCAL\s+ROLE\s+authenticated") {
+    $violations += "Positive test harness lacks 'SET LOCAL ROLE authenticated' non-bypass switch."
+} else {
+    Write-Host "  [OK] Positive tests executed as authenticated." -ForegroundColor Green
+}
+
+if ($posTestContent -notmatch "(?i)SET\s+LOCAL\s+ROLE\s+anon") {
+    $violations += "Positive test harness lacks 'SET LOCAL ROLE anon' non-bypass switch."
+} else {
+    Write-Host "  [OK] Anonymous tests executed as anon." -ForegroundColor Green
+}
+
+if ($posTestContent -notmatch "(?i)SET\s+LOCAL\s+ROLE\s+service_role") {
+    $violations += "Positive test harness lacks 'SET LOCAL ROLE service_role' non-bypass switch."
+} else {
+    Write-Host "  [OK] Trusted audit test executed as service_role." -ForegroundColor Green
+}
+
+if ($posTestContent -notmatch "(?i)current_user\s*=\s*'authenticated'" -and $posTestContent -notmatch "(?i)current_user\s*!=\s*'authenticated'") {
+    $violations += "Positive test harness lacks explicit current_user = 'authenticated' assertion."
+}
+if ($posTestContent -notmatch "(?i)current_user\s*=\s*'anon'" -and $posTestContent -notmatch "(?i)current_user\s*!=\s*'anon'") {
+    $violations += "Positive test harness lacks explicit current_user = 'anon' assertion."
+}
+if ($posTestContent -notmatch "(?i)current_user\s*=\s*'service_role'" -and $posTestContent -notmatch "(?i)current_user\s*!=\s*'service_role'") {
+    $violations += "Positive test harness lacks explicit current_user = 'service_role' assertion."
+}
+
 # Verify required SUCCESS notices in test harnesses
 if ($posTestContent -notmatch "SUCCESS: All \d+ Positive Authorization Tests Passed") {
     $violations += "002_core_authorization_positive.sql missing required SUCCESS notice."

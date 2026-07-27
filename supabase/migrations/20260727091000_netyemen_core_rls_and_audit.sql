@@ -25,7 +25,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
--- Helper: Check if current authenticated user is an active member (owner or operator) with active profile of a network
+-- Helper: Check if current authenticated user is an active member (owner or operator) with active profile AND matching platform role
 CREATE OR REPLACE FUNCTION public.is_network_member(p_network_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -40,9 +40,14 @@ BEGIN
           AND nm.user_id = auth.uid()
           AND nm.status = 'active'
           AND p.account_status = 'active'
+          AND (
+            (nm.membership_role = 'owner' AND public.has_platform_role('network_owner'))
+            OR
+            (nm.membership_role = 'operator' AND public.has_platform_role('network_operator'))
+          )
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Helper: Check if current authenticated user is an active OWNER with active profile & network_owner role of a network
 CREATE OR REPLACE FUNCTION public.can_manage_network(p_network_id UUID)
@@ -63,30 +68,42 @@ BEGIN
           AND p.account_status = 'active'
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp;
 
--- Helper: Normalize SSID string (preserves Arabic & Unicode script, lowercases, replaces whitespace with hyphens)
+-- Helper: Normalize SSID string using PostgreSQL native normalize(..., NFC) (preserves Arabic & Unicode script, lowercases, replaces whitespace with hyphens)
 CREATE OR REPLACE FUNCTION public.normalize_ssid(p_ssid TEXT)
 RETURNS TEXT AS $$
 DECLARE
-    v_normalized TEXT;
+    v_trimmed TEXT;
+    v_nfc     TEXT;
+    v_clean   TEXT;
 BEGIN
-    IF p_ssid IS NULL OR length(trim(p_ssid)) = 0 THEN
+    IF p_ssid IS NULL THEN
         RETURN '';
     END IF;
 
-    -- Feature detect & apply Unicode NFC normalization where available
-    BEGIN
-        v_normalized := unicode_normalize(p_ssid, 'NFC');
-    EXCEPTION WHEN OTHERS THEN
-        v_normalized := p_ssid;
-    END;
+    v_trimmed := trim(p_ssid);
+    IF length(v_trimmed) = 0 THEN
+        RETURN '';
+    END IF;
 
-    -- Lowercase English letters while preserving Unicode/Arabic characters, trim surrounding whitespace
-    v_normalized := lower(trim(v_normalized));
-    -- Replace multiple whitespace characters with a single hyphen
-    v_normalized := regexp_replace(v_normalized, '\s+', '-', 'g');
-    RETURN v_normalized;
+    -- Apply PostgreSQL native Unicode NFC normalization directly (SQL standard)
+    -- Will fail cleanly if NFC normalization is unsupported instead of silently masking failures
+    v_nfc := normalize(v_trimmed, NFC);
+
+    -- Lowercase English letters while preserving Arabic letters and combining marks
+    v_clean := lower(v_nfc);
+
+    -- Replace internal whitespace sequences with a single hyphen
+    v_clean := regexp_replace(v_clean, '\s+', '-', 'g');
+
+    -- Replace multiple hyphens with single hyphen
+    v_clean := regexp_replace(v_clean, '-+', '-', 'g');
+
+    -- Trim surrounding hyphens
+    v_clean := regexp_replace(v_clean, '^-+|-+$', '', 'g');
+
+    RETURN v_clean;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT SECURITY DEFINER SET search_path = public, pg_temp;
 

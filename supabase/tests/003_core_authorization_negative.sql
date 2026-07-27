@@ -490,7 +490,136 @@ BEGIN
         RAISE EXCEPTION 'TEST_FAIL (NEG-27): Owner promoted operator membership to owner!';
     END IF;
 
-    RAISE NOTICE 'SUCCESS: All 27 Negative Authorization Tests Passed.';
+    -- ------------------------------------------------------------------------
+    -- NEG-28: Platform role revocation renders owner membership inactive (G3)
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.networks (id, commercial_name, description, governorate, city, status, verification_status, created_by)
+    VALUES ('f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1', 'Private Pending Net', 'Private', 'Sanaa', 'Sanaa', 'pending_approval', 'unverified', v_owner_1_id)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO public.network_memberships (network_id, user_id, membership_role, status, created_by)
+    VALUES ('f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1', v_owner_1_id, 'owner', 'active', v_owner_1_id)
+    ON CONFLICT (network_id, user_id) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    -- Confirm owner can read pending network initially
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-28): Owner could not read pending network initially.';
+    END IF;
+
+    -- Revoke network_owner platform role
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_owner_1_id AND role = 'network_owner';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    -- Verify owner membership alone without platform role denies access
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-28): Revoked owner platform role still allowed reading pending network!';
+    END IF;
+
+    IF public.is_network_member('f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1') THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-28): is_network_member returned true for user with revoked owner platform role!';
+    END IF;
+
+    -- Restore network_owner platform role
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_owner_1_id, 'network_owner') ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_owner_1_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-28): Restoring owner platform role did not restore network access.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-29: Platform role revocation renders operator membership inactive (G3)
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.network_memberships (network_id, user_id, membership_role, status, created_by)
+    VALUES ('f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1', v_operator_id, 'operator', 'active', v_owner_1_id)
+    ON CONFLICT (network_id, user_id) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_operator_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-29): Operator could not read assigned network initially.';
+    END IF;
+
+    -- Revoke network_operator platform role
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_operator_id AND role = 'network_operator';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_operator_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-29): Revoked operator platform role still allowed reading assigned network!';
+    END IF;
+
+    -- Restore network_operator platform role
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_operator_id, 'network_operator') ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_operator_id::text, true);
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-29): Restoring operator platform role did not restore network access.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-30: Real anonymous column privilege & visibility enforcement (G6)
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE anon';
+    PERFORM set_config('request.jwt.claim.sub', '', true);
+
+    -- Anonymous user selecting restricted created_by column on networks raises 42501
+    v_err_occurred := FALSE;
+    BEGIN
+        EXECUTE 'SELECT created_by FROM public.networks WHERE id = ''f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1''';
+    EXCEPTION WHEN insufficient_privilege THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-30): Anonymous user was able to SELECT created_by column on networks!';
+    END IF;
+
+    -- Anonymous user selecting restricted approved_by column on networks raises 42501
+    v_err_occurred := FALSE;
+    BEGIN
+        EXECUTE 'SELECT approved_by FROM public.networks WHERE id = ''f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1''';
+    EXCEPTION WHEN insufficient_privilege THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-30): Anonymous user was able to SELECT approved_by column on networks!';
+    END IF;
+
+    -- Anonymous user selecting restricted verified_by column on network_ssid_aliases raises 42501
+    v_err_occurred := FALSE;
+    BEGIN
+        EXECUTE 'SELECT verified_by FROM public.network_ssid_aliases WHERE id = ''e1e1e1e1-e1e1-4e1e-a1e1-e1e1e1e1e1e1''';
+    EXCEPTION WHEN insufficient_privilege THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-30): Anonymous user was able to SELECT verified_by column on network_ssid_aliases!';
+    END IF;
+
+    -- Anonymous user cannot see pending/unverified networks
+    SELECT COUNT(*) INTO v_count FROM public.networks WHERE id = 'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1';
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-30): Anonymous user saw pending/unverified network!';
+    END IF;
+
+    RAISE NOTICE 'SUCCESS: All 30 Negative Authorization Tests Passed.';
 END $$;
 
 ROLLBACK;

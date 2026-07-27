@@ -72,9 +72,14 @@ jobs:
 
       - name: Run Positive Authorization Tests (002)
         run: |
-          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+          set -e
+          OUTPUT=$(PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
-            -f supabase/tests/002_core_authorization_positive.sql
+            -f supabase/tests/002_core_authorization_positive.sql 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_AUTHENTICATED_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_AUTHENTICATED_PASS notice!"; exit 1; }
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_ANON_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_ANON_PASS notice!"; exit 1; }
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_SERVICE_ROLE_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_SERVICE_ROLE_PASS notice!"; exit 1; }
 
       - name: Run Negative Authorization Tests (003)
         run: |

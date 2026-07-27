@@ -147,8 +147,13 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
-    -- Invariant 7: Arabic normalization remains nonempty and collision-safe
+    -- Invariant 7: Unicode NFC normalization, canonical equivalence & Arabic safety
     -- ------------------------------------------------------------------------
+    -- Decomposed vs Composed Unicode sequence canonical equivalence (E + COMBINING ACUTE vs É)
+    IF public.normalize_ssid(U&'E\0301') <> public.normalize_ssid(U&'\00C9') THEN
+        RAISE EXCEPTION 'TEST_FAIL (INV-07): NFC canonical equivalence test failed for composed/decomposed sequence!';
+    END IF;
+
     v_norm_arabic := public.normalize_ssid('شبكة عدن Wi-Fi 5G');
     IF v_norm_arabic IS NULL OR length(v_norm_arabic) = 0 OR v_norm_arabic NOT LIKE '%شبكة%' THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-07): Arabic SSID normalization failed: %', v_norm_arabic;
@@ -156,6 +161,14 @@ BEGIN
 
     IF public.normalize_ssid('شبكة 1') = public.normalize_ssid('شبكة 2') THEN
         RAISE EXCEPTION 'TEST_FAIL (INV-07): Distinct Arabic SSIDs collided!';
+    END IF;
+
+    IF public.normalize_ssid('  Yemen   Hotspot   ') <> 'yemen-hotspot' THEN
+        RAISE EXCEPTION 'TEST_FAIL (INV-07): Whitespace normalization failed!';
+    END IF;
+
+    IF public.normalize_ssid('   ') <> '' THEN
+        RAISE EXCEPTION 'TEST_FAIL (INV-07): Whitespace-only SSID returned non-empty string!';
     END IF;
 
     -- ------------------------------------------------------------------------
