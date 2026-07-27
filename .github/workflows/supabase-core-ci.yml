@@ -1,0 +1,104 @@
+name: NetYemen Supabase Core CI
+
+on:
+  push:
+    branches:
+      - 'antigravity/*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'antigravity/*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  supabase-core-ci:
+    name: Supabase Local Authorization & Verification Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Non-Empty Test and Document Artifacts
+        run: |
+          set -e
+          echo "Verifying test and governance file sizes..."
+          for file in \
+            supabase/tests/001_core_schema_contract.sql \
+            supabase/tests/002_core_authorization_positive.sql \
+            supabase/tests/003_core_authorization_negative.sql \
+            supabase/tests/004_core_invariants.sql \
+            docs/NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md \
+            docs/NETYEMEN-CORE-BACKEND-MIGRATION-MANIFEST-01.md \
+            docs/adr/ADR-002-ROLE-AND-RLS-FOUNDATION.md \
+            docs/adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md \
+            docs/adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md; do
+            if [ ! -s "$file" ]; then
+              echo "CRITICAL: Required file $file is missing or 0 bytes!"
+              exit 1
+            fi
+            echo "[OK] $file (bytes: $(stat -c%s "$file"))"
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Disable Analytics in Local Supabase Config
+        run: |
+          if ! grep -q "\[analytics\]" supabase/config.toml; then
+            echo -e "\n[analytics]\nenabled = false" >> supabase/config.toml
+          fi
+
+      - name: Start Disposable Local Supabase Stack
+        run: |
+          npx --yes supabase@2.109.1 stop --no-backup || true
+          npx --yes supabase@2.109.1 start
+
+      - name: Apply Migrations via Local Database Reset
+        run: |
+          npx --yes supabase@2.109.1 db reset --no-seed
+
+      - name: Run Schema Contract Tests (001)
+        run: |
+          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/001_core_schema_contract.sql
+
+      - name: Run Positive Authorization Tests (002)
+        run: |
+          set -e
+          OUTPUT=$(PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/002_core_authorization_positive.sql 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_AUTHENTICATED_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_AUTHENTICATED_PASS notice!"; exit 1; }
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_ANON_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_ANON_PASS notice!"; exit 1; }
+          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_SERVICE_ROLE_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_SERVICE_ROLE_PASS notice!"; exit 1; }
+
+      - name: Run Negative Authorization Tests (003)
+        run: |
+          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/003_core_authorization_negative.sql
+
+      - name: Run Core Invariant Tests (004)
+        run: |
+          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/004_core_invariants.sql
+
+      - name: Execute PowerShell Static Verification Script
+        shell: pwsh
+        run: |
+          ./scripts/verify_netyemen_core_foundation.ps1
+
+      - name: Cleanup Local Supabase Stack
+        if: always()
+        run: |
+          npx --yes supabase@2.109.1 stop --no-backup
