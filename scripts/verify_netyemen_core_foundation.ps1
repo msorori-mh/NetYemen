@@ -14,7 +14,8 @@ $violations = @()
 # -----------------------------------------------------------------------------
 # 1. Branch Validation
 # -----------------------------------------------------------------------------
-$currentBranch = (git branch --show-current).Trim()
+$rawBranch = (git branch --show-current)
+$currentBranch = if ($rawBranch) { $rawBranch.ToString().Trim() } else { "" }
 Write-Host "[1/8] Checking Git Branch: $currentBranch" -ForegroundColor Yellow
 if ($currentBranch -eq "main") {
     $violations += "CRITICAL: Script must not be executed directly on 'main' branch."
