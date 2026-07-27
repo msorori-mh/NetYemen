@@ -9,6 +9,10 @@ on:
       - 'main'
       - 'antigravity/*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   supabase-core-ci:
     name: Supabase Local Authorization & Verification Gates
@@ -53,6 +57,7 @@ jobs:
 
       - name: Start Disposable Local Supabase Stack
         run: |
+          npx --yes supabase@2.109.1 stop --no-backup || true
           npx --yes supabase@2.109.1 start
 
       - name: Apply Migrations via Local Database Reset
