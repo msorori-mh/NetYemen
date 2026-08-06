@@ -1,12 +1,13 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'utils/constants.dart';
-import 'utils/app_theme.dart';
-import 'screens/splash_screen.dart';
+import 'app/app_shell.dart';
+import 'app/unconfigured_screen.dart';
+import 'core/config/app_config.dart';
+import 'core/config/app_environment.dart';
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,74 +16,82 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  await Supabase.initialize(
-    url: AppConstants.supabaseUrl,
-    publishableKey: AppConstants.supabaseAnonKey,
-  );
+  final config = AppConfig.fromEnvironment();
+  final environment = AppEnvironment.fromConfig(config);
 
-  runApp(const ProviderScope(child: NetYemenApp()));
+  if (environment.state == AppBootstrapState.configured) {
+    try {
+      await Supabase.initialize(
+        url: config.supabaseUrl,
+        publishableKey: config.supabasePublishableKey,
+      );
+    } catch (e) {
+      runApp(
+        ProviderScope(
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            home: UnconfiguredScreen(
+              message: 'فشل تهيئة الاتصال: $e',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Provide the parsed config so providers can use it
+      ],
+      child: NetYemenApp(environment: environment),
+    ),
+  );
 }
 
 class NetYemenApp extends StatelessWidget {
-  const NetYemenApp({super.key});
+  final AppEnvironment environment;
+
+  const NetYemenApp({super.key, required this.environment});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: AppConstants.appName,
-      locale: const Locale('ar', 'YE'),
-      supportedLocales: const [
-        Locale('ar', 'YE'),
-        Locale('en', 'US'),
-      ],
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.primary,
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: AppTheme.background,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppTheme.surface,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0,
-          centerTitle: true,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primary,
-            foregroundColor: AppTheme.textOnPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppTheme.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.primary, width: 2),
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
+      title: 'NetYemen',
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      theme: AppTheme.lightTheme,
+      home: _buildHome(),
     );
+  }
+
+  Widget _buildHome() {
+    switch (environment.state) {
+      case AppBootstrapState.configured:
+      case AppBootstrapState.unconfiguredDebug:
+        return const AppShell();
+      case AppBootstrapState.unconfiguredRelease:
+        return UnconfiguredScreen(
+          message: environment.errorMessage ??
+              'التطبيق غير مُعدّ — يرجى إعادة التثبيت',
+        );
+      case AppBootstrapState.invalidUrl:
+        return UnconfiguredScreen(
+          message: environment.errorMessage ?? 'رابط Supabase غير صالح',
+        );
+      case AppBootstrapState.error:
+        return UnconfiguredScreen(
+          message: environment.errorMessage ?? 'حدث خطأ في بدء التطبيق',
+        );
+      case AppBootstrapState.configuring:
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+    }
   }
 }
