@@ -1,3 +1,5 @@
+import 'package:unorm_dart/unorm_dart.dart';
+
 import '../domain/entities.dart';
 
 class ScanMatcher {
@@ -16,8 +18,18 @@ class ScanMatcher {
     return result;
   }
 
+  /// Mirrors [public.normalize_ssid] so Dart matching uses the same contract
+  /// as the database: trim, Unicode NFC normalization, lowercase, collapse
+  /// whitespace to hyphens, collapse hyphens, then trim surrounding hyphens.
   static String normalizeForMatching(String ssid) {
-    return ssid.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+    var normalized = ssid.trim();
+    normalized = nfc(normalized);
+    normalized = normalized.toLowerCase();
+    normalized = normalized.replaceAll(RegExp(r'\s+'), '-');
+    normalized = normalized.replaceAll(RegExp(r'-+'), '-');
+    normalized = normalized.replaceAll(RegExp(r'^-+'), '');
+    normalized = normalized.replaceAll(RegExp(r'-+$'), '');
+    return normalized;
   }
 
   static ScanMatchResult matchSsidsToNetworks({

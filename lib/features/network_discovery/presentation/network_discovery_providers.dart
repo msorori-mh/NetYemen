@@ -11,6 +11,8 @@ import '../../network_discovery/data/supabase_network_catalog_repository.dart';
 import '../../network_discovery/data/wifi_scan_service.dart';
 import '../../network_discovery/domain/entities.dart';
 
+export '../../network_discovery/data/scan_matcher.dart';
+
 final networkCatalogRepositoryProvider =
     Provider<NetworkCatalogRepository>((ref) {
   final config = ref.watch(appConfigProvider);
@@ -57,7 +59,9 @@ final networkSearchQueryProvider = StateProvider<String>((ref) => '');
 final filteredNetworksProvider =
     Provider<AsyncValue<List<NetworkEntity>>>((ref) {
   final networksAsync = ref.watch(networkCatalogProvider);
-  final query = ref.watch(networkSearchQueryProvider).trim().toLowerCase();
+  final query = ScanMatcher.normalizeForMatching(
+    ref.watch(networkSearchQueryProvider),
+  );
 
   return networksAsync.whenData((networks) {
     if (query.isEmpty) return networks;
