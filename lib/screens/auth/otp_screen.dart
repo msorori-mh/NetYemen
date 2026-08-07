@@ -1,9 +1,9 @@
 // lib/screens/auth/otp_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app/app_shell.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
-import '../main_screen.dart';
 
 class OTPScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -41,7 +41,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
+          MaterialPageRoute(builder: (_) => const AppShell()),
           (route) => false,
         );
       }

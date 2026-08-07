@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../providers/app_providers.dart';
+import '../../../screens/auth/login_screen.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -10,8 +12,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
-    final user =
-        config.isConfigured ? Supabase.instance.client.auth.currentUser : null;
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -88,25 +89,37 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
-          if (user != null) ...[
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: config.isConfigured
-                    ? () async {
-                        await Supabase.instance.client.auth.signOut();
-                      }
-                    : null,
-                icon: const Icon(Icons.logout),
-                label: const Text('تسجيل الخروج'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.error,
-                  side: const BorderSide(color: AppTheme.error),
-                ),
-              ),
-            ),
-          ],
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: user != null
+                ? OutlinedButton.icon(
+                    onPressed: config.isConfigured
+                        ? () async {
+                            await Supabase.instance.client.auth.signOut();
+                          }
+                        : null,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('تسجيل الخروج'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: config.isConfigured
+                        ? () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: const Icon(Icons.login),
+                    label: const Text('تسجيل الدخول'),
+                  ),
+          ),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_requests/domain/entities.dart';
 import '../../network_requests/presentation/network_request_providers.dart';
 
@@ -21,51 +22,65 @@ class MyRequestsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: requestsAsync.when(
-        data: (requests) {
-          if (requests.isEmpty) {
-            return const _EmptyRequestsState();
-          }
-          return RefreshIndicator(
-            onRefresh: () => ref.read(myRequestsProvider.notifier).refresh(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: requests.length,
-              itemBuilder: (_, i) => _RequestCard(
-                request: requests[i],
-                onCancel: () => _cancelRequest(ref, requests[i].id),
+      body: AuthRequiredGate(
+        child: requestsAsync.when(
+          data: (requests) {
+            if (requests.isEmpty) {
+              return const _EmptyRequestsState();
+            }
+            return RefreshIndicator(
+              onRefresh: () => ref.read(myRequestsProvider.notifier).refresh(),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: requests.length,
+                itemBuilder: (_, i) => _RequestCard(
+                  request: requests[i],
+                  onCancel: () => _cancelRequest(context, ref, requests[i].id),
+                ),
               ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+                const SizedBox(height: 12),
+                const Text('حدث خطأ في تحميل الطلبات'),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      ref.read(myRequestsProvider.notifier).refresh(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
-              const SizedBox(height: 12),
-              const Text('حدث خطأ في تحميل الطلبات'),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () =>
-                    ref.read(myRequestsProvider.notifier).refresh(),
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 
-  Future<void> _cancelRequest(WidgetRef ref, String requestId) async {
+  Future<void> _cancelRequest(
+    BuildContext context,
+    WidgetRef ref,
+    String requestId,
+  ) async {
     try {
       final repo = ref.read(networkRequestRepositoryProvider);
       await repo.cancelRequest(requestId);
-      ref.read(myRequestsProvider.notifier).refresh();
-    } catch (_) {}
+      if (context.mounted) {
+        ref.read(myRequestsProvider.notifier).refresh();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل إلغاء الطلب: $e')),
+        );
+      }
+    }
   }
 }
 

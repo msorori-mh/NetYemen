@@ -1,6 +1,7 @@
 // lib/providers/app_providers.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../features/network_discovery/presentation/network_discovery_providers.dart';
 import '../models/user_model.dart';
 import '../models/network_model.dart';
 import '../models/card_model.dart';
@@ -13,11 +14,24 @@ final supabaseServiceProvider = Provider<SupabaseService>((ref) {
 
 // Auth
 final authStateProvider = StreamProvider<AuthState>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.isDemoMode || !config.isConfigured) {
+    return const Stream<AuthState>.empty();
+  }
   return Supabase.instance.client.auth.onAuthStateChange;
 });
 
 final currentUserProvider = Provider<User?>((ref) {
-  return Supabase.instance.client.auth.currentUser;
+  final config = ref.watch(appConfigProvider);
+  if (config.isDemoMode || !config.isConfigured) return null;
+
+  final authAsync = ref.watch(authStateProvider);
+  final client = Supabase.instance.client;
+  return authAsync.when(
+    data: (state) => state.session?.user ?? client.auth.currentUser,
+    loading: () => client.auth.currentUser,
+    error: (_, __) => client.auth.currentUser,
+  );
 });
 
 // User Profile

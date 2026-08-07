@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../providers/app_providers.dart';
+import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/presentation/network_request_providers.dart';
+import '../../../screens/auth/login_screen.dart';
 
 class AddRequestScreen extends ConsumerStatefulWidget {
   const AddRequestScreen({super.key});
@@ -48,10 +50,10 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final config = ref.read(appConfigProvider);
-    final user =
-        config.isConfigured ? Supabase.instance.client.auth.currentUser : null;
+    final user = ref.read(currentUserProvider);
     if (config.isConfigured && user == null) {
-      _showAuthRequired();
+      if (!mounted) return;
+      _navigateToSignIn();
       return;
     }
 
@@ -94,19 +96,9 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
     }
   }
 
-  void _showAuthRequired() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تسجيل الدخول مطلوب'),
-        content: const Text('يجب تسجيل الدخول لإرسال طلب إضافة شبكة.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً'),
-          ),
-        ],
-      ),
+  void _navigateToSignIn() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
@@ -116,11 +108,12 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
       appBar: AppBar(
         title: const Text('طلب إضافة شبكة'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+      body: AuthRequiredGate(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
             TextFormField(
               controller: _ssidController,
               decoration: const InputDecoration(
@@ -199,6 +192,7 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
