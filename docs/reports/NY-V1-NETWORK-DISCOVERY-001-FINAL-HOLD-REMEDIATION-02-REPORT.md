@@ -159,13 +159,13 @@
 >
 > ## PUSH_RESULT
 >
-> Branch `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE` will be pushed to update existing Draft PR #5. No duplicate PR will be created.
+> **PUSHED** — branch `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE` pushed to origin, updating the existing Draft PR. No duplicate PR created.
 >
 > ## PR_5_STATUS
 >
-> - Open
-> - Draft
-> - Unmerged
+> - State: **OPEN**
+> - Draft: **true**
+> - Merged: **false** (`mergedAt` is null)
 >
 > ## REMAINING_GOVERNANCE
 >
