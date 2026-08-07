@@ -52,12 +52,12 @@
 3. `1ba8ec1` — `feat(auth): add reachable NetYemen authentication flow`
 4. `91ebc8b` — `fix(app): align Dart SSID normalization with PostgreSQL contract`
 5. `6e7ff10` — `test(app): verify Codex HOLD remediation`
-6. `<docs-sha>` — `docs(report): record Codex HOLD remediation`
+6. `bc7bc0b` — `docs(report): record Codex HOLD remediation`
 
 ## Push / PR
 
-- **Branch pushed:** `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE`
-- **Draft PR #5:** updated via branch push, kept Draft and unmerged.
+- **Branch pushed:** `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE` (`9ff8e3a..bc7bc0b`)
+- **Draft PR #5:** `NETYEMEN-V1-CUSTOMER-NETWORK-DISCOVERY-AND-REQUESTS-01` — state `OPEN`, `isDraft: true`, kept unmerged.
 
 ## Security / Privacy Preservation
 
