@@ -88,5 +88,47 @@ void main() {
       expect(ScanMatcher.normalizeForMatching('-Yemen-Hotspot-'),
           'yemen-hotspot');
     });
+
+    group('Unicode whitespace contract', () {
+      test('collapses no-break space (U+00A0)', () {
+        const input = 'Yemen\u00A0Hotspot';
+        expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot');
+      });
+
+      test('collapses narrow no-break space (U+202F)', () {
+        const input = 'Yemen\u202FHotspot';
+        expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot');
+      });
+
+      test('collapses ideographic space (U+3000)', () {
+        const input = 'Yemen\u3000Hotspot';
+        expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot');
+      });
+
+      test('collapses U+2000 through U+200A spaces', () {
+        for (var code = 0x2000; code <= 0x200A; code++) {
+          final input = 'Yemen${String.fromCharCode(code)}Hotspot';
+          expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot',
+              reason: 'U+${code.toRadixString(16).toUpperCase()} should collapse');
+        }
+      });
+
+      test('trims Unicode whitespace including NBSP', () {
+        const input = '\u00A0\u00A0Yemen Hotspot\u00A0\u00A0';
+        expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot');
+      });
+
+      test('preserves Arabic content and applies NFC normalization', () {
+        // Decomposed ALEF WITH HAMZA ABOVE vs pre-composed.
+        const decomposed = '\u0623\u0645\u0627\u0646\u0629';
+        const composed = '\u0623\u0645\u0627\u0646\u0629';
+        expect(ScanMatcher.normalizeForMatching(decomposed),
+            ScanMatcher.normalizeForMatching(composed));
+      });
+
+      test('empty string when input is only Unicode whitespace', () {
+        expect(ScanMatcher.normalizeForMatching('\u00A0\u2000\u3000'), '');
+      });
+    });
   });
 }

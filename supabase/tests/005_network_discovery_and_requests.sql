@@ -94,13 +94,16 @@ BEGIN
     RAISE NOTICE 'ROLE_CONTEXT_AUTHENTICATED_PASS';
 
     -- ------------------------------------------------------------------------
-    -- POS-02: Idempotent replay returns the same request
+    -- POS-02: Idempotent replay of the same logical payload returns the same request
     -- ------------------------------------------------------------------------
     v_result := public.submit_network_addition_request(
         'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1'::UUID,
-        'Different display name',
-        'Different name',
-        NULL, NULL, NULL, NULL
+        'Observed_SSID_1',
+        'Proposed Net A',
+        'Sanaa',
+        'Sanaa City',
+        'District A',
+        'Please review'
     );
     IF (v_result->>'id')::UUID <> v_request_id THEN
         RAISE EXCEPTION 'TEST_FAIL (POS-02): Idempotent replay returned a different request ID.';
@@ -421,36 +424,165 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
-    -- NEG-12: Terminal-to-terminal resolution rewrite is denied
+    -- NEG-12: Terminal-to-terminal and terminal-to-under_review resolution rewrites are denied
     -- ------------------------------------------------------------------------
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
     PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
 
-    v_result := public.resolve_network_addition_request(v_request_id, 'approved');
-    IF (v_result->>'status') <> 'approved' THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-12 setup): Could not approve request for terminal transition test.';
+    -- Approve a fresh request so we have a terminal row to test.
+    v_result := public.submit_network_addition_request(
+        'f1f1f1f1-f1f1-4f1f-a1f1-f1f1f1f1f1f1'::UUID,
+        'TerminalTest_SSID'
+    );
+    DECLARE
+        v_terminal_id UUID := (v_result->>'id')::UUID;
+    BEGIN
+        v_result := public.resolve_network_addition_request(v_terminal_id, 'approved');
+        IF (v_result->>'status') <> 'approved' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-12 setup): Could not approve request for terminal transition test.';
+        END IF;
+
+        v_err_occurred := FALSE;
+        BEGIN
+            v_result := public.resolve_network_addition_request(v_terminal_id, 'rejected');
+        EXCEPTION WHEN OTHERS THEN
+            v_err_occurred := TRUE;
+        END;
+        IF NOT v_err_occurred THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-terminal resolution rewrite succeeded.';
+        END IF;
+
+        v_err_occurred := FALSE;
+        BEGIN
+            v_result := public.resolve_network_addition_request(v_terminal_id, 'under_review');
+        EXCEPTION WHEN OTHERS THEN
+            v_err_occurred := TRUE;
+        END;
+        IF NOT v_err_occurred THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-under_review reopening succeeded.';
+        END IF;
+    END;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-13: matched_existing terminal status cannot be rewritten
+    -- ------------------------------------------------------------------------
+    v_result := public.submit_network_addition_request(
+        'f2f2f2f2-f2f2-4f2f-a2f2-f2f2f2f2f2f2'::UUID,
+        'MatchedExistingTerminal_SSID'
+    );
+    DECLARE
+        v_matched_id UUID := (v_result->>'id')::UUID;
+    BEGIN
+        v_result := public.resolve_network_addition_request(
+            v_matched_id,
+            'matched_existing',
+            'Matched existing approved network.',
+            v_network_id
+        );
+        IF (v_result->>'status') <> 'matched_existing' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-13 setup): Could not set matched_existing for terminal test.';
+        END IF;
+
+        v_err_occurred := FALSE;
+        BEGIN
+            v_result := public.resolve_network_addition_request(v_matched_id, 'approved');
+        EXCEPTION WHEN OTHERS THEN
+            v_err_occurred := TRUE;
+        END;
+        IF NOT v_err_occurred THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-13): matched_existing -> approved rewrite succeeded.';
+        END IF;
+
+        v_err_occurred := FALSE;
+        BEGIN
+            v_result := public.resolve_network_addition_request(v_matched_id, 'under_review');
+        EXCEPTION WHEN OTHERS THEN
+            v_err_occurred := TRUE;
+        END;
+        IF NOT v_err_occurred THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-13): matched_existing -> under_review reopening succeeded.';
+        END IF;
+    END;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-14: Reusing an idempotency key with a different payload is rejected
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_a_id::text, 'role', 'authenticated')::text, true);
+
+    v_result := public.submit_network_addition_request(
+        'a2a2a2a2-a2a2-4a2a-a2a2-a2a2a2a2a2a2'::UUID,
+        'IdempotentPayload_SSID'
+    );
+    IF (v_result->>'id') IS NULL THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-14 setup): Initial request submission failed.';
     END IF;
 
     v_err_occurred := FALSE;
     BEGIN
-        v_result := public.resolve_network_addition_request(v_request_id, 'rejected');
+        v_result := public.submit_network_addition_request(
+            'a2a2a2a2-a2a2-4a2a-a2a2-a2a2a2a2a2a2'::UUID,
+            'DifferentPayload_SSID'
+        );
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
     END;
     IF NOT v_err_occurred THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-terminal resolution rewrite succeeded.';
+        RAISE EXCEPTION 'TEST_FAIL (NEG-14): Reused idempotency key with different payload was accepted.';
     END IF;
 
-    v_err_occurred := FALSE;
+    -- ------------------------------------------------------------------------
+    -- NEG-15: Inappropriate matched_network_id metadata is rejected
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+
+    v_result := public.submit_network_addition_request(
+        'a3a3a3a3-a3a3-4a3a-a3a3-a3a3a3a3a3a3'::UUID,
+        'MetadataCoherence_SSID'
+    );
+    DECLARE
+        v_meta_id UUID := (v_result->>'id')::UUID;
     BEGIN
-        v_result := public.resolve_network_addition_request(v_request_id, 'under_review');
-    EXCEPTION WHEN OTHERS THEN
-        v_err_occurred := TRUE;
+        v_err_occurred := FALSE;
+        BEGIN
+            v_result := public.resolve_network_addition_request(
+                v_meta_id,
+                'approved',
+                NULL,
+                v_network_id
+            );
+        EXCEPTION WHEN OTHERS THEN
+            v_err_occurred := TRUE;
+        END;
+        IF NOT v_err_occurred THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-15): approved resolution accepted a matched_network_id.';
+        END IF;
     END;
-    IF NOT v_err_occurred THEN
-        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-under_review reopening succeeded.';
-    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- POS-09: Unicode whitespace (NBSP U+00A0) is normalized consistently
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_user_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_a_id::text, 'role', 'authenticated')::text, true);
+
+    v_result := public.submit_network_addition_request(
+        'b1b1b1b1-b1b1-4b1b-b1b1-b1b1b1b1b1b1'::UUID,
+        U&'Yemen\00A0Hotspot'
+    );
+    DECLARE
+        v_nbsp_id UUID := (v_result->>'id')::UUID;
+        v_normalized TEXT;
+    BEGIN
+        SELECT observed_ssid_normalized INTO v_normalized
+        FROM public.network_addition_requests
+        WHERE id = v_nbsp_id;
+
+        IF v_normalized <> 'yemen-hotspot' THEN
+            RAISE EXCEPTION 'TEST_FAIL (POS-09): NBSP U+00A0 was not normalized to hyphen; got %.', v_normalized;
+        END IF;
+    END;
 
     RAISE NOTICE 'SUCCESS: All Network Discovery & Request Tests Passed.';
 END $$;
