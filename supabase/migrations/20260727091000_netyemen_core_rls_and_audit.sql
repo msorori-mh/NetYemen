@@ -70,10 +70,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp;
 
--- Helper: Normalize SSID string using PostgreSQL native normalize(..., NFC) (preserves Arabic & Unicode script, lowercases, replaces whitespace with hyphens)
+-- Helper: Normalize SSID string using PostgreSQL native normalize(..., NFC)
+-- (preserves Arabic & Unicode script, lowercases, replaces the explicit
+-- Unicode whitespace contract with hyphens).
 CREATE OR REPLACE FUNCTION public.normalize_ssid(p_ssid TEXT)
 RETURNS TEXT AS $$
 DECLARE
+    v_ws      TEXT;
     v_trimmed TEXT;
     v_nfc     TEXT;
     v_clean   TEXT;
@@ -82,7 +85,14 @@ BEGIN
         RETURN '';
     END IF;
 
-    v_trimmed := trim(p_ssid);
+    -- Explicit Unicode whitespace contract shared with the Dart client:
+    -- ASCII whitespace, U+0085 NEL, U+00A0 NBSP, U+1680, U+2000-U+200A,
+    -- U+2028/U+2029 line/paragraph separators, U+202F, U+205F, U+3000.
+    v_ws := U&'\0009\000A\000B\000C\000D\0020\0085\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000';
+
+    -- Trim using the explicit whitespace contract so Dart and PostgreSQL agree
+    -- on leading/trailing Unicode spaces such as NBSP.
+    v_trimmed := regexp_replace(p_ssid, '^[' || v_ws || ']+|[' || v_ws || ']+$', '', 'g');
     IF length(v_trimmed) = 0 THEN
         RETURN '';
     END IF;
@@ -95,7 +105,7 @@ BEGIN
     v_clean := lower(v_nfc);
 
     -- Replace internal whitespace sequences with a single hyphen
-    v_clean := regexp_replace(v_clean, '\s+', '-', 'g');
+    v_clean := regexp_replace(v_clean, '[' || v_ws || ']+', '-', 'g');
 
     -- Replace multiple hyphens with single hyphen
     v_clean := regexp_replace(v_clean, '-+', '-', 'g');
