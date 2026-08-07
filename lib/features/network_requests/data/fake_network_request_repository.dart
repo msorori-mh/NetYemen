@@ -3,12 +3,21 @@ import 'network_request_repository.dart';
 
 class FakeNetworkRequestRepository implements NetworkRequestRepository {
   final List<NetworkAdditionRequest> _requests;
+  final Map<String, NetworkAdditionRequest> _idempotency;
   bool shouldThrow;
 
   FakeNetworkRequestRepository({
     List<NetworkAdditionRequest> requests = const [],
+    Map<String, NetworkAdditionRequest>? idempotency,
     this.shouldThrow = false,
-  }) : _requests = List.of(requests);
+  })  : _requests = List.of(requests),
+        _idempotency = idempotency != null
+            ? Map<String, NetworkAdditionRequest>.from(idempotency)
+            : {};
+
+  List<NetworkAdditionRequest> get requests => List.unmodifiable(_requests);
+
+  List<String> get idempotencyKeys => List.unmodifiable(_idempotency.keys);
 
   @override
   Future<List<NetworkAdditionRequest>> fetchMyRequests() async {
@@ -30,6 +39,11 @@ class FakeNetworkRequestRepository implements NetworkRequestRepository {
     if (shouldThrow) throw Exception('فشل إرسال الطلب');
     await Future.delayed(const Duration(milliseconds: 200));
 
+    final existing = _idempotency[idempotencyKey];
+    if (existing != null) {
+      return existing;
+    }
+
     final request = NetworkAdditionRequest(
       id: 'fake-${DateTime.now().millisecondsSinceEpoch}',
       status: 'submitted',
@@ -42,6 +56,7 @@ class FakeNetworkRequestRepository implements NetworkRequestRepository {
       createdAt: DateTime.now(),
     );
 
+    _idempotency[idempotencyKey] = request;
     _requests.insert(0, request);
     return request;
   }
