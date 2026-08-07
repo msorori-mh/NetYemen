@@ -234,6 +234,15 @@ BEGIN
             USING ERRCODE = '28000';
     END IF;
 
+    -- Require active profile
+    IF NOT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = v_user_id AND account_status = 'active'
+    ) THEN
+        RAISE EXCEPTION 'INACTIVE_PROFILE: Account is not active.'
+            USING ERRCODE = '42501';
+    END IF;
+
     -- Only the requester can cancel their own submitted request
     SELECT status INTO v_current_status
     FROM public.network_addition_requests
@@ -281,6 +290,15 @@ BEGIN
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'UNAUTHENTICATED: Authentication required.'
             USING ERRCODE = '28000';
+    END IF;
+
+    -- Require active profile
+    IF NOT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = v_user_id AND account_status = 'active'
+    ) THEN
+        RAISE EXCEPTION 'INACTIVE_PROFILE: Account is not active.'
+            USING ERRCODE = '42501';
     END IF;
 
     -- Only platform_admin or support_agent can resolve
