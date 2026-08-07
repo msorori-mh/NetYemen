@@ -4,9 +4,9 @@
 
 `NY-V1-NETWORK-DISCOVERY-001-CURSOR-CLOSURE-SECURITY-REVIEW-01`
 
-Independent security closure review after FINAL-HOLD-REMEDIATION-02. Verify that prior Codex HOLD findings (R-01–R-05) are closed and that authorization, RLS/ACL, SECURITY DEFINER, idempotency, state machine, Unicode parity, Wi-Fi privacy, and secrets posture remain sound.
+Final independent security and concurrency closure review of NetYemen V1 Network Discovery after FINAL-HOLD-REMEDIATION-02.
 
-Review-only. No runtime code changes. No Production. No remote Supabase. No merge.
+Review-only. No runtime/source fixes. No Production. No remote Supabase. No merge.
 
 ## REVIEW_TARGET_SHA
 
@@ -18,116 +18,187 @@ Review-only. No runtime code changes. No Production. No remote Supabase. No merg
 
 ## WORKTREE_STATUS
 
-- `git rev-parse HEAD` = `5cbcc875f491b6002ce4bd8757ff31316f9c65bc` (exact match)
-- Worktree clean before report commit (Flutter `android/gradle.properties` migrator edit from `flutter build apk --debug` was reverted and not included)
-- Prior inputs read:
-  - Cursor security review (PASS on earlier SHA `b1da5c0…`)
-  - Codex final re-review (HOLD on `b1da5c0…`; findings R-01–R-05)
-  - FINAL-HOLD-REMEDIATION-02 report (claimed PASS; ending SHA `71fab3c…`, later docs update to this target)
-
-## REVIEWED_OBJECTS
-
-### Database
-
-- `supabase/migrations/20260727090000_netyemen_core_identity_and_networks.sql` (`handle_new_user`, networks identity)
-- `supabase/migrations/20260727091000_netyemen_core_rls_and_audit.sql` (`normalize_ssid`, RLS/FORCE, ACL helpers)
-- `supabase/migrations/20260727130000_netyemen_network_addition_requests.sql` (table, RPCs, RLS, grants)
-- RPCs: `submit_network_addition_request`, `cancel_network_addition_request`, `resolve_network_addition_request`
-- Helpers: `has_platform_role`, `normalize_ssid`, `set_updated_at`, `handle_new_user`
-
-### Flutter / Android
-
-- Auth: `lib/screens/auth/otp_screen.dart`, `lib/services/supabase_service.dart`, `lib/features/auth/presentation/auth_required_gate.dart`
-- Idempotency: `lib/features/network_requests/presentation/network_request_providers.dart`, `add_request_screen.dart`, `lib/core/utils/uuid_generator.dart`
-- SSID: `lib/features/network_discovery/data/scan_matcher.dart` vs `public.normalize_ssid`
-- Wi-Fi: `android_wifi_scan_service.dart`, `AndroidManifest.xml`
-
-### Tests / verifiers
-
-- `supabase/tests/001`–`006`
-- Temporary local adversarial SQL (rolled back)
-- `scripts/verify_netyemen_core_foundation.ps1`
-- Flutter analyze / test / debug APK
-
----
+- Review executed with worktree checked out at exact target SHA `5cbcc875f491b6002ce4bd8757ff31316f9c65bc` (detached HEAD) and clean before validation.
+- Remediation range inspected: `b1da5c0bc0b55ac782a5a0544836e0d777e267d0..5cbcc875f491b6002ce4bd8757ff31316f9c65bc` (14 files; auth, idempotency, state machine, Unicode, tests, docs).
+- Flutter `android/gradle.properties` migrator edit from `flutter build apk --debug` was reverted and is not part of this report commit.
+- Prior reports read completely and not trusted blindly:
+  - Cursor security review (PASS on `b1da5c0…`)
+  - Codex final re-review (HOLD on `b1da5c0…`; R-01–R-05)
+  - FINAL-HOLD-REMEDIATION-02 report (claimed PASS)
 
 ## CODEX_HOLD_CLOSURE_MATRIX
 
-| ID | Prior severity | Closure | Independent evidence |
+| ID | Prior | Independent result | Evidence |
 |---|---|---|---|
-| R-01 | HIGH | **CLOSED** | No `createOrUpdateUser` / `from('users')` in client; OTP success navigates to `AppShell`; `getUserProfile` reads `public.profiles`; `handle_new_user` provisions `profiles` + `customer` role; SQL 006 CHECK 1 + ADV-NO-PUBLIC-USERS |
-| R-02 | HIGH | **CLOSED** | Client `IdempotencySession` binds UUID to payload fingerprint; `AddRequestScreen.initState` resets session; server raises `IDEMPOTENCY_PAYLOAD_MISMATCH`; unique `(requester_user_id, idempotency_key)`; Flutter notifier tests + SQL NEG-14 / 006 CHECK 2–3 + ADV-PAYLOAD-MISMATCH |
-| R-03 | MEDIUM | **CLOSED** | Resolve uses single `UPDATE … WHERE status IN ('submitted','under_review')`; terminals (`approved`/`rejected`/`matched_existing`) and `cancelled` cannot be rewritten; metadata coherence for `matched_network_id`; NEG-12/13/15 + 006 CHECK 4–5 + ADV-TERMINAL / ADV-STALE |
-| R-04 | MEDIUM | **CLOSED** | Explicit shared Unicode whitespace contract in Dart and PostgreSQL (incl. U+00A0); NFC + hyphen rules aligned; POS-09 + 006 CHECK 6 + Dart unicode tests |
-| R-05 | LOW | **CLOSED** | OTP widget test, expanded notifier/scan tests, SQL 005 extensions, suite 006; Flutter tests 50/50 |
+| R-01 | HIGH | **CLOSED** | `OTPScreen` no longer calls `createOrUpdateUser`; no client `from('users')`; `handle_new_user` provisions `profiles` + `customer`; SQL 006 AUTH_FRESH_USER_PASS; ADV-12 PASS |
+| R-02 | HIGH | **CLOSED** | Client `IdempotencySession` binds UUID v4 to payload fingerprint; `AddRequestScreen.initState` resets session; server `IDEMPOTENCY_PAYLOAD_MISMATCH`; unique `(requester_user_id, idempotency_key)`; SQL 006 CHECK 2–3; ADV-1/2/3 PASS |
+| R-03 | MEDIUM | **CLOSED** | Atomic `UPDATE … WHERE status IN ('submitted','under_review')`; terminals (`approved`,`rejected`,`matched_existing`) and `cancelled` cannot rewrite; ADV-4/5/6/7 + matched_existing terminal PASS |
+| R-04 | MEDIUM | **CLOSED** | Shared explicit Unicode whitespace set in Dart + PostgreSQL; ADV-13 + SQL 006 UNICODE_NORMALIZATION_PASS; Flutter scan_matcher tests |
+| R-05 | LOW | **CLOSED** | OTP widget test, expanded notifier/scan tests, SQL 005/006 extensions; Flutter 50/50 PASS |
 
 ---
 
-## FOCUS_AREA_MATRIX
+## IDENTITY_PROVISIONING_RESULT
 
-| # | Focus | Result | Evidence |
+**PASS**
+
+- Successful OTP completion navigates to `AppShell` without any write to `public.users`.
+- Local schema: `to_regclass('public.users') IS NULL`.
+- Fresh `auth.users` insert provisions `public.profiles` + `public.user_roles (customer)` via `public.handle_new_user`.
+- `SupabaseService.getUserProfile` reads `public.profiles` only.
+- Existing-user login path uses real Supabase OTP (`signInWithOtp` / `verifyOTP` SMS).
+- Session restoration via `onAuthStateChange` + `currentUser` fallback.
+- Sign-out via Profile → `Supabase.auth.signOut`; private providers empty when signed out.
+- Unauthenticated public catalog browse remains available; My Requests / Add Request gated by `AuthRequiredGate`.
+- No fake release identity; release unconfigured remains blocked.
+- No privilege escalation introduced on the fresh-user path.
+- **OD-AUTH-01** remains OPEN governance only (no production SMS provider chosen/hardcoded; no remote Auth config mutation; no production OTP readiness claim).
+
+## IDEMPOTENCY_RESULT
+
+**PASS**
+
+- Client UUID is standards-compliant v4 (`Random.secure`, version/variant bits).
+- One logical request owns one UUID; same payload retry reuses the same UUID; changed payload mints a new UUID.
+- Screen open resets pending session (`resetIdempotency()` in `AddRequestScreen.initState`).
+- Server rejects same UUID + different payload with `IDEMPOTENCY_PAYLOAD_MISMATCH`.
+- Cross-user same UUID creates distinct rows under `(requester_user_id, idempotency_key)`.
+- Concurrent same-key races resolved by `INSERT … ON CONFLICT DO NOTHING` then validate/re-select.
+- Requester identity is always `auth.uid()`; client cannot supply requester id for ownership.
+- Failures retain session only while fingerprint matches; success clears session.
+
+## STATE_MACHINE_CONCURRENCY_RESULT
+
+**PASS**
+
+- Guarded atomic update: `UPDATE … WHERE id = … AND status IN ('submitted','under_review')`.
+- Verified fail-closed: `approved→rejected`, `approved→under_review`, `matched_existing→approved`, conflicting second resolve.
+- `matched_network_id` required for `matched_existing` and forbidden otherwise.
+- `resolved_by` / `resolved_at` / `resolution_note` set in the same atomic update for terminal statuses.
+- Stale concurrent reviewer actions cannot both succeed (second gets `INVALID_TRANSITION`).
+
+## RLS_ASSESSMENT
+
+**PASS** (no remediation regression)
+
+- `ENABLE` + `FORCE ROW LEVEL SECURITY` on `network_addition_requests`.
+- SELECT policies only (owner / support_agent / platform_admin / system_auditor).
+- No INSERT/UPDATE/DELETE policies — mutations only via SECURITY DEFINER RPCs.
+- Cross-user SELECT denied (ADV-11); anon SELECT privilege absent (ADV-10).
+- Suites 001–004 PASS (core foundation RLS intact).
+
+## RPC_ASSESSMENT
+
+**PASS**
+
+| RPC | Auth | Identity | Notes |
 |---|---|---|---|
-| 1 | `auth.users` → `profiles` / `user_roles` fresh-user provisioning | **PASS** | Trigger `handle_new_user` on `auth.users` INSERT; SQL 006 AUTH_FRESH_USER_PASS |
-| 2 | No `public.users` shadow identity | **PASS** | `to_regclass('public.users') IS NULL`; no client writes |
-| 3 | UUID / payload idempotency binding | **PASS** | Client fingerprint + UUID v4; server conflict path compares payload fields |
-| 4 | Mismatched payload replay rejection | **PASS** | `IDEMPOTENCY_PAYLOAD_MISMATCH`; ADV-PAYLOAD-MISMATCH PASS |
-| 5 | Requester-scoped uniqueness | **PASS** | Unique index `(requester_user_id, idempotency_key)`; `requester_user_id := auth.uid()` |
-| 6 | Concurrent replay protection | **PASS** | `INSERT … ON CONFLICT DO NOTHING` then validate/re-select (no check-then-insert race) |
-| 7 | Atomic terminal state transitions | **PASS** | Guarded resolve UPDATE; terminal rewrite blocked |
-| 8 | Stale / concurrent reviewer protection | **PASS** | Status predicate + row lock serialization; stale second resolve → `INVALID_TRANSITION` |
-| 9 | Resolution metadata coherence | **PASS** | Table CHECK + RPC rules for `resolved_at`/`resolved_by`/`matched_network_id` |
-| 10 | Dart / PostgreSQL Unicode normalization parity | **PASS** | Shared explicit whitespace set; NBSP and related vectors covered |
-| 11 | RLS | **PASS** | ENABLE + FORCE RLS; SELECT policies only (owner/support/admin/auditor); no client DML policies |
-| 12 | ACL / grants / revokes | **PASS** | `REVOKE ALL FROM PUBLIC`; SELECT to `authenticated` only; RPC EXECUTE revoked from PUBLIC, granted to `authenticated`; no anon on requests |
-| 13 | SECURITY DEFINER / `search_path` | **PASS** | Request RPCs and core helpers use `SET search_path = public, pg_temp` |
-| 14 | `auth.uid()` | **PASS** | Submit/cancel/resolve derive identity from `auth.uid()`; no client-supplied requester id |
-| 15 | Cross-user isolation | **PASS** | RLS + ownership checks; ADV-CROSS-USER-REPLAY creates distinct scoped rows |
-| 16 | Anon denial | **PASS** | Suites NEG-01/11; no request table/RPC grants to `anon` |
-| 17 | Wi-Fi SSID-only privacy | **PASS** | Scanner extracts SSID only; schema excludes BSSID/MAC/coords/password; scan on explicit user action |
-| 18 | Secrets / artifacts | **PASS** | No committed service-role/JWT/private-key values; `supabase/.temp` / build artifacts not staged; local demo JWT only from `supabase status` (not in git) |
+| `submit_network_addition_request` | active profile | `auth.uid()` | Server normalizes SSID; payload-bound idempotency |
+| `cancel_network_addition_request` | active profile + owner | `auth.uid()` | Only `submitted` intended; see CUR-CL-01 TOCTOU |
+| `resolve_network_addition_request` | admin/support | `auth.uid()` as `resolved_by` | Atomic terminal guard |
 
----
+## ACL_GRANTS_REVOKES
 
-## SECURITY_DEFINER_AND_AUTHZ
+**PASS with MEDIUM hygiene finding (pre-existing; not introduced by remediation-02)**
 
-| Function | search_path | auth.uid() | Dynamic SQL | EXECUTE |
+Intended migration posture:
+
+- `REVOKE ALL … FROM PUBLIC`
+- `GRANT SELECT … TO authenticated`
+- No INSERT/UPDATE/DELETE to clients
+- RPC EXECUTE: PUBLIC revoked; authenticated granted
+
+Independent local ACL probe after `db reset --no-seed`:
+
+- Confirmed: authenticated has SELECT; no INSERT/UPDATE/DELETE for authenticated/anon.
+- Residual Supabase default privileges left `TRUNCATE` (also TRIGGER/REFERENCES) on `network_addition_requests` for `anon`, `authenticated`, and `service_role`.
+- Direct local SQL as `anon` and `authenticated` successfully executed `TRUNCATE public.network_addition_requests` (transaction rolled back).
+- Same residual `anon TRUNCATE` pattern exists on foundation `profiles`; `networks` correctly used explicit `REVOKE ALL FROM anon`.
+- Not reachable via PostgREST/Flutter API verbs (no TRUNCATE endpoint). Requires direct SQL role assumption.
+- Not introduced in `b1da5c0..5cbcc87` (grant lines unchanged by remediation).
+
+## SECURITY_DEFINER_REVIEW
+
+**PASS**
+
+| Function | search_path | auth.uid() | Dynamic SQL | Escalation |
 |---|---|---|---|---|
-| `submit_network_addition_request` | `public, pg_temp` | Yes | None | PUBLIC revoked; authenticated granted |
-| `cancel_network_addition_request` | `public, pg_temp` | Yes | None | PUBLIC revoked; authenticated granted |
-| `resolve_network_addition_request` | `public, pg_temp` | Yes; `resolved_by` from caller | None | PUBLIC revoked; authenticated granted; role-gated admin/support |
-| `handle_new_user` / `normalize_ssid` / `has_platform_role` | `public, pg_temp` | Trigger / helper | None | Least-privilege as in foundation |
+| submit / cancel / resolve request RPCs | `public, pg_temp` | Yes | None | No |
+| `has_platform_role` / `normalize_ssid` | `public, pg_temp` | Helper / N/A | None | No |
+| `handle_new_user` | `public, pg_temp` | Trigger | None | Defaults customer only |
 
----
+No client-supplied identity trust. Schema-qualified table access in RPCs. No unsafe `EXECUTE format(...)`.
 
-## ADVERSARIAL_TESTS (temporary local, rolled back)
+## AUTHENTICATION_BOUNDARY
 
-Executed via `docker exec … psql -v ON_ERROR_STOP=1` against local `supabase_db_netyemen-local` after `db reset --no-seed`. Transaction `ROLLBACK`.
+**PASS**
+
+- Public approved networks browsable without auth.
+- Private request screens gated.
+- Submit requires auth + active profile server-side.
+- Real Supabase phone OTP; no fake release identity.
+- OD-AUTH-01 open governance only (not a source-only HOLD).
+
+## UNICODE_NORMALIZATION_RESULT
+
+**PASS**
+
+Dart `ScanMatcher.normalizeForMatching` and PostgreSQL `public.normalize_ssid` share the same explicit whitespace contract covering U+0020, tab, newline, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000.
+
+Local PostgreSQL ADV-13 vectors all normalize `A<ws>B` → `a-b`. Arabic `يمن نت` → `يمن-نت`. NFC behavior covered by Flutter tests. Database remains authoritative on submit (`normalize_ssid(p_observed_ssid_display)`); client cannot forge normalized values through RPC parameters.
+
+## WIFI_PRIVACY_RESULT
+
+**PASS**
+
+- Scan is explicit user action only (`performScan` from UI buttons).
+- No background scanning paths in feature code.
+- Results memory-only (Riverpod); SSID-only extraction in `AndroidWifiScanService`.
+- Must-not-persist/transmit controls hold: no BSSID/MAC/location/signal/frequency/password in repository RPC params or request schema.
+- AndroidManifest: `ACCESS_WIFI_STATE`, `CHANGE_WIFI_STATE`, `ACCESS_FINE_LOCATION` maxSdk 32, `NEARBY_WIFI_DEVICES` + `neverForLocation` (OS prerequisite NOTE).
+
+## ADVERSARIAL_TESTS
+
+Local-only SQL transaction (rolled back). All PASS:
 
 | # | Case | Result |
 |---|---|---|
-| ADV-PAYLOAD-MISMATCH | Same UUID + different SSID payload | **PASS** (`IDEMPOTENCY_PAYLOAD_MISMATCH`) |
-| ADV-TERMINAL-REWRITE | `approved` → `rejected` | **PASS** (`INVALID_TRANSITION`) |
-| ADV-STALE-RESOLUTION | Second resolve after terminal approval | **PASS** (`INVALID_TRANSITION`) |
-| ADV-CROSS-USER-REPLAY | User B reuses User A UUID | **PASS** (two distinct requester-scoped rows) |
-| ADV-WRONG-ROLE | Customer calls resolve RPC | **PASS** (`FORBIDDEN_ROLE`) |
-| ADV-NO-PUBLIC-USERS | `to_regclass('public.users')` | **PASS** (NULL) |
-
----
+| 1 | same UUID + different payload | PASS (`IDEMPOTENCY_PAYLOAD_MISMATCH`) |
+| 2 | cross-user same UUID replay | PASS (2 distinct rows; counted as postgres) |
+| 3 | same payload retry | PASS |
+| 4 | terminal → terminal rewrite | PASS |
+| 5 | terminal → under_review | PASS |
+| 6/7 | stale / conflicting reviewer resolution | PASS |
+| 8 | unauthorized direct resolution metadata update | PASS (no UPDATE privilege; row unchanged) |
+| 9 | wrong-role resolve RPC | PASS (`FORBIDDEN_ROLE`) |
+| 10 | anon / private request access | PASS |
+| 11 | cross-user request read | PASS |
+| 12 | fresh-user provisioning path | PASS |
+| 13 | Unicode whitespace normalization | PASS |
+| + | matched_existing terminal rewrite | PASS |
 
 ## SQL_TEST_RESULTS
+
+Executed after `npx supabase db reset --no-seed` via `docker exec … psql -v ON_ERROR_STOP=1` against local `supabase_db_netyemen-local`.
 
 | Suite | Result |
 |---|---|
 | 001_core_schema_contract.sql | **PASS** |
-| 002_core_authorization_positive.sql | **PASS** (14 positive; ROLE_CONTEXT notices) |
-| 003_core_authorization_negative.sql | **PASS** (30 negative) |
-| 004_core_invariants.sql | **PASS** (12 invariants) |
+| 002_core_authorization_positive.sql | **PASS** |
+| 003_core_authorization_negative.sql | **PASS** |
+| 004_core_invariants.sql | **PASS** |
 | 005_network_discovery_and_requests.sql | **PASS** |
-| 006_final_hold_remediation_verification.sql | **PASS** (AUTH / IDEMPOTENCY / STATE_MACHINE / UNICODE notices) |
+| 006_final_hold_remediation_verification.sql | **PASS** |
 
-Local only: `npx supabase start`, `npx supabase db reset --no-seed`. No remote Supabase.
+## FLUTTER_VALIDATION
 
----
+| Check | Result |
+|---|---|
+| JDK | OpenJDK 17.0.20 (Microsoft; Flutter-configured) |
+| `flutter pub get` | PASS |
+| `flutter analyze` | PASS — No issues found |
+| `flutter test` | PASS — 50/50 |
+| `flutter build apk --debug` | PASS — `build\app\outputs\flutter-apk\app-debug.apk` |
 
 ## CORE_VERIFIER
 
@@ -135,27 +206,24 @@ Local only: `npx supabase start`, `npx supabase db reset --no-seed`. No remote S
 
 **STATIC VERIFICATION RESULT: PASS (All Rules Satisfied)**
 
----
-
-## FLUTTER_VALIDATION
-
-| Check | Result |
-|---|---|
-| JDK | Microsoft OpenJDK **17.0.20+8-LTS** (`C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot`); Flutter-configured |
-| `flutter pub get` | **PASS** |
-| `flutter analyze` | **PASS** — No issues found |
-| `flutter test` | **PASS** — 50/50 |
-| `flutter build apk --debug` | **PASS** — `build\app\outputs\flutter-apk\app-debug.apk` (152,109,754 bytes; SHA-256 `1817CC8F6BF776EABC224B181A599B7F54495E90863399AE2F33BAD8247012F6`) |
-
----
-
 ## SECRET_SCAN
 
-- Grep over tracked non-doc sources for live credentials / private keys / JWT literals: only documentation/test role references to `service_role` (no secret values)
-- No `supabase/.temp`, `.branches`, or `build/` staged
-- Accidental `android/gradle.properties` Flutter migrator edit reverted before report commit
+**PASS**
 
-**SECRET_SCAN_RESULT: PASS**
+- No committed service_role JWT literals, OpenRouter/Kimi API keys, private keys, or production credentials in tracked non-doc sources.
+- Matches for `service_role` are documentation/test role switches and GRANT targets only.
+- `supabase/.temp`, `supabase/.branches`, and `build/` are not tracked/staged.
+- `git diff --check` on remediation range: clean.
+- Local Supabase demo JWTs from `supabase status` are runtime-local only (not committed).
+
+## REGRESSION_ASSESSMENT
+
+- Core suites 001–004 PASS after remediation migrations.
+- Request RLS/RPC posture preserved; no new INSERT/UPDATE/DELETE client policies.
+- SECURITY DEFINER `search_path` and `auth.uid()` identity model preserved.
+- Wi-Fi privacy not weakened.
+- Prior Codex HOLD items R-01–R-05 independently re-verified closed.
+- Residual incomplete `REVOKE` vs Supabase default privileges (TRUNCATE) is pre-existing ACL hygiene and also present on foundation `profiles`; not a remediation-02 regression.
 
 ---
 
@@ -163,14 +231,11 @@ Local only: `npx supabase start`, `npx supabase db reset --no-seed`. No remote S
 
 | ID | Severity | Component | Evidence | Impact | Recommendation |
 |---|---|---|---|---|---|
-| CUR-CL-01 | LOW | `cancel_network_addition_request` | Status is selected then `UPDATE` without `WHERE status = 'submitted'` | Requester-only TOCTOU: cancel could race after support moves to `under_review`; no cross-user / privilege escalation | Optional hygiene: atomic `UPDATE … WHERE status = 'submitted' AND requester_user_id = auth.uid()` |
-| CUR-CL-02 | NOTE | Android permissions | `ACCESS_FINE_LOCATION` maxSdk 32 for OS Wi-Fi scan APIs; `NEARBY_WIFI_DEVICES` + `neverForLocation` | Location not collected/transmitted | Keep documenting OS prerequisite |
-| CUR-CL-03 | NOTE | Duplicate-of linking | Best-effort SELECT-then-INSERT for open SSID without partial unique index | Rare concurrent inserts may both omit `duplicate_of`; no authz bypass | Optional later advisory lock / partial unique index |
-| CUR-CL-04 | NOTE | Demo auth gate | `AuthRequiredGate` bypass in debug demo/unconfigured | Local UI only; release unconfigured blocked | Keep demo bypass out of production builds |
-
-No BLOCKER, HIGH, or MEDIUM findings remain after remediation verification.
-
----
+| CUR-CL-01 | LOW | `cancel_network_addition_request` | Status checked in PL/pgSQL then `UPDATE … WHERE id AND requester_user_id` without `AND status = 'submitted'` | Requester can cancel after support moved request to `under_review` if cancel races the status change; requester-scoped only | Optional: atomic `UPDATE … WHERE status = 'submitted' AND requester_user_id = auth.uid()` |
+| CUR-CL-02 | MEDIUM | ACL on `network_addition_requests` | After local reset, `anon`/`authenticated` retain `TRUNCATE`; direct `SET ROLE anon/authenticated; TRUNCATE …` succeeded (rolled back). Same residue on `profiles`. Not introduced in remediation diff. | Destructive wipe if an attacker obtains a direct SQL session as anon/authenticated; not reachable via PostgREST/Flutter API | Follow core `networks` pattern: `REVOKE ALL FROM anon, authenticated` then `GRANT SELECT TO authenticated` only |
+| CUR-CL-03 | NOTE | AndroidManifest | `ACCESS_FINE_LOCATION` maxSdk 32 | OS Wi-Fi scan prerequisite; app does not collect/transmit location | Keep documenting; do not expand to background/coarse location |
+| CUR-CL-04 | NOTE | duplicate_of linking | SELECT-then-INSERT without lock/partial unique on open SSID | Rare concurrent same-SSID submits may both omit `duplicate_of` | Optional advisory lock / partial unique later |
+| CUR-CL-05 | NOTE | AuthRequiredGate demo bypass | Bypass when `isDemoMode \|\| !isConfigured` | Debug/local UI only; release unconfigured blocked | Keep demo bypass out of customer release builds |
 
 ## COUNTS
 
@@ -178,20 +243,16 @@ No BLOCKER, HIGH, or MEDIUM findings remain after remediation verification.
 |---|---|
 | BLOCKER | 0 |
 | HIGH | 0 |
-| MEDIUM | 0 |
+| MEDIUM | 1 |
 | LOW | 1 |
 | NOTE | 3 |
 
----
-
 ## REMAINING_GOVERNANCE_ITEMS
 
-- **OD-AUTH-01** — Production SMS OTP gateway provider selection remains OPEN. Source does not hardcode a production gateway, does not alter remote Supabase configuration, and does not claim production OTP readiness. This is a production-launch governance blocker, not a source-only HOLD for this slice.
-
----
+- **OD-AUTH-01** — Production SMS OTP gateway provider selection remains OPEN. Source does not choose/hardcode a production gateway, does not alter remote Supabase Auth configuration, and does not claim production OTP readiness. Production-launch governance blocker only; not a source-only HOLD for this slice.
 
 ## FINAL_DECISION
 
 **PASS**
 
-Reason: Independent verification of target SHA `5cbcc875f491b6002ce4bd8757ff31316f9c65bc` found **0 BLOCKER**, **0 HIGH**, and **0 MEDIUM**. Codex HOLD items R-01–R-05 are closed with code inspection plus local SQL 001–006, adversarial probes, core verifier, and Flutter analyze/test/APK evidence. All 18 focus areas PASS. Remaining items are LOW/NOTE hygiene or open governance (OD-AUTH-01), which do not mandate HOLD under the source-only decision rule for this slice.
+Reason: Target SHA `5cbcc875f491b6002ce4bd8757ff31316f9c65bc` independently verified with **0 BLOCKER** and **0 HIGH**. Codex HOLD items R-01–R-05 are closed in source and locally retested (SQL 001–006 PASS, adversarial suite PASS, Flutter analyze/tests/APK PASS, core verifier PASS). The single MEDIUM (CUR-CL-02 residual TRUNCATE privileges) is pre-existing Supabase default-privilege residue also present on foundation `profiles`, unchanged by this remediation range, and not reachable through the Flutter/PostgREST attack surface for this vertical slice; it does not violate the mandatory remediation acceptance contracts under the stated decision rule. OD-AUTH-01 remains open governance only.
