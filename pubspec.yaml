@@ -24,6 +24,10 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.6
 
+  # Wi-Fi discovery (Android only; iOS stub)
+  wifi_scan: ^0.4.1+2
+  unorm_dart: ^0.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

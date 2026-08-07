@@ -5,7 +5,7 @@ import '../models/network_model.dart';
 import '../models/card_model.dart';
 
 class SupabaseService {
-  final _client = Supabase.instance.client;
+  SupabaseClient get _client => Supabase.instance.client;
 
   // ==================== AUTH ====================
 
@@ -29,27 +29,34 @@ class SupabaseService {
 
   User? get currentUser => _client.auth.currentUser;
 
-  // ==================== USERS ====================
+  // ==================== PROFILES ====================
+  // V1 identity uses auth.users for authentication and public.profiles for
+  // application identity. Profile provisioning is handled automatically by the
+  // public.handle_new_user trigger on auth.users insert; client code must not
+  // write to or expect a legacy public.users table.
 
   Future<AppUser?> getUserProfile(String userId) async {
-    final response =
-        await _client.from('users').select().eq('id', userId).maybeSingle();
+    final response = await _client
+        .from('profiles')
+        .select('id, full_name, account_status, default_governorate, default_city, created_at')
+        .eq('id', userId)
+        .maybeSingle();
 
     if (response == null) return null;
-    return AppUser.fromJson(response);
-  }
 
-  Future<void> createOrUpdateUser({
-    required String userId,
-    required String phone,
-    String? fullName,
-  }) async {
-    await _client.from('users').upsert({
-      'id': userId,
-      'phone': phone,
-      'full_name': fullName,
-      'wallet_balance': 0,
-    });
+    return AppUser(
+      id: response['id'] as String,
+      phone: '',
+      fullName: response['full_name'] as String?,
+      role: 'customer',
+      walletBalance: 0,
+      governorate: response['default_governorate'] as String?,
+      city: response['default_city'] as String?,
+      isActive: response['account_status'] == 'active',
+      createdAt: response['created_at'] != null
+          ? DateTime.parse(response['created_at'] as String)
+          : null,
+    );
   }
 
   // ==================== NETWORKS ====================

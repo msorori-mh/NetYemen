@@ -1,9 +1,9 @@
 // lib/screens/auth/otp_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app/app_shell.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
-import '../main_screen.dart';
 
 class OTPScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -32,18 +32,18 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
       final response = await service.verifyOTP(widget.phone, otp);
 
       if (response.user != null) {
-        await service.createOrUpdateUser(
-          userId: response.user!.id,
-          phone: widget.phone,
-        );
-
+        // V1 identity is provisioned automatically by the Supabase auth trigger
+        // public.handle_new_user into public.profiles / public.user_roles.
+        // No client-side upsert to public.users is required or permitted.
         if (!mounted) return;
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
+          MaterialPageRoute(builder: (_) => const AppShell()),
           (route) => false,
         );
+      } else {
+        _showError('رمز التحقق غير صحيح');
       }
     } catch (e) {
       _showError('رمز التحقق غير صحيح');
