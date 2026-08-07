@@ -95,6 +95,12 @@ DECLARE
     v_duplicate_of_id UUID;
     v_request_id UUID;
     v_result JSONB;
+    v_match_proposed_name BOOLEAN;
+    v_match_ssid BOOLEAN;
+    v_match_governorate BOOLEAN;
+    v_match_city BOOLEAN;
+    v_match_district BOOLEAN;
+    v_match_notes BOOLEAN;
 BEGIN
     -- 1. Authenticate
     v_user_id := auth.uid();
@@ -187,10 +193,35 @@ BEGIN
     RETURNING id INTO v_request_id;
 
     IF v_request_id IS NULL THEN
-        SELECT id INTO v_request_id
+        SELECT id,
+               proposed_network_name IS NOT DISTINCT FROM trim(p_proposed_network_name),
+               observed_ssid_display IS NOT DISTINCT FROM trim(p_observed_ssid_display),
+               governorate IS NOT DISTINCT FROM p_governorate,
+               city IS NOT DISTINCT FROM p_city,
+               district IS NOT DISTINCT FROM p_district,
+               notes IS NOT DISTINCT FROM p_notes
+          INTO v_request_id,
+               v_match_proposed_name,
+               v_match_ssid,
+               v_match_governorate,
+               v_match_city,
+               v_match_district,
+               v_match_notes
         FROM public.network_addition_requests
         WHERE requester_user_id = v_user_id
           AND idempotency_key = p_idempotency_key;
+
+        IF v_request_id IS NOT NULL THEN
+            IF NOT (v_match_proposed_name
+                    AND v_match_ssid
+                    AND v_match_governorate
+                    AND v_match_city
+                    AND v_match_district
+                    AND v_match_notes) THEN
+                RAISE EXCEPTION 'IDEMPOTENCY_PAYLOAD_MISMATCH: Idempotency key belongs to a different logical request.'
+                    USING ERRCODE = '22000';
+            END IF;
+        END IF;
     END IF;
 
     IF v_request_id IS NULL THEN
@@ -316,29 +347,17 @@ BEGIN
             USING ERRCODE = '22000';
     END IF;
 
-    -- Enforce a coherent request lifecycle state machine
-    SELECT status INTO v_current_status
-    FROM public.network_addition_requests
-    WHERE id = p_request_id;
-
-    IF v_current_status IS NULL THEN
-        RAISE EXCEPTION 'NOT_FOUND: Request not found.'
-            USING ERRCODE = '42501';
+    -- Enforce a coherent, atomic request lifecycle state machine.
+    -- Only non-terminal statuses (submitted, under_review) may be resolved.
+    -- Terminal statuses (approved, rejected, matched_existing) and cancelled
+    -- cannot be rewritten, even by concurrent resolvers.
+    IF p_new_status = 'matched_existing' AND p_matched_network_id IS NULL THEN
+        RAISE EXCEPTION 'MISSING_MATCH: matched_existing requires a matched_network_id.'
+            USING ERRCODE = '22000';
     END IF;
 
-    v_allowed := FALSE;
-    IF v_current_status = 'submitted' AND p_new_status = ANY(ARRAY['under_review', 'matched_existing', 'approved', 'rejected']) THEN
-        v_allowed := TRUE;
-    ELSIF v_current_status = 'under_review' AND p_new_status = ANY(ARRAY['under_review', 'matched_existing', 'approved', 'rejected']) THEN
-        v_allowed := TRUE;
-    ELSIF v_current_status = 'matched_existing' AND p_new_status = ANY(ARRAY['matched_existing', 'approved', 'rejected']) THEN
-        v_allowed := TRUE;
-    ELSIF v_current_status = p_new_status THEN
-        v_allowed := TRUE;
-    END IF;
-
-    IF NOT v_allowed THEN
-        RAISE EXCEPTION 'INVALID_TRANSITION: Cannot transition request from % to %.', v_current_status, p_new_status
+    IF p_new_status != 'matched_existing' AND p_matched_network_id IS NOT NULL THEN
+        RAISE EXCEPTION 'INVALID_MATCH: matched_network_id is only valid for matched_existing.'
             USING ERRCODE = '22000';
     END IF;
 
@@ -355,11 +374,21 @@ BEGIN
             ELSE resolved_by
         END,
         updated_at = NOW()
-    WHERE id = p_request_id;
+    WHERE id = p_request_id
+      AND status IN ('submitted', 'under_review');
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'NOT_FOUND: Request not found.'
-            USING ERRCODE = '42501';
+        SELECT status INTO v_current_status
+        FROM public.network_addition_requests
+        WHERE id = p_request_id;
+
+        IF v_current_status IS NULL THEN
+            RAISE EXCEPTION 'NOT_FOUND: Request not found.'
+                USING ERRCODE = '42501';
+        END IF;
+
+        RAISE EXCEPTION 'INVALID_TRANSITION: Cannot transition request from % to %.', v_current_status, p_new_status
+            USING ERRCODE = '22000';
     END IF;
 
     RETURN jsonb_build_object('id', p_request_id, 'status', p_new_status);
