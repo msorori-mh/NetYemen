@@ -402,6 +402,56 @@ BEGIN
         RAISE EXCEPTION 'TEST_FAIL (NEG-10): Customer self-assigned platform_admin role.';
     END IF;
 
+    -- ------------------------------------------------------------------------
+    -- NEG-11: Anonymous user cannot read network addition requests
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE anon';
+    PERFORM set_config('request.jwt.claim.sub', '', true);
+    PERFORM set_config('request.jwt.claims', '{}', true);
+
+    v_err_occurred := FALSE;
+    BEGIN
+        SELECT COUNT(*) INTO v_count
+        FROM public.network_addition_requests;
+    EXCEPTION WHEN insufficient_privilege THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-11): Anonymous user was able to SELECT network_addition_requests.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-12: Terminal-to-terminal resolution rewrite is denied
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+
+    v_result := public.resolve_network_addition_request(v_request_id, 'approved');
+    IF (v_result->>'status') <> 'approved' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-12 setup): Could not approve request for terminal transition test.';
+    END IF;
+
+    v_err_occurred := FALSE;
+    BEGIN
+        v_result := public.resolve_network_addition_request(v_request_id, 'rejected');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-terminal resolution rewrite succeeded.';
+    END IF;
+
+    v_err_occurred := FALSE;
+    BEGIN
+        v_result := public.resolve_network_addition_request(v_request_id, 'under_review');
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-12): Terminal-to-under_review reopening succeeded.';
+    END IF;
+
     RAISE NOTICE 'SUCCESS: All Network Discovery & Request Tests Passed.';
 END $$;
 

@@ -92,7 +92,7 @@ RETURNS JSONB AS $$
 DECLARE
     v_user_id UUID;
     v_normalized TEXT;
-    v_existing_id UUID;
+    v_duplicate_of_id UUID;
     v_request_id UUID;
     v_result JSONB;
 BEGIN
@@ -141,24 +141,7 @@ BEGIN
             USING ERRCODE = '22000';
     END IF;
 
-    -- 7. Check idempotency: same requester + same key = return existing
-    SELECT id INTO v_existing_id
-    FROM public.network_addition_requests
-    WHERE requester_user_id = v_user_id
-      AND idempotency_key = p_idempotency_key;
-
-    IF v_existing_id IS NOT NULL THEN
-        SELECT jsonb_build_object(
-            'id', r.id,
-            'status', r.status
-        ) INTO v_result
-        FROM public.network_addition_requests r
-        WHERE r.id = v_existing_id;
-
-        RETURN v_result;
-    END IF;
-
-    -- 8. Derive normalized SSID in database (client cannot override)
+    -- 7. Derive normalized SSID in database (client cannot override)
     v_normalized := public.normalize_ssid(p_observed_ssid_display);
 
     IF length(v_normalized) = 0 THEN
@@ -166,15 +149,15 @@ BEGIN
             USING ERRCODE = '22000';
     END IF;
 
-    -- 9. Check for existing open request with same normalized SSID (any requester)
-    SELECT id INTO v_existing_id
+    -- 8. Check for existing open request with same normalized SSID (any requester)
+    SELECT id INTO v_duplicate_of_id
     FROM public.network_addition_requests
     WHERE observed_ssid_normalized = v_normalized
       AND status IN ('submitted', 'under_review')
     ORDER BY created_at ASC
     LIMIT 1;
 
-    -- 10. Insert the new request
+    -- 9. Atomic idempotent insert: same requester + same key returns the existing row
     INSERT INTO public.network_addition_requests (
         requester_user_id,
         idempotency_key,
@@ -198,10 +181,24 @@ BEGIN
         p_district,
         p_notes,
         'submitted',
-        v_existing_id
-    ) RETURNING id INTO v_request_id;
+        v_duplicate_of_id
+    )
+    ON CONFLICT (requester_user_id, idempotency_key) DO NOTHING
+    RETURNING id INTO v_request_id;
 
-    -- 11. Return safe result (only caller's own request ID and status)
+    IF v_request_id IS NULL THEN
+        SELECT id INTO v_request_id
+        FROM public.network_addition_requests
+        WHERE requester_user_id = v_user_id
+          AND idempotency_key = p_idempotency_key;
+    END IF;
+
+    IF v_request_id IS NULL THEN
+        RAISE EXCEPTION 'IDEMPOTENCY_CONFLICT: Could not resolve idempotency key.'
+            USING ERRCODE = '22000';
+    END IF;
+
+    -- 10. Return safe result (only caller's own request ID and status)
     SELECT jsonb_build_object(
         'id', r.id,
         'status', r.status
@@ -285,6 +282,8 @@ CREATE OR REPLACE FUNCTION public.resolve_network_addition_request(
 RETURNS JSONB AS $$
 DECLARE
     v_user_id UUID;
+    v_current_status TEXT;
+    v_allowed BOOLEAN;
 BEGIN
     v_user_id := auth.uid();
     IF v_user_id IS NULL THEN
@@ -314,6 +313,32 @@ BEGIN
 
     IF p_resolution_note IS NOT NULL AND char_length(p_resolution_note) > 500 THEN
         RAISE EXCEPTION 'NOTE_TOO_LONG: Resolution note exceeds 500 characters.'
+            USING ERRCODE = '22000';
+    END IF;
+
+    -- Enforce a coherent request lifecycle state machine
+    SELECT status INTO v_current_status
+    FROM public.network_addition_requests
+    WHERE id = p_request_id;
+
+    IF v_current_status IS NULL THEN
+        RAISE EXCEPTION 'NOT_FOUND: Request not found.'
+            USING ERRCODE = '42501';
+    END IF;
+
+    v_allowed := FALSE;
+    IF v_current_status = 'submitted' AND p_new_status = ANY(ARRAY['under_review', 'matched_existing', 'approved', 'rejected']) THEN
+        v_allowed := TRUE;
+    ELSIF v_current_status = 'under_review' AND p_new_status = ANY(ARRAY['under_review', 'matched_existing', 'approved', 'rejected']) THEN
+        v_allowed := TRUE;
+    ELSIF v_current_status = 'matched_existing' AND p_new_status = ANY(ARRAY['matched_existing', 'approved', 'rejected']) THEN
+        v_allowed := TRUE;
+    ELSIF v_current_status = p_new_status THEN
+        v_allowed := TRUE;
+    END IF;
+
+    IF NOT v_allowed THEN
+        RAISE EXCEPTION 'INVALID_TRANSITION: Cannot transition request from % to %.', v_current_status, p_new_status
             USING ERRCODE = '22000';
     END IF;
 
