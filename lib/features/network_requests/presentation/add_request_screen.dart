@@ -28,6 +28,10 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Opening the add-request screen starts a fresh logical request; any stale
+      // idempotency session from a previous draft must be discarded.
+      ref.read(submitRequestNotifierProvider).resetIdempotency();
+
       final prefillSsid = ref.read(selectedScanSsidProvider);
       if (prefillSsid != null && _ssidController.text.isEmpty) {
         _ssidController.text = prefillSsid;
