@@ -68,5 +68,25 @@ void main() {
       expect(result.matchedNetworks, [network]);
       expect(result.unmatchedSsids, isEmpty);
     });
+
+    test('normalizeForMatching applies Unicode NFC normalization', () {
+      // Decomposed "É" (E + combining acute) and pre-composed "É".
+      const decomposed = 'E\u0301';
+      const composed = '\u00C9';
+
+      expect(
+        ScanMatcher.normalizeForMatching(decomposed),
+        ScanMatcher.normalizeForMatching(composed),
+      );
+    });
+
+    test('normalizeForMatching collapses internal whitespace and hyphens', () {
+      expect(ScanMatcher.normalizeForMatching('  Yemen   Hotspot   '),
+          'yemen-hotspot');
+      expect(ScanMatcher.normalizeForMatching('Yemen---Hotspot'),
+          'yemen-hotspot');
+      expect(ScanMatcher.normalizeForMatching('-Yemen-Hotspot-'),
+          'yemen-hotspot');
+    });
   });
 }
