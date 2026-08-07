@@ -27,9 +27,6 @@ dependencies:
   # Wi-Fi discovery (Android only; iOS stub)
   wifi_scan: ^0.4.1+2
 
-  # Runtime permission handling for Wi-Fi scan prerequisites
-  permission_handler: ^11.3.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
