@@ -27,13 +27,24 @@ class NetworkEntity {
   }
 
   bool matchesSearch(String normalizedQuery) {
-    if (normalizedQuery.isEmpty) return true;
-    if (commercialName.toLowerCase().contains(normalizedQuery)) return true;
-    if ((city ?? '').toLowerCase().contains(normalizedQuery)) return true;
-    if ((district ?? '').toLowerCase().contains(normalizedQuery)) return true;
-    if ((governorate ?? '').toLowerCase().contains(normalizedQuery)) return true;
+    if (normalizedQuery.isEmpty) {
+      return true;
+    }
+    if (commercialName.toLowerCase().contains(normalizedQuery)) {
+      return true;
+    }
+    if ((city ?? '').toLowerCase().contains(normalizedQuery)) {
+      return true;
+    }
+    if ((district ?? '').toLowerCase().contains(normalizedQuery)) {
+      return true;
+    }
+    if ((governorate ?? '').toLowerCase().contains(normalizedQuery)) {
+      return true;
+    }
     return ssidAliases.any(
-      (a) => a.ssidNormalized.contains(normalizedQuery) ||
+      (a) =>
+          a.ssidNormalized.contains(normalizedQuery) ||
           a.ssidDisplay.toLowerCase().contains(normalizedQuery),
     );
   }

@@ -2,15 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/error/app_exceptions.dart';
+import '../../network_discovery/data/android_wifi_scan_service.dart';
 import '../../network_discovery/data/demo_network_catalog_repository.dart';
+import '../../network_discovery/data/fake_wifi_scan_service.dart';
 import '../../network_discovery/data/network_catalog_repository.dart';
+import '../../network_discovery/data/scan_matcher.dart';
 import '../../network_discovery/data/supabase_network_catalog_repository.dart';
 import '../../network_discovery/data/wifi_scan_service.dart';
-import '../../network_discovery/data/android_wifi_scan_service.dart';
-import '../../network_discovery/data/fake_wifi_scan_service.dart';
-import '../../network_discovery/data/scan_matcher.dart';
 import '../../network_discovery/domain/entities.dart';
-import 'package:flutter/foundation.dart';
 
 final networkCatalogRepositoryProvider =
     Provider<NetworkCatalogRepository>((ref) {
@@ -38,8 +37,7 @@ final networkCatalogProvider =
   NetworkCatalogNotifier.new,
 );
 
-class NetworkCatalogNotifier
-    extends AsyncNotifier<List<NetworkEntity>> {
+class NetworkCatalogNotifier extends AsyncNotifier<List<NetworkEntity>> {
   @override
   Future<List<NetworkEntity>> build() async {
     final repo = ref.read(networkCatalogRepositoryProvider);
@@ -56,7 +54,8 @@ class NetworkCatalogNotifier
 
 final networkSearchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredNetworksProvider = Provider<AsyncValue<List<NetworkEntity>>>((ref) {
+final filteredNetworksProvider =
+    Provider<AsyncValue<List<NetworkEntity>>>((ref) {
   final networksAsync = ref.watch(networkCatalogProvider);
   final query = ref.watch(networkSearchQueryProvider).trim().toLowerCase();
 
@@ -79,8 +78,7 @@ class ScanNotifier {
   ScanNotifier(this._ref);
 
   Future<void> performScan() async {
-    _ref.read(scanResultProvider.notifier).state =
-        const AsyncValue.loading();
+    _ref.read(scanResultProvider.notifier).state = const AsyncValue.loading();
 
     try {
       final scanService = _ref.read(wifiScanServiceProvider);
@@ -94,8 +92,7 @@ class ScanNotifier {
         networks: networks,
       );
 
-      _ref.read(scanResultProvider.notifier).state =
-          AsyncValue.data(result);
+      _ref.read(scanResultProvider.notifier).state = AsyncValue.data(result);
     } on ScanException catch (e) {
       _ref.read(scanResultProvider.notifier).state =
           AsyncValue.error(e, StackTrace.current);

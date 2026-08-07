@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/config/app_config.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/data/fake_network_request_repository.dart';
 import '../../network_requests/data/network_request_repository.dart';
@@ -21,8 +20,7 @@ final myRequestsProvider =
   MyRequestsNotifier.new,
 );
 
-class MyRequestsNotifier
-    extends AsyncNotifier<List<NetworkAdditionRequest>> {
+class MyRequestsNotifier extends AsyncNotifier<List<NetworkAdditionRequest>> {
   @override
   Future<List<NetworkAdditionRequest>> build() async {
     final repo = ref.read(networkRequestRepositoryProvider);
@@ -65,12 +63,11 @@ class SubmitRequestNotifier {
     try {
       final repo = _ref.read(networkRequestRepositoryProvider);
 
-      var idempotencyKey =
-          _ref.read(pendingIdempotencyKeyProvider);
+      var idempotencyKey = _ref.read(pendingIdempotencyKeyProvider);
       if (idempotencyKey == null) {
-        idempotencyKey = DateTime.now().millisecondsSinceEpoch.toRadixString(36) +
-            '-' +
-            (DateTime.now().microsecond).toRadixString(36);
+        idempotencyKey =
+            '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}-'
+            '${DateTime.now().microsecond.toRadixString(36)}';
         _ref.read(pendingIdempotencyKeyProvider.notifier).state =
             idempotencyKey;
       }

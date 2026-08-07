@@ -35,9 +35,9 @@ class HomeScreen extends ConsumerWidget {
                 TextField(
                   onChanged: (v) =>
                       ref.read(networkSearchQueryProvider.notifier).state = v,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'ابحث عن شبكة أو مدينة أو SSID...',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search),
                     suffixIcon: _ClearSearchButton(query: searchQuery),
                   ),
                 ),
@@ -64,12 +64,10 @@ class HomeScreen extends ConsumerWidget {
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: networks.length,
-                  itemBuilder: (_, i) =>
-                      _NetworkCard(network: networks[i]),
+                  itemBuilder: (_, i) => _NetworkCard(network: networks[i]),
                 );
               },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => _ErrorState(
                 message: 'حدث خطأ في تحميل الشبكات',
                 onRetry: () =>
@@ -100,8 +98,7 @@ class _ClearSearchButton extends ConsumerWidget {
     if (query.isEmpty) return const SizedBox.shrink();
     return IconButton(
       icon: const Icon(Icons.clear),
-      onPressed: () =>
-          ref.read(networkSearchQueryProvider.notifier).state = '',
+      onPressed: () => ref.read(networkSearchQueryProvider.notifier).state = '',
     );
   }
 }
@@ -115,11 +112,11 @@ class _ScanSection extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.wifi_find, color: AppTheme.primary, size: 28),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'البحث عن شبكات قريبة',
                     style: TextStyle(
@@ -131,7 +128,7 @@ class _ScanSection extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'المسح يتم بضغط منك فقط. لا يتم رفع BSSID أو هوية الجهاز.',
               style: TextStyle(
                 fontSize: 12,
@@ -187,8 +184,7 @@ class _NetworkCard extends StatelessWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor:
-                        AppTheme.primary.withValues(alpha: 0.1),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                     child: Text(
                       network.commercialName.isNotEmpty
                           ? network.commercialName[0]
@@ -256,14 +252,14 @@ class _EmptyCatalogState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.wifi_off, size: 64, color: AppTheme.textMuted),
-          const SizedBox(height: 16),
-          const Text('لا توجد شبكات معتمدة حالياً'),
-          const SizedBox(height: 8),
+          SizedBox(height: 16),
+          Text('لا توجد شبكات معتمدة حالياً'),
+          SizedBox(height: 8),
           Text(
             'يمكنك إرسال طلب إضافة شبكة جديدة',
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),

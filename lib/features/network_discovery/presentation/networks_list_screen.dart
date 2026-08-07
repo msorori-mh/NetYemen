@@ -49,14 +49,14 @@ class NetworksListScreen extends ConsumerWidget {
             child: networksAsync.when(
               data: (networks) {
                 if (networks.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.wifi_off,
                             size: 64, color: AppTheme.textMuted),
-                        const SizedBox(height: 16),
-                        const Text('لا توجد شبكات'),
+                        SizedBox(height: 16),
+                        Text('لا توجد شبكات'),
                       ],
                     ),
                   );
@@ -73,8 +73,7 @@ class NetworksListScreen extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -85,9 +84,8 @@ class NetworksListScreen extends ConsumerWidget {
                     const Text('حدث خطأ في تحميل الشبكات'),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: () => ref
-                          .read(networkCatalogProvider.notifier)
-                          .refresh(),
+                      onPressed: () =>
+                          ref.read(networkCatalogProvider.notifier).refresh(),
                       icon: const Icon(Icons.refresh),
                       label: const Text('إعادة المحاولة'),
                     ),

@@ -92,14 +92,11 @@ class _ScanResultsBody extends ConsumerWidget {
                 subtitle: const Text('غير موجودة في القائمة المعتمدة'),
                 trailing: TextButton(
                   onPressed: () {
-                    ref
-                        .read(selectedScanSsidProvider.notifier)
-                        .state = ssid;
+                    ref.read(selectedScanSsidProvider.notifier).state = ssid;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const AddRequestScreen(),
+                        builder: (_) => const AddRequestScreen(),
                       ),
                     );
                   },
@@ -109,8 +106,7 @@ class _ScanResultsBody extends ConsumerWidget {
             ),
           ),
         ],
-        if (result.matchedNetworks.isEmpty &&
-            result.unmatchedSsids.isEmpty)
+        if (result.matchedNetworks.isEmpty && result.unmatchedSsids.isEmpty)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(32),

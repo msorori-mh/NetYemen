@@ -14,13 +14,15 @@ class AppConfig {
 
   bool get isDemoMode => !isConfigured && kDebugMode;
 
-  bool get isReleaseUnconfigured =>
-      !isConfigured && kReleaseMode;
+  bool get isReleaseUnconfigured => !isConfigured && kReleaseMode;
 
   static AppConfig fromEnvironment() {
     const url = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    const key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY', defaultValue: '');
-    return AppConfig(supabaseUrl: url, supabasePublishableKey: key);
+    const key = String.fromEnvironment(
+      'SUPABASE_PUBLISHABLE_KEY',
+      defaultValue: '',
+    );
+    return const AppConfig(supabaseUrl: url, supabasePublishableKey: key);
   }
 
   static const AppConfig demo = AppConfig(

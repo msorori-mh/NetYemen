@@ -17,8 +17,7 @@ class MyRequestsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(myRequestsProvider.notifier).refresh(),
+            onPressed: () => ref.read(myRequestsProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -28,8 +27,7 @@ class MyRequestsScreen extends ConsumerWidget {
             return const _EmptyRequestsState();
           }
           return RefreshIndicator(
-            onRefresh: () =>
-                ref.read(myRequestsProvider.notifier).refresh(),
+            onRefresh: () => ref.read(myRequestsProvider.notifier).refresh(),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: requests.length,
@@ -45,8 +43,7 @@ class MyRequestsScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 48, color: AppTheme.error),
+              const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
               const SizedBox(height: 12),
               const Text('حدث خطأ في تحميل الطلبات'),
               const SizedBox(height: 16),
@@ -224,14 +221,14 @@ class _EmptyRequestsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inbox_outlined, size: 64, color: AppTheme.textMuted),
-          const SizedBox(height: 16),
-          const Text('لا توجد طلبات'),
-          const SizedBox(height: 8),
+          SizedBox(height: 16),
+          Text('لا توجد طلبات'),
+          SizedBox(height: 8),
           Text(
             'لم تقم بإرسال أي طلب إضافة شبكة بعد',
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),

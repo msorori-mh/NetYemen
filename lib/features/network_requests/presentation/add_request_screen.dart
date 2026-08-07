@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/presentation/network_request_providers.dart';
 
@@ -48,8 +47,10 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
+    final config = ref.read(appConfigProvider);
+    final user =
+        config.isConfigured ? Supabase.instance.client.auth.currentUser : null;
+    if (config.isConfigured && user == null) {
       _showAuthRequired();
       return;
     }

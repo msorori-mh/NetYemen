@@ -52,11 +52,11 @@ class NetworkDetailsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row(
+                            const Row(
                               children: [
-                                const Icon(Icons.verified,
+                                Icon(Icons.verified,
                                     color: AppTheme.accent, size: 16),
-                                const SizedBox(width: 4),
+                                SizedBox(width: 4),
                                 Text(
                                   'شبكة معتمدة',
                                   style: TextStyle(
@@ -91,8 +91,8 @@ class NetworkDetailsScreen extends StatelessWidget {
           if (network.locationText.isNotEmpty) ...[
             Card(
               child: ListTile(
-                leading:
-                    const Icon(Icons.location_on_outlined, color: AppTheme.info),
+                leading: const Icon(Icons.location_on_outlined,
+                    color: AppTheme.info),
                 title: const Text('الموقع'),
                 subtitle: Text(network.locationText),
               ),
@@ -110,8 +110,7 @@ class NetworkDetailsScreen extends StatelessWidget {
             ...network.ssidAliases.map(
               (alias) => Card(
                 child: ListTile(
-                  leading:
-                      const Icon(Icons.wifi, color: AppTheme.primary),
+                  leading: const Icon(Icons.wifi, color: AppTheme.primary),
                   title: Text(alias.ssidDisplay),
                   subtitle: const Text('اسم البث'),
                 ),

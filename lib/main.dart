@@ -45,9 +45,6 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        // Provide the parsed config so providers can use it
-      ],
       child: NetYemenApp(environment: environment),
     ),
   );
@@ -67,6 +64,12 @@ class NetYemenApp extends StatelessWidget {
       supportedLocales: const [Locale('ar'), Locale('en')],
       theme: AppTheme.lightTheme,
       home: _buildHome(),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child!,
+        );
+      },
     );
   }
 
