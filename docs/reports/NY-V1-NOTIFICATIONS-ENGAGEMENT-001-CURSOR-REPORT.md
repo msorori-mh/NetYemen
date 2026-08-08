@@ -21,11 +21,11 @@ Closed the complete **source-side** mobile notification and user-engagement path
 | Item | Value |
 |---|---|
 | Starting SHA | `2b8a6e25bee675e24803b42cec7703c33c144797` |
-| Ending SHA | `f3aef7fc5a36ea2088d71461d389d0b8078d1300` |
+| Ending SHA | `98c3d349ad58e2dd861f7bcb779e2356978c8375` |
 | Feature commit | `1c0cad90846132ef57b9419b9c4fdd7af07ade9a` |
 | Branch | `cursor/NY-V1-NOTIFICATIONS-ENGAGEMENT-001` |
 | Base (stacked) | `kimi/NY-V1-ADMIN-OPS-001` |
-| PR | Draft, stacked on admin-ops branch |
+| PR | https://github.com/msorori-mh/NetYemen/pull/8 (Draft) |
 
 ---
 
