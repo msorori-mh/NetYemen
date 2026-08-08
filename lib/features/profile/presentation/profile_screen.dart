@@ -5,10 +5,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
-import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 import '../../notifications/presentation/notification_preferences_screen.dart';
+import '../../network_requests/presentation/my_requests_screen.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
+import '../../support/presentation/support_screens.dart';
+import '../../wallet/presentation/deposit_history_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -78,7 +80,47 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.notifications_outlined, color: AppTheme.primary),
+              leading:
+                  const Icon(Icons.list_alt_outlined, color: AppTheme.primary),
+              title: const Text('الطلبات'),
+              subtitle: const Text('طلبات إضافة الشبكات وحالاتها'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MyRequestsScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.account_balance_outlined,
+                  color: AppTheme.primary),
+              title: const Text('الإيداعات'),
+              subtitle: const Text('طلبات الإيداع وحالة التحقق المحلي'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DepositHistoryScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.support_agent_outlined,
+                  color: AppTheme.primary),
+              title: const Text('الدعم والشكاوى'),
+              subtitle: const Text('التذاكر والشكاوى والنزاعات'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MySupportScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_outlined,
+                  color: AppTheme.primary),
               title: const Text('مركز الإشعارات'),
               subtitle: const Text('سجل الإشعارات والتنبيهات'),
               trailing: const Icon(Icons.chevron_left),
@@ -108,21 +150,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.dashboard_outlined, color: AppTheme.primary),
-              title: const Text('لوحة مالك الشبكة'),
-              subtitle: const Text('إدارة الباقات والمخزون'),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const OwnerDashboardScreen(),
-                  ),
-                );
-              },
-            ),
-          ),
+          const _OwnerDashboardEntryCard(),
           const SizedBox(height: 12),
           const _AdminDashboardEntryCard(),
           const Card(
@@ -174,6 +202,32 @@ class ProfileScreen extends ConsumerWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OwnerDashboardEntryCard extends ConsumerWidget {
+  const _OwnerDashboardEntryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
+    final roles = ref.watch(currentUserRolesProvider).value ?? const <String>[];
+    if (!config.isDemoMode &&
+        !roles.contains('network_owner') &&
+        !roles.contains('network_operator')) {
+      return const SizedBox.shrink();
+    }
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.dashboard_outlined, color: AppTheme.primary),
+        title: const Text('عمليات الشبكة'),
+        subtitle: const Text('الشبكات المملوكة والباقات والمخزون والملخصات'),
+        trailing: const Icon(Icons.chevron_left),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()),
+        ),
       ),
     );
   }

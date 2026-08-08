@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../purchase/presentation/purchase_confirmation_screen.dart';
 import '../domain/entities.dart';
 import 'package_providers.dart';
 
 class NetworkPackagesSection extends ConsumerWidget {
   final String networkId;
+  final String? networkCommercialName;
 
-  const NetworkPackagesSection({super.key, required this.networkId});
+  const NetworkPackagesSection({
+    super.key,
+    required this.networkId,
+    this.networkCommercialName,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,7 +41,10 @@ class NetworkPackagesSection extends ConsumerWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
-        ...packages.map((pkg) => _PackageCard(package: pkg)),
+        ...packages.map((pkg) => _PackageCard(
+              package: pkg,
+              networkCommercialName: networkCommercialName,
+            )),
       ],
     );
   }
@@ -43,8 +52,9 @@ class NetworkPackagesSection extends ConsumerWidget {
 
 class _PackageCard extends StatelessWidget {
   final NetworkPackage package;
+  final String? networkCommercialName;
 
-  const _PackageCard({required this.package});
+  const _PackageCard({required this.package, this.networkCommercialName});
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +113,21 @@ class _PackageCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PurchaseConfirmationScreen(
+                      package: package,
+                      networkName: networkCommercialName ?? 'شبكة',
+                    ),
+                  ),
+                ),
+                child: const Text('شراء'),
+              ),
             ),
           ],
         ),

@@ -6,7 +6,6 @@ import 'package:netyemen/features/admin/data/admin_repository.dart';
 import 'package:netyemen/features/admin/domain/entities.dart';
 import 'package:netyemen/features/admin/presentation/admin_dashboard_screen.dart';
 import 'package:netyemen/features/admin/presentation/admin_providers.dart';
-import 'package:netyemen/features/network_discovery/presentation/network_discovery_providers.dart';
 import 'package:netyemen/providers/app_providers.dart';
 
 class _FakeAdminRepository implements AdminRepository {

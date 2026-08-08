@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/core/utils/uuid_generator.dart';
-import 'package:netyemen/features/network_discovery/presentation/network_discovery_providers.dart';
 import 'package:netyemen/features/network_requests/data/fake_network_request_repository.dart';
 import 'package:netyemen/features/network_requests/presentation/network_request_providers.dart';
 import 'package:netyemen/providers/app_providers.dart';

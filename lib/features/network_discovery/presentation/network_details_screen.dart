@@ -119,7 +119,10 @@ class NetworkDetailsScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          NetworkPackagesSection(networkId: network.id),
+          NetworkPackagesSection(
+            networkId: network.id,
+            networkCommercialName: network.commercialName,
+          ),
         ],
       ),
     );

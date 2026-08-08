@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/uuid_generator.dart';
 import '../../../providers/app_providers.dart';
-import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/data/fake_network_request_repository.dart';
 import '../../network_requests/data/network_request_repository.dart';
 import '../../network_requests/data/supabase_network_request_repository.dart';
