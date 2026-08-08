@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../network_discovery/domain/entities.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
+import '../../notifications/presentation/notification_center_screen.dart';
+import '../../notifications/presentation/notification_providers.dart';
 import 'network_details_screen.dart';
 import 'scan_results_screen.dart';
 import '../../network_requests/presentation/add_request_screen.dart';
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('نت اليمن'),
         actions: [
+          const _NotificationAction(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () =>
@@ -291,6 +294,32 @@ class _ErrorState extends StatelessWidget {
             label: const Text('إعادة المحاولة'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NotificationAction extends ConsumerWidget {
+  const _NotificationAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadAsync = ref.watch(unreadNotificationCountProvider);
+    final count = unreadAsync.valueOrNull ?? 0;
+
+    return IconButton(
+      tooltip: 'الإشعارات',
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const NotificationCenterScreen(),
+          ),
+        );
+      },
+      icon: Badge(
+        isLabelVisible: count > 0,
+        label: Text('$count'),
+        child: const Icon(Icons.notifications_outlined),
       ),
     );
   }

@@ -40,6 +40,16 @@ void main() {
       );
 
       expect(find.text('مستخدم مسجل'), findsOneWidget);
+      expect(find.text('مركز الإشعارات'), findsOneWidget);
+      expect(find.text('إعدادات الإشعارات'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('تسجيل الخروج'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsNothing);
     });
@@ -50,6 +60,14 @@ void main() {
       );
 
       expect(find.text('غير مسجل'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('تسجيل الدخول'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsNothing);
     });
