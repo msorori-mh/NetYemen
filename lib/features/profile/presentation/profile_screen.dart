@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
+import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
 
@@ -88,6 +89,8 @@ class ProfileScreen extends ConsumerWidget {
               },
             ),
           ),
+          const SizedBox(height: 12),
+          const _AdminDashboardEntryCard(),
           const Card(
             child: ListTile(
               leading: Icon(Icons.info_outline, color: AppTheme.primary),
@@ -137,6 +140,48 @@ class ProfileScreen extends ConsumerWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AdminDashboardEntryCard extends ConsumerWidget {
+  const _AdminDashboardEntryCard();
+
+  static const _adminRoles = {
+    'platform_admin',
+    'support_agent',
+    'system_auditor',
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
+    final rolesAsync = ref.watch(currentUserRolesProvider);
+
+    final isVisible = config.isDemoMode ||
+        rolesAsync.when(
+          data: (roles) => roles.any(_adminRoles.contains),
+          loading: () => false,
+          error: (_, __) => false,
+        );
+
+    if (!isVisible) return const SizedBox.shrink();
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.admin_panel_settings_outlined,
+            color: AppTheme.primary),
+        title: const Text('لوحة الإدارة'),
+        subtitle: const Text('إدارة الشبكات والطلبات والمستخدمين'),
+        trailing: const Icon(Icons.chevron_left),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AdminDashboardScreen(),
+            ),
+          );
+        },
       ),
     );
   }
