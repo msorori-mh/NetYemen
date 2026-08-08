@@ -4,7 +4,7 @@
 **Mission:** NETYEMEN-V1-COMMERCE-WALLET-DEPOSIT-PURCHASE-CARD-DELIVERY-CLOSURE-01  
 **Branch:** `kimi/NY-V1-COMMERCE-CORE-001`  
 **STARTING_SHA:** `5e15eea833da018ed6e782b157e44da68d204a76`  
-**ENDING_SHA:** `95b8846d4bd3bd81476f39ac8b3701e22fab737e`  
+**ENDING_SHA:** `5f36a0d27ba7cb7025d149d562171fb5507ab1b0`  
 
 ---
 
@@ -283,6 +283,8 @@ The following decisions remain open and prevent production binding. Source-only,
 
 - `95b8846d4bd3bd81476f39ac8b3701e22fab737e` — feat(commerce): close V1 wallet/deposit/purchase/fulfillment/refund/settlement path
 - `cbf0b527fffa22dbe3f561fc6f4a68615e7cf870` — docs(report): record ending sha for commerce core closure
+- `a6979245453bfc570b130962829bd3c97f9d457e` — docs(report): record commits, push and pr placeholders for commerce core closure
+- `5f36a0d27ba7cb7025d149d562171fb5507ab1b0` — docs(report): update push and pr status for commerce core closure
 
 ## PUSH
 
