@@ -33,7 +33,7 @@ foreach ($scan in $scans) {
 # Validate required commerce artifacts exist
 $requiredArtifacts = @(
     "supabase/migrations/20260729095000_netyemen_commerce_core.sql",
-    "supabase/tests/011_commerce_core.sql",
+    "supabase/tests/013_commerce_core.sql",
     "docs/reports/NY-V1-COMMERCE-CORE-001-KIMI-REPORT.md"
 )
 

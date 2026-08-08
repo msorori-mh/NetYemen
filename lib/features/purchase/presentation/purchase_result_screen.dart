@@ -43,19 +43,23 @@ class PurchaseResultScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text('الباقة: $packageName'),
               if (success && purchaseResult != null) ...[
-                Text('السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER'),
-                Text('حالة التسليم: ${_fulfillmentText(purchaseResult!['status'] as String?)}'),
+                Text(
+                    'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER'),
+                Text(
+                    'حالة التسليم: ${_fulfillmentText(purchaseResult!['status'] as String?)}'),
                 const SizedBox(height: 16),
                 const Text(
-                  'سيتم عرض بيانات الكرت عند اكتمال إعداده (OD-CARD-01).',
+                  'التسليم الخارجي غير مربوط في النسخة التجريبية. لا توجد بيانات كرت سرية، ولن يظهر نجاح تسليم وهمي حتى اعتماد OD-CARD-01.',
                   style: TextStyle(color: Colors.orange),
                 ),
               ],
               if (!success && errorMessage != null)
-                Text('السبب: $errorMessage', style: const TextStyle(color: Colors.red)),
+                Text('السبب: $errorMessage',
+                    style: const TextStyle(color: Colors.red)),
               const Spacer(),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
                 child: const Text('العودة للرئيسية'),
               ),
             ],
@@ -67,6 +71,8 @@ class PurchaseResultScreen extends StatelessWidget {
 
   String _fulfillmentText(String? status) {
     switch (status) {
+      case 'completed':
+        return 'بانتظار مزود تسليم آمن — غير مربوط';
       case 'pending_secret':
         return 'بانتظار إعداد بيانات الكرت الآمنة';
       case 'fulfilled':

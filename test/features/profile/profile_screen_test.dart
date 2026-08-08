@@ -18,6 +18,7 @@ void main() {
         overrides: [
           currentUserProvider.overrideWithValue(user),
           appConfigProvider.overrideWithValue(configuredConfig),
+          currentUserRolesProvider.overrideWith((ref) async => const []),
         ],
         child: const MaterialApp(
           home: ProfileScreen(),
@@ -39,7 +40,14 @@ void main() {
       );
 
       expect(find.text('مستخدم مسجل'), findsOneWidget);
-      expect(find.text('مركز الإشعارات'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('إعدادات الإشعارات'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('إعدادات الإشعارات'), findsOneWidget);
 
       await tester.scrollUntilVisible(
@@ -49,11 +57,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsOneWidget);
+      expect(
+          find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsNothing);
     });
 
-    testWidgets('shows sign-in button for unauthenticated user', (tester) async {
+    testWidgets('shows sign-in button for unauthenticated user',
+        (tester) async {
       await tester.pumpWidget(
         buildScreen(user: null),
       );
@@ -67,7 +77,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsOneWidget);
+      expect(
+          find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsNothing);
     });
   });
