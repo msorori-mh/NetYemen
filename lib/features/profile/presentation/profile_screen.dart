@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
+import '../../packages/presentation/owner_dashboard_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -72,6 +73,21 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.dashboard_outlined, color: AppTheme.primary),
+              title: const Text('لوحة مالك الشبكة'),
+              subtitle: const Text('إدارة الباقات والمخزون'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const OwnerDashboardScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
           const Card(
             child: ListTile(
               leading: Icon(Icons.info_outline, color: AppTheme.primary),

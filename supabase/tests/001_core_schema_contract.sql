@@ -15,7 +15,10 @@ DECLARE
         'networks',
         'network_memberships',
         'network_ssid_aliases',
-        'audit_events'
+        'audit_events',
+        'network_packages',
+        'package_inventory_balances',
+        'package_inventory_movements'
     ];
 BEGIN
     FOREACH v_table IN ARRAY v_required_tables LOOP
@@ -43,7 +46,10 @@ DECLARE
         'networks',
         'network_memberships',
         'network_ssid_aliases',
-        'audit_events'
+        'audit_events',
+        'network_packages',
+        'package_inventory_balances',
+        'package_inventory_movements'
     ];
 BEGIN
     FOREACH v_table IN ARRAY v_required_tables LOOP
