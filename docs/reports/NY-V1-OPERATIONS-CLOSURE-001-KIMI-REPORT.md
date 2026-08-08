@@ -258,16 +258,19 @@ All SQL suites executed with `ON_ERROR_STOP=1`.
 
 ## PUSH_RESULT
 
-To be completed after push.
+Branch `kimi/NY-V1-OPERATIONS-CLOSURE-001` pushed to origin successfully.
 
 ## PR
 
-To be completed after PR creation.
-
-- **Base:** `kimi/NY-V1-INVENTORY-PACKAGES-001`
-- **Head:** `kimi/NY-V1-OPERATIONS-CLOSURE-001`
-- **Title:** `NETYEMEN-V1-OPERATIONS-CLOSURE-01`
-- **Labels/State:** `V1 OPERATIONS CLOSURE`, `SOURCE ONLY`, `NO PRODUCTION`, `NO REMOTE SUPABASE`, `NO CARD SECRETS`, `DRAFT`, `UNMERGED`
+| Item | Value |
+|---|---|
+| PR | #10 |
+| URL | https://github.com/msorori-mh/NetYemen/pull/10 |
+| Base | `kimi/NY-V1-INVENTORY-PACKAGES-001` |
+| Head | `kimi/NY-V1-OPERATIONS-CLOSURE-001` |
+| Title | `NETYEMEN-V1-OPERATIONS-CLOSURE-01` |
+| State | Draft / OPEN |
+| Labels/Disclaimers | `V1 OPERATIONS CLOSURE`, `SOURCE ONLY`, `NO PRODUCTION`, `NO REMOTE SUPABASE`, `NO CARD SECRETS`, `DRAFT`, `UNMERGED` |
 
 ---
 
