@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/uuid_generator.dart';
 import '../domain/entities.dart';
 import 'package_providers.dart';
 
@@ -21,11 +22,32 @@ class _InventoryAdjustmentScreenState
   final _reasonController = TextEditingController();
   bool _isLoading = false;
 
+  /// Idempotency state for this logical adjustment. The key is bound to the
+  /// payload fingerprint so retries of the same adjustment reuse the UUID,
+  /// while any material change mints a fresh key.
+  String? _pendingIdempotencyKey;
+  String? _pendingPayloadFingerprint;
+
   @override
   void dispose() {
     _quantityController.dispose();
     _reasonController.dispose();
     super.dispose();
+  }
+
+  String _computeFingerprint(int quantity, String reason) {
+    return '${widget.package.id}|$quantity|$reason';
+  }
+
+  String _obtainIdempotencyKey(int quantity, String reason) {
+    final fingerprint = _computeFingerprint(quantity, reason);
+    if (_pendingIdempotencyKey != null &&
+        _pendingPayloadFingerprint == fingerprint) {
+      return _pendingIdempotencyKey!;
+    }
+    _pendingPayloadFingerprint = fingerprint;
+    _pendingIdempotencyKey = UuidGenerator.generateV4();
+    return _pendingIdempotencyKey!;
   }
 
   @override
@@ -122,13 +144,19 @@ class _InventoryAdjustmentScreenState
   Future<void> _apply(int quantity, String reason) async {
     setState(() => _isLoading = true);
 
+    final idempotencyKey = _obtainIdempotencyKey(quantity, reason);
+
     try {
       final repo = ref.read(packageRepositoryProvider);
       await repo.adjustInventory(
         widget.package.id,
         quantity,
         reason,
+        idempotencyKey: idempotencyKey,
       );
+
+      _pendingIdempotencyKey = null;
+      _pendingPayloadFingerprint = null;
 
       ref.invalidate(packageBalanceProvider(widget.package.id));
       ref.invalidate(networkMovementsProvider(widget.package.networkId));

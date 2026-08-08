@@ -328,24 +328,45 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
-    -- POS-10: Auditor can read packages and inventory
+    -- POS-10: Distinct UUIDs are independent
+    -- ------------------------------------------------------------------------
+    v_result := public.adjust_package_inventory(
+        v_pkg_a_draft_id,
+        5,
+        'Distinct key addition',
+        '88888888-8888-4888-a888-888888888888'::UUID
+    );
+
+    IF (v_result->>'new_available')::INT <> 40 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-10): Distinct UUID was not independent. Got %.', v_result;
+    END IF;
+
+    SELECT total_units, available_units INTO v_total, v_balance
+    FROM public.package_inventory_balances
+    WHERE package_id = v_pkg_a_draft_id;
+    IF v_total <> 40 OR v_balance <> 40 THEN
+        RAISE EXCEPTION 'TEST_FAIL (POS-10): Balance not 40/40 after distinct key. Got total=%, available=%.', v_total, v_balance;
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- POS-11: Auditor can read packages and inventory
     -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_auditor_id::text, true);
     PERFORM set_config('request.jwt.claims', json_build_object('sub', v_auditor_id::text, 'role', 'authenticated')::text, true);
 
     SELECT COUNT(*) INTO v_count FROM public.network_packages;
     IF v_count < 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL (POS-10): Auditor could not read packages.';
+        RAISE EXCEPTION 'TEST_FAIL (POS-11): Auditor could not read packages.';
     END IF;
 
     SELECT COUNT(*) INTO v_count FROM public.package_inventory_balances;
     IF v_count < 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL (POS-10): Auditor could not read inventory balances.';
+        RAISE EXCEPTION 'TEST_FAIL (POS-11): Auditor could not read inventory balances.';
     END IF;
 
     SELECT COUNT(*) INTO v_count FROM public.package_inventory_movements;
     IF v_count < 1 THEN
-        RAISE EXCEPTION 'TEST_FAIL (POS-10): Auditor could not read inventory movements.';
+        RAISE EXCEPTION 'TEST_FAIL (POS-11): Auditor could not read inventory movements.';
     END IF;
 
     -- =======================================================================
@@ -522,7 +543,7 @@ BEGIN
         v_err_occurred := TRUE;
     END;
     SELECT total_units INTO v_total FROM public.package_inventory_balances WHERE package_id = v_pkg_a_draft_id;
-    IF v_total <> 35 THEN
+    IF v_total <> 40 THEN
         RAISE EXCEPTION 'TEST_FAIL (NEG-07): Direct UPDATE on package_inventory_balances succeeded. Got %.', v_total;
     END IF;
 
@@ -530,9 +551,10 @@ BEGIN
     BEGIN
         INSERT INTO public.package_inventory_movements (
             package_id, network_id, quantity_change,
-            previous_total, new_total, previous_available, new_available, reason
+            previous_total, new_total, previous_available, new_available, reason, idempotency_key
         ) VALUES (
-            v_pkg_a_draft_id, v_net_a_id, 100, 35, 135, 35, 135, 'Direct movement'
+            v_pkg_a_draft_id, v_net_a_id, 100, 35, 135, 35, 135, 'Direct movement',
+            '99999999-9999-4999-a999-999999999999'::UUID
         );
     EXCEPTION WHEN OTHERS THEN
         v_err_occurred := TRUE;
@@ -551,7 +573,7 @@ BEGIN
     BEGIN
         PERFORM public.adjust_package_inventory(
             v_pkg_a_draft_id,
-            -36,
+            -41,
             'Over-correction',
             '55555555-5555-4555-c555-555555555555'::UUID
         );
@@ -563,7 +585,7 @@ BEGIN
     END IF;
 
     SELECT available_units INTO v_balance FROM public.package_inventory_balances WHERE package_id = v_pkg_a_draft_id;
-    IF v_balance <> 35 THEN
+    IF v_balance <> 40 THEN
         RAISE EXCEPTION 'TEST_FAIL (NEG-08): Balance changed despite negative adjustment rejection. Got %.', v_balance;
     END IF;
 
@@ -715,6 +737,80 @@ BEGIN
     WHERE package_id = v_pkg_a_public_id;
     IF v_balance <> 0 THEN
         RAISE EXCEPTION 'TEST_FAIL (NEG-16): Stock-out did not result in zero available. Got %.', v_balance;
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-17: NULL idempotency key is rejected
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_owner_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner_a_id::text, 'role', 'authenticated')::text, true);
+
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.adjust_package_inventory(
+            v_pkg_a_draft_id,
+            1,
+            'Missing key',
+            NULL::UUID
+        );
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): NULL idempotency key was accepted.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-18: Same key with different payload raises payload mismatch
+    -- ------------------------------------------------------------------------
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.adjust_package_inventory(
+            v_pkg_a_draft_id,
+            100,
+            'Different reason',
+            '22222222-2222-4222-b222-222222222222'::UUID
+        );
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-18): Same key with different payload was accepted.';
+    END IF;
+
+    -- Balance must remain unchanged after the mismatched replay
+    SELECT available_units INTO v_balance FROM public.package_inventory_balances WHERE package_id = v_pkg_a_draft_id;
+    IF v_balance <> 40 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-18): Balance changed after payload-mismatch replay. Got %.', v_balance;
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-19: Cross-user replay with mismatched payload is denied
+    -- ------------------------------------------------------------------------
+    -- Owner A seeded key '11111111...' on v_pkg_a_draft_id with quantity 25.
+    -- Operator A also operates network A; replaying the same UUID with a
+    -- different payload must fail closed (the key is bound to the payload).
+    PERFORM set_config('request.jwt.claim.sub', v_operator_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_operator_a_id::text, 'role', 'authenticated')::text, true);
+
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.adjust_package_inventory(
+            v_pkg_a_draft_id,
+            99,
+            'Cross-user replay with different payload',
+            '11111111-1111-4111-b111-111111111111'::UUID
+        );
+    EXCEPTION WHEN OTHERS THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-19): Cross-user replay with mismatched payload was accepted.';
+    END IF;
+
+    SELECT available_units INTO v_balance FROM public.package_inventory_balances WHERE package_id = v_pkg_a_draft_id;
+    IF v_balance <> 40 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-19): Balance changed after cross-user payload-mismatch replay. Got %.', v_balance;
     END IF;
 
     RAISE NOTICE 'SUCCESS: All Packages & Inventory Authorization Tests Passed.';
