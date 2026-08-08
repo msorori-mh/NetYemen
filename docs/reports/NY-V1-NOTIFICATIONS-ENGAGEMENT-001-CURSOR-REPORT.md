@@ -1,7 +1,7 @@
 > **NetYemen V1 Push Notifications & Engagement — Task Completion Report**
-> Classification: `TECHNICAL_REPORT`  
-> Task ID: `NY-V1-NOTIFICATIONS-ENGAGEMENT-001`  
-> Repository: `C:\projects\NetYemen-cursor-notifications`  
+> Classification: `TECHNICAL_REPORT`
+> Task ID: `NY-V1-NOTIFICATIONS-ENGAGEMENT-001`
+> Repository: `C:\projects\NetYemen-cursor-notifications`
 > Branch: `cursor/NY-V1-NOTIFICATIONS-ENGAGEMENT-001`
 
 ---
@@ -67,7 +67,7 @@ Closed the complete **source-side** mobile notification and user-engagement path
 | What ships without binding | Full event/outbox/inbox/preferences/admin path; push deliveries marked `dispatch_blocked_unbound_provider` |
 | What must not happen | Flutter must never hold provider service-account / API secrets |
 
-Adapter contract: `supabase/functions/notification-transport-adapter/README.sql`  
+Adapter contract: `supabase/functions/notification-transport-adapter/README.sql`
 Flutter adapter: `UnboundNotificationTransportAdapter`
 
 ---
