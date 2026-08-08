@@ -3,7 +3,7 @@
 **Task ID:** NY-V1-INVENTORY-PACKAGES-001  
 **Title:** NETYEMEN-V1-NETWORK-PACKAGES-AND-INVENTORY-FOUNDATION-01  
 **Starting SHA:** 5cbcc875f491b6002ce4bd8757ff31316f9c65bc  
-**Ending SHA:** d1ef1ac07c49a8cc84a3bd11c7b80da4c7c4f98b  
+**Ending SHA:** 775407b7d393bc5918a37b4c932fd255ec7fe825  
 **Branch:** kimi/NY-V1-INVENTORY-PACKAGES-001  
 **Worktree Status:** Clean after focused commits; all validation gates passed.
 
@@ -197,7 +197,10 @@ All owner UI is Arabic RTL.
 - `887ad57` feat(app): add customer package discovery
 - `2c317fa` feat(app): add network owner package inventory dashboard entry
 - `d1ef1ac` test(app): verify package inventory vertical slice
-- `<report commit>` docs(report): record package inventory delivery
+- `4a76f40` docs(report): record package inventory delivery
+- `d6f53f0` docs(report): set final ending sha for package inventory delivery
+- `775407b` docs(report): add pr url to package inventory delivery report
+- (this update) docs(report): finalize ci status
 
 ---
 
@@ -213,15 +216,28 @@ Branch `kimi/NY-V1-INVENTORY-PACKAGES-001` pushed to origin.
 - **Base:** `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE`
 - **Head:** `kimi/NY-V1-INVENTORY-PACKAGES-001`
 - **Draft status:** Draft
-- **Labels:** STACKED PR — DO NOT MERGE BEFORE PR #5; SOURCE ONLY; NO PRODUCTION; NO REMOTE SUPABASE; NO CARD SECRETS; OD-CARD-01 REMAINS OPEN; DRAFT; UNMERGED
+- **Labels:** (none applied by GitHub CLI; required disclaimers are in the PR body)
+- **Body includes:** STACKED PR — DO NOT MERGE BEFORE PR #5; SOURCE ONLY; NO PRODUCTION; NO REMOTE SUPABASE; NO CARD SECRETS; OD-CARD-01 REMAINS OPEN; DRAFT; UNMERGED
 
 ---
 
 ## CI
 
-- Flutter CI (analyze, test, debug APK build) — expected PASS
-- Supabase Core CI (001–006 + static verifier) — expected PASS
-- New SQL suite 007 validated locally; not yet in CI workflow (workflow unchanged to avoid broadening scope).
+Actual CI status observed on PR #6:
+
+- **No GitHub Actions checks reported** on `kimi/NY-V1-INVENTORY-PACKAGES-001`.
+- Root cause: the PR targets base `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE`, which does not match the branch filters in `.github/workflows/*.yml`:
+  - `flutter-ci.yml` triggers on `pull_request` to `main` only.
+  - `supabase-core-ci.yml` triggers on `pull_request` to `main` or `antigravity/*` only.
+- This is expected for a stacked draft PR against a `kimi/*` integration branch; CI was validated locally instead.
+
+Local validation performed and passing:
+
+- `flutter analyze` — 0 issues
+- `flutter test` — all tests pass
+- `flutter build apk --debug` — success
+- Supabase SQL suites 001–007 with `ON_ERROR_STOP=1` — all pass
+- `scripts/verify_netyemen_core_foundation.ps1` — PASS
 
 ---
 
