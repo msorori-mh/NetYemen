@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS public.package_inventory_movements (
     new_available INTEGER NOT NULL,
     reason TEXT NOT NULL,
     actor_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    idempotency_key UUID,
+    idempotency_key UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_package_inventory_movements_quantity_non_zero CHECK (quantity_change <> 0),
     CONSTRAINT chk_package_inventory_movements_reason_non_empty CHECK (length(trim(reason)) > 0),
@@ -58,9 +58,22 @@ CREATE TABLE IF NOT EXISTS public.package_inventory_movements (
 
 COMMENT ON TABLE public.package_inventory_movements IS 'Append-only, non-secret inventory ledger. Every stock change is recorded with before/after balances, actor, and reason.';
 
+-- Harden idempotency key: backfill any legacy NULLs, then enforce NOT NULL and uniqueness.
+UPDATE public.package_inventory_movements
+SET idempotency_key = gen_random_uuid()
+WHERE idempotency_key IS NULL;
+
+ALTER TABLE public.package_inventory_movements
+ALTER COLUMN idempotency_key SET NOT NULL;
+
+-- Replace the old non-unique index with a unique constraint that provides the
+-- final database-level guarantee against duplicate stock application.
+DROP INDEX IF EXISTS idx_package_inventory_movements_idempotency;
+CREATE UNIQUE INDEX idx_package_inventory_movements_idempotency
+    ON public.package_inventory_movements (package_id, idempotency_key);
+
 CREATE INDEX IF NOT EXISTS idx_package_inventory_movements_package ON public.package_inventory_movements (package_id);
 CREATE INDEX IF NOT EXISTS idx_package_inventory_movements_network ON public.package_inventory_movements (network_id);
-CREATE INDEX IF NOT EXISTS idx_package_inventory_movements_idempotency ON public.package_inventory_movements (package_id, idempotency_key);
 
 ALTER TABLE public.package_inventory_movements ENABLE ROW LEVEL SECURITY;
 
@@ -107,17 +120,25 @@ REVOKE EXECUTE ON FUNCTION public.initialize_package_inventory_balance() FROM PU
 -- ----------------------------------------------------------------------------
 -- RPC: adjust_package_inventory
 -- ----------------------------------------------------------------------------
+-- Invariant: ONE logical inventory adjustment = ONE UUID = AT MOST ONE stock effect.
+-- The idempotency key is mandatory. The same (package_id, idempotency_key) pair may
+-- only ever produce a single movement row. Replays with an identical payload return
+-- the existing movement; replays with a mismatched payload fail closed.
+-- The signature changed from an optional key to a mandatory key, so drop the legacy
+-- function first to avoid CREATE OR REPLACE signature conflicts.
+DROP FUNCTION IF EXISTS public.adjust_package_inventory(UUID, INTEGER, TEXT, UUID);
+
 CREATE OR REPLACE FUNCTION public.adjust_package_inventory(
     p_package_id UUID,
     p_quantity_change INTEGER,
     p_reason TEXT,
-    p_idempotency_key UUID DEFAULT NULL
+    p_idempotency_key UUID
 )
 RETURNS JSONB AS $$
 DECLARE
     v_user_id UUID;
     v_network_id UUID;
-    v_existing_movement_id UUID;
+    v_existing_movement public.package_inventory_movements%ROWTYPE;
     v_balance public.package_inventory_balances%ROWTYPE;
     v_new_total INTEGER;
     v_new_available INTEGER;
@@ -133,6 +154,11 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'INACTIVE_PROFILE: Account is not active.'
             USING ERRCODE = '42501';
+    END IF;
+
+    IF p_idempotency_key IS NULL THEN
+        RAISE EXCEPTION 'MISSING_IDEMPOTENCY: Idempotency key is required.'
+            USING ERRCODE = '22000';
     END IF;
 
     IF p_quantity_change = 0 THEN
@@ -159,22 +185,9 @@ BEGIN
             USING ERRCODE = '42501';
     END IF;
 
-    -- Idempotency: if same package + key already processed, return the existing result without mutation
-    IF p_idempotency_key IS NOT NULL THEN
-        SELECT id INTO v_existing_movement_id
-        FROM public.package_inventory_movements
-        WHERE package_id = p_package_id AND idempotency_key = p_idempotency_key;
-
-        IF v_existing_movement_id IS NOT NULL THEN
-            RETURN jsonb_build_object(
-                'idempotency_key', p_idempotency_key,
-                'movement_id', v_existing_movement_id,
-                'replayed', TRUE
-            );
-        END IF;
-    END IF;
-
-    -- Lock the balance row to serialize concurrent adjustments for this package
+    -- Lock the balance row to serialize all adjustments for this package. The
+    -- idempotency replay check must happen under this lock so concurrent callers
+    -- with the same key cannot both observe an empty slot and double-apply.
     SELECT * INTO v_balance
     FROM public.package_inventory_balances
     WHERE package_id = p_package_id
@@ -183,6 +196,27 @@ BEGIN
     IF v_balance.package_id IS NULL THEN
         RAISE EXCEPTION 'NOT_FOUND: Inventory balance not found for package.'
             USING ERRCODE = '42501';
+    END IF;
+
+    -- Idempotency: same package + key already processed?
+    SELECT * INTO v_existing_movement
+    FROM public.package_inventory_movements
+    WHERE package_id = p_package_id
+      AND idempotency_key = p_idempotency_key;
+
+    IF v_existing_movement.id IS NOT NULL THEN
+        -- Server-side payload binding: the UUID is coupled to the intended adjustment.
+        IF v_existing_movement.quantity_change IS DISTINCT FROM p_quantity_change
+           OR v_existing_movement.reason IS DISTINCT FROM trim(p_reason) THEN
+            RAISE EXCEPTION 'IDEMPOTENCY_PAYLOAD_MISMATCH: Idempotency key belongs to a different logical request.'
+                USING ERRCODE = '22000';
+        END IF;
+
+        RETURN jsonb_build_object(
+            'idempotency_key', p_idempotency_key,
+            'movement_id', v_existing_movement.id,
+            'replayed', TRUE
+        );
     END IF;
 
     v_new_total := v_balance.total_units + p_quantity_change;
@@ -198,7 +232,8 @@ BEGIN
             USING ERRCODE = '22000';
     END IF;
 
-    -- Insert immutable ledger row
+    -- Insert immutable ledger row. The unique index on (package_id, idempotency_key)
+    -- is the final fail-closed guard against any race that escapes the row lock.
     INSERT INTO public.package_inventory_movements (
         package_id,
         network_id,
@@ -223,7 +258,7 @@ BEGIN
         p_idempotency_key
     );
 
-    -- Update derived balance
+    -- Update derived balance atomically
     UPDATE public.package_inventory_balances
     SET
         total_units = v_new_total,
