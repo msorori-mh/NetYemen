@@ -2,9 +2,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/network_discovery/presentation/network_discovery_providers.dart';
+export '../features/network_discovery/presentation/network_discovery_providers.dart' show appConfigProvider;
 import '../models/user_model.dart';
 import '../models/network_model.dart';
-import '../models/card_model.dart';
 import '../services/supabase_service.dart';
 
 // Service
@@ -76,22 +76,22 @@ final networksProvider = FutureProvider<List<Network>>((ref) async {
 
 final networksSearchQueryProvider = StateProvider<String>((ref) => '');
 
-// Purchases
-final userPurchasesProvider = FutureProvider<List<Purchase>>((ref) async {
+// Purchases (V1 commerce schema)
+final userPurchasesProvider = FutureProvider<List<dynamic>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
 
   final service = ref.watch(supabaseServiceProvider);
-  return await service.getUserPurchases(user.id);
+  return await service.getMyPurchaseOrders();
 });
 
-// Wallet
+// Wallet (V1 commerce schema)
 final walletTransactionsProvider = FutureProvider<List<dynamic>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
 
   final service = ref.watch(supabaseServiceProvider);
-  return await service.getWalletTransactions(user.id);
+  return await service.getMyDepositRequests();
 });
 
 final walletBalanceProvider = Provider<int>((ref) {

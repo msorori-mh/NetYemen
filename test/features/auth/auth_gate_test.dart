@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/auth/presentation/auth_required_gate.dart';
-import 'package:netyemen/features/network_discovery/presentation/network_discovery_providers.dart';
 import 'package:netyemen/providers/app_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
