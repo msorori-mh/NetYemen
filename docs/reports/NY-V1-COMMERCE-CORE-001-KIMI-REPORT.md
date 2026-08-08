@@ -287,11 +287,12 @@ The following decisions remain open and prevent production binding. Source-only,
 ## PUSH
 
 - Pushed to: `origin/kimi/NY-V1-COMMERCE-CORE-001`
-- Status: pending
+- Status: SUCCESS
 
 ## PR
 
-- Draft stacked PR: pending
+- Draft stacked PR: https://github.com/msorori-mh/NetYemen/pull/12
+- State: OPEN, isDraft: true
 - No merge performed.
 
 ---
