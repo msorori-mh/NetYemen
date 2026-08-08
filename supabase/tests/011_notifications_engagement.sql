@@ -97,13 +97,14 @@ BEGIN
         available_units = 0;
 
     -- ------------------------------------------------------------------------
-    -- Transport unbound (OD-NOTIF-01)
+    -- External transport binding (OD-NOTIF-01): approved for FCM pilot,
+    -- pending Edge Function secret configuration.
     -- ------------------------------------------------------------------------
-    SELECT binding_status INTO v_binding FROM public.notification_transport_config WHERE id = 1;
-    IF v_binding IS DISTINCT FROM 'unbound' THEN
-        RAISE EXCEPTION 'TEST_FAIL: expected transport unbound, got %', v_binding;
+    SELECT binding_status, provider_key INTO v_binding, v_status FROM public.notification_transport_config WHERE id = 1;
+    IF v_binding IS DISTINCT FROM 'approved_pending_secrets' OR v_status IS DISTINCT FROM 'fcm' THEN
+        RAISE EXCEPTION 'TEST_FAIL: expected fcm/approved_pending_secrets, got %/%', v_status, v_binding;
     END IF;
-    RAISE NOTICE 'TRANSPORT_UNBOUND_PASS';
+    RAISE NOTICE 'TRANSPORT_APPROVED_PENDING_SECRETS_PASS';
 
     -- ------------------------------------------------------------------------
     -- Token registration: own tokens only

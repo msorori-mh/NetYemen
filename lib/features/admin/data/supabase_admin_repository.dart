@@ -236,6 +236,25 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> ingestCardVaultBatch({
+    required String networkId,
+    required String packageId,
+    required List<Map<String, dynamic>> cards,
+    String keyVersion = 'v1-test',
+  }) async {
+    final result = await _client.rpc<Map<String, dynamic>>(
+      'admin_ingest_card_vault_batch',
+      params: {
+        'p_network_id': networkId,
+        'p_package_id': packageId,
+        'p_cards': cards,
+        'p_key_version': keyVersion,
+      },
+    );
+    return result;
+  }
+
+  @override
   Future<List<AdminAuditEvent>> fetchAuditEvents() async {
     final response = await _client
         .from('audit_events')

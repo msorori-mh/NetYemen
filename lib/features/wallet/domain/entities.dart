@@ -80,10 +80,14 @@ class DepositChannel {
   factory DepositChannel.fromJson(Map<String, dynamic> json) {
     return DepositChannel(
       id: json['id'] as String? ?? '',
-      displayName: json['provider_name'] as String? ?? '',
-      channelType: 'bank_transfer',
-      accountReference: json['account_number'] as String? ?? json['iban'] as String?,
-      instructions: json['account_label'] as String?,
+      displayName: json['display_name'] as String? ??
+          json['provider_name'] as String? ??
+          '',
+      channelType: json['provider_type'] as String? ?? 'bank_account',
+      accountReference: json['account_identifier'] as String? ??
+          json['account_number'] as String? ??
+          json['iban'] as String?,
+      instructions: json['instructions'] as String? ?? json['account_label'] as String?,
       isActive: json['is_active'] as bool? ?? false,
     );
   }

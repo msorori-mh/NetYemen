@@ -8,6 +8,7 @@ import '../features/wallet/presentation/wallet_screen.dart';
 import '../features/purchase/presentation/purchase_history_screen.dart';
 import '../features/finance/presentation/deposit_review_queue_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
+import '../features/notifications/presentation/fcm_token_service.dart';
 import '../providers/app_providers.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -83,19 +84,21 @@ class _AppShellState extends ConsumerState<AppShell> {
           ]
         : _customerScreens;
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens.map((s) => s).toList(),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
-        },
-        destinations: destinations,
-        backgroundColor: AppTheme.surface,
-        indicatorColor: AppTheme.primary.withValues(alpha: 0.12),
+    return FcmTokenInitializer(
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: screens.map((s) => s).toList(),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() => _currentIndex = index);
+          },
+          destinations: destinations,
+          backgroundColor: AppTheme.surface,
+          indicatorColor: AppTheme.primary.withValues(alpha: 0.12),
+        ),
       ),
     );
   }

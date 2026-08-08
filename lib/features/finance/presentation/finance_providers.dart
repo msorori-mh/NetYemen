@@ -19,3 +19,24 @@ final depositQueueProvider = FutureProvider.family<List<Map<String, dynamic>>, S
   final repo = ref.watch(financeRepositoryProvider);
   return await repo.getDepositQueue(status);
 });
+
+final activePaymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getActivePaymentDestinations();
+});
+
+final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  // Active destinations are sufficient for the customer deposit screen.
+  return await repo.getActivePaymentDestinations();
+});
+
+final settlementBatchesProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, status) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getFinanceSettlementBatches(status);
+});
+
+final ownerSettlementsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, networkId) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getOwnerSettlements(networkId);
+});

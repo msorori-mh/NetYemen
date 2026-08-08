@@ -49,4 +49,12 @@ abstract class AdminRepository {
 
   /// Fetch audit events.
   Future<List<AdminAuditEvent>> fetchAuditEvents();
+
+  /// Ingest an encrypted card vault batch for a package.
+  Future<Map<String, dynamic>> ingestCardVaultBatch({
+    required String networkId,
+    required String packageId,
+    required List<Map<String, dynamic>> cards,
+    String keyVersion,
+  });
 }

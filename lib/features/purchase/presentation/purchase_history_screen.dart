@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'purchase_detail_screen.dart';
 import 'purchase_providers.dart';
 
 class PurchaseHistoryScreen extends ConsumerWidget {
@@ -33,12 +34,19 @@ class PurchaseHistoryScreen extends ConsumerWidget {
                     subtitle: Text(
                       'الشبكة: ${purchase.networkName ?? '-'}\n'
                       'السعر: ${purchase.totalPrice} ${purchase.currency}\n'
+                      'العمولة: ${purchase.commissionAmount} ${purchase.currency} | '
+                      'الصافي: ${purchase.ownerNetAmount} ${purchase.currency}\n'
                       'الحالة: ${_statusText(purchase.status)}',
                     ),
                     trailing: Text(
                       purchase.createdAt != null
                           ? '${purchase.createdAt!.day}/${purchase.createdAt!.month}'
                           : '',
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PurchaseDetailScreen(purchaseId: purchase.id),
+                      ),
                     ),
                   ),
                 );

@@ -78,6 +78,14 @@ class _FakeAdminRepository implements AdminRepository {
 
   @override
   Future<List<AdminAuditEvent>> fetchAuditEvents() async => [];
+
+  @override
+  Future<Map<String, dynamic>> ingestCardVaultBatch({
+    required String networkId,
+    required String packageId,
+    required List<Map<String, dynamic>> cards,
+    String keyVersion = 'v1-test',
+  }) async => {'batch_id': 'fake-batch', 'ingested_count': cards.length};
 }
 
 void main() {

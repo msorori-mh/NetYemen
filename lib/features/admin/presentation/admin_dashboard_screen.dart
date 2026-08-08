@@ -9,8 +9,11 @@ import 'admin_requests_screen.dart';
 import 'admin_networks_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_audit_screen.dart';
+import '../../finance/presentation/payment_destinations_screen.dart';
+import '../../finance/presentation/settlement_batches_screen.dart';
 import '../../notifications/presentation/admin_notification_composer_screen.dart';
 import '../../support/presentation/support_screens.dart';
+import 'admin_card_vault_ingest_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -258,6 +261,36 @@ class _NavigationSection extends StatelessWidget {
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const AdminNotificationComposerScreen(),
+            ),
+          ),
+        ),
+        _NavCard(
+          icon: Icons.account_balance_outlined,
+          title: 'وجهات الدفع',
+          subtitle: 'إدارة قنوات الإيداع والدفع',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const PaymentDestinationsScreen(),
+            ),
+          ),
+        ),
+        _NavCard(
+          icon: Icons.calculate_outlined,
+          title: 'دفعات التسوية',
+          subtitle: 'إنشاء واعتماد وتسجيل دفعات التسوية',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SettlementBatchesScreen(),
+            ),
+          ),
+        ),
+        _NavCard(
+          icon: Icons.vpn_key_outlined,
+          title: 'استيراد كروت مشفرة',
+          subtitle: 'إدخال دفعات كروت إلى الخزنة',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AdminCardVaultIngestScreen(),
             ),
           ),
         ),

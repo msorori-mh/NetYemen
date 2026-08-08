@@ -30,22 +30,28 @@ class SupabasePurchaseRepository implements PurchaseRepository {
     final list = result as List<dynamic>;
     return list.map((row) {
       final json = row as Map<String, dynamic>;
-      return PurchaseOrder(
-        id: json['id'] as String? ?? '',
-        packageId: json['package_id'] as String? ?? '',
-        networkId: json['network_id'] as String? ?? '',
-        networkName: json['networks']?['name'] as String?,
-        packageName: json['network_packages']?['name'] as String?,
-        quantity: (json['units_purchased'] as num?)?.toInt() ?? 1,
-        unitPrice: (json['amount_paid'] as num?)?.toInt() ?? 0,
-        totalPrice: (json['amount_paid'] as num?)?.toInt() ?? 0,
-        currency: json['currency'] as String? ?? 'YER',
-        status: json['status'] as String? ?? 'completed',
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : null,
-      );
+      return PurchaseOrder.fromJson(json);
     }).toList();
+  }
+
+  @override
+  Future<CardRevealResult> revealPurchaseCardSecret(String purchaseId) async {
+    final result = await _client.rpc(
+      'reveal_purchase_card_secret',
+      params: {'p_purchase_id': purchaseId},
+    );
+    return CardRevealResult.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> submitInvalidCardDispute(String purchaseId, String reason) async {
+    await _client.rpc(
+      'submit_invalid_card_dispute',
+      params: {
+        'p_purchase_id': purchaseId,
+        'p_reason': reason,
+      },
+    );
   }
 
   @override

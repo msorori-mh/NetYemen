@@ -511,6 +511,29 @@ class FakeAdminRepository implements AdminRepository {
       ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
   }
 
+  @override
+  Future<Map<String, dynamic>> ingestCardVaultBatch({
+    required String networkId,
+    required String packageId,
+    required List<Map<String, dynamic>> cards,
+    String keyVersion = 'v1-test',
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    for (final card in cards) {
+      if (card['ciphertext'] == null || (card['ciphertext'] as String).isEmpty) {
+        throw ArgumentError('INVALID_CARD: ciphertext is required');
+      }
+      if (card['nonce'] == null || (card['nonce'] as String).isEmpty) {
+        throw ArgumentError('INVALID_CARD: nonce is required');
+      }
+    }
+    _recordAudit('ADMIN_INGEST_CARD_VAULT_BATCH', 'card_vault', packageId);
+    return {
+      'batch_id': 'batch-${UuidGenerator.generateV4()}',
+      'ingested_count': cards.length,
+    };
+  }
+
   void _recordAudit(String action, String entityType, String entityId) {
     _auditEvents.add(
       AdminAuditEvent(

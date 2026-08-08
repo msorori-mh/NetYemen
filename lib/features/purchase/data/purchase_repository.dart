@@ -8,4 +8,6 @@ abstract class PurchaseRepository {
   });
   Future<List<PurchaseOrder>> getMyPurchaseOrders();
   Future<List<FulfillmentRecord>> getMyFulfillmentRecords();
+  Future<CardRevealResult> revealPurchaseCardSecret(String purchaseId);
+  Future<void> submitInvalidCardDispute(String purchaseId, String reason);
 }

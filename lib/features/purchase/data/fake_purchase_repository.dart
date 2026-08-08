@@ -17,17 +17,26 @@ class FakePurchaseRepository implements PurchaseRepository {
     final fulfillmentId = UuidGenerator.generateV4();
     final now = DateTime.now();
 
+    const gross = 1000;
+    const rate = 0.03;
+    const commission = 30;
+    const net = 970;
+
     _orders.add(PurchaseOrder(
       id: purchaseId,
       packageId: packageId,
       networkId: 'fake-network',
       packageName: 'باقة تجريبية',
       quantity: 1,
-      unitPrice: 1000,
-      totalPrice: 1000,
+      unitPrice: gross,
+      totalPrice: gross,
       currency: 'YER',
       status: 'completed',
       createdAt: now,
+      grossAmount: gross,
+      commissionRateSnapshot: rate,
+      commissionAmount: commission,
+      ownerNetAmount: net,
     ));
 
     _fulfillments.add(FulfillmentRecord(
@@ -61,5 +70,29 @@ class FakePurchaseRepository implements PurchaseRepository {
   Future<List<FulfillmentRecord>> getMyFulfillmentRecords() async {
     await Future.delayed(const Duration(milliseconds: 200));
     return List.unmodifiable(_fulfillments);
+  }
+
+  @override
+  Future<CardRevealResult> revealPurchaseCardSecret(String purchaseId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final deadline = DateTime.now().add(const Duration(minutes: 30));
+    return CardRevealResult(
+      purchaseId: purchaseId,
+      status: 'revealed',
+      keyVersion: 'v1-demo',
+      ciphertextB64: 'ZGVtby1jaXBoZXJ0ZXh0',
+      nonce: 'demo-nonce-123',
+      authTagB64: 'demo-auth-tag',
+      revealedAt: DateTime.now(),
+      disputeDeadline: deadline,
+    );
+  }
+
+  @override
+  Future<void> submitInvalidCardDispute(String purchaseId, String reason) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (reason.trim().isEmpty) {
+      throw ArgumentError('REASON_REQUIRED');
+    }
   }
 }

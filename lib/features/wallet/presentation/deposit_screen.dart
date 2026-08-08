@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../finance/presentation/finance_providers.dart';
 import 'wallet_providers.dart';
 
 class DepositScreen extends ConsumerStatefulWidget {
@@ -13,7 +14,7 @@ class DepositScreen extends ConsumerStatefulWidget {
 
 class _DepositScreenState extends ConsumerState<DepositScreen> {
   final _amountController = TextEditingController();
-  String? _selectedChannelId;
+  String? _selectedDestinationId;
   final _referenceController = TextEditingController();
   bool _submitting = false;
   String? _message;
@@ -31,6 +32,10 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
       setState(() => _message = 'أدخل مبلغاً صحيحاً');
       return;
     }
+    if (_selectedDestinationId == null) {
+      setState(() => _message = 'اختر وجهة الدفع أولاً');
+      return;
+    }
 
     setState(() {
       _submitting = true;
@@ -41,7 +46,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
       final repo = ref.read(walletRepositoryProvider);
       await repo.createDepositRequest(
         amount: amount,
-        channelId: _selectedChannelId,
+        paymentDestinationId: _selectedDestinationId,
         proofReference: _referenceController.text.trim().isEmpty
             ? null
             : _referenceController.text.trim(),
@@ -50,6 +55,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         setState(() => _message = 'تم إرسال طلب الإيداع بنجاح');
         _amountController.clear();
         _referenceController.clear();
+        _selectedDestinationId = null;
       }
       ref.invalidate(depositHistoryProvider);
     } catch (e) {
@@ -65,7 +71,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final channelsAsync = ref.watch(depositChannelsProvider);
+    final destinationsAsync = ref.watch(activePaymentDestinationsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -87,37 +93,37 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              channelsAsync.when(
-                data: (channels) {
-                  if (channels.isEmpty) {
+              destinationsAsync.when(
+                data: (destinations) {
+                  if (destinations.isEmpty) {
                     return const Text(
-                      'لا توجد قنوات إيداء مفعلة حالياً (OD-FIN-03).',
+                      'لا توجد وجهات دفع مفعلة حالياً (OD-FIN-03).',
                       style: TextStyle(color: Colors.orange),
                     );
                   }
                   return InputDecorator(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'قناة الإيداع',
+                      labelText: 'وجهة الدفع',
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedChannelId,
-                        hint: const Text('اختر قناة الإيداع'),
+                        value: _selectedDestinationId,
+                        hint: const Text('اختر وجهة الدفع'),
                         isExpanded: true,
-                        items: channels.map((channel) {
+                        items: destinations.map((destination) {
                           return DropdownMenuItem(
-                            value: channel.id,
-                            child: Text(channel.displayName),
+                            value: destination['id'] as String? ?? '',
+                            child: Text(destination['display_name'] as String? ?? 'وجهة'),
                           );
                         }).toList(),
-                        onChanged: (value) => setState(() => _selectedChannelId = value),
+                        onChanged: (value) => setState(() => _selectedDestinationId = value),
                       ),
                     ),
                   );
                 },
                 loading: () => const CircularProgressIndicator(),
-                error: (e, _) => Text('خطأ في القنوات: $e'),
+                error: (e, _) => Text('خطأ في وجهات الدفع: $e'),
               ),
               const SizedBox(height: 16),
               TextField(

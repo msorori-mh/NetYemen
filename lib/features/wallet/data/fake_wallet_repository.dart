@@ -51,7 +51,7 @@ class FakeWalletRepository implements WalletRepository {
   @override
   Future<String> createDepositRequest({
     required int amount,
-    String? channelId,
+    String? paymentDestinationId,
     String? proofReference,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
@@ -61,7 +61,7 @@ class FakeWalletRepository implements WalletRepository {
       amount: amount,
       currency: 'YER',
       status: 'submitted',
-      channelId: channelId,
+      channelId: paymentDestinationId,
       proofReference: proofReference,
       createdAt: DateTime.now(),
     ));

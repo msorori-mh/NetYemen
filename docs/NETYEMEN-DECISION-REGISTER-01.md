@@ -1,9 +1,9 @@
 # NETYEMEN OPEN DECISION REGISTER (V1.0 + V1.1 REMEDIATED)
 
-**Task ID:** NY-PRODUCT-001F  
-**Document Code:** `NETYEMEN-DECISION-REGISTER-01.md`  
-**Classification:** `OPEN_DECISION`  
-**Status:** Provisional Recommendations Recorded for Architecture & Governance Review  
+**Task ID:** NY-PRODUCT-001F / NY-V1-EXTERNAL-PILOT-BINDING-001
+**Document Code:** `NETYEMEN-DECISION-REGISTER-01.md`
+**Classification:** `V1_GOVERNANCE_REGISTER`
+**Status:** Owner Approved Decisions Bound — Remaining Items Provisional
 
 ---
 
@@ -11,27 +11,158 @@
 
 Where business rules or technical parameters cannot be definitively established from the existing repository prototype (`VERIFIED_CURRENT_STATE`), they are formally registered as `OPEN_DECISION`. Each decision presents 2–4 realistic operational options, evaluates advantages and risks, assesses operational/technical impact, and provides a clearly labeled `PROVISIONAL_RECOMMENDATION`.
 
+Effective `2026-08-08`, the OWNER has approved the seven V1 binding decisions listed below. These decisions are authoritative, recorded here, and implemented in the external-pilot release candidate. They must not be reopened, replaced by alternative policy choices, or silently unbound in V1 source.
+
 ---
 
-## Decision Register Index
+## Approved Owner Decisions (V1 Binding)
+
+| Decision ID | Decision Title | Category | Impact Level | Status | Approved By | Approved Date |
+|---|---|---|---|---|---|---|
+| `OD-NOTIF-01` | Push Notification Infrastructure & Gateway | Mobile Architecture | Medium | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-FIN-01` | Customer Deposit Verification & Proof Method | Wallet & Finance | Critical | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-FIN-02` | Platform Commission Architecture | Business Model | High | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-FIN-03` | Deposit Bank Directory Accounts Selection | Financial Operations | High | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-CARD-01` | Internet Card Encryption & Storage Architecture | Security & Data | Critical | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-CARD-02` | Customer Card Dispute & Quarantine Window | Operations & Support | Medium | **APPROVED** | OWNER | 2026-08-08 |
+| `OD-SETTLE-01` | Network Owner Settlement Payout Schedule | Finance & Operations | High | **APPROVED** | OWNER | 2026-08-08 |
+
+---
+
+## Decision Register Index (Remaining Open Decisions)
 
 | Decision ID | Decision Title | Category | Impact Level | Status |
 |---|---|---|---|---|
 | `OD-AUTH-01` | SMS OTP Gateway Provider Selection | Auth & Infrastructure | High | `OPEN_DECISION` |
-| `OD-FIN-01` | Customer Deposit Verification & Proof Method | Wallet & Finance | Critical | `OPEN_DECISION` |
-| `OD-FIN-02` | Platform Commission Architecture | Business Model | High | `OPEN_DECISION` |
-| `OD-FIN-03` | Deposit Bank Directory Accounts Selection | Financial Operations | High | `OPEN_DECISION` |
-| `OD-CARD-01` | Internet Card Encryption & Storage Architecture | Security & Data | Critical | `OPEN_DECISION` |
-| `OD-CARD-02` | Customer Card Dispute & Quarantine Window | Operations & Support | Medium | `OPEN_DECISION` |
-| `OD-SETTLE-01` | Network Owner Settlement Payout Schedule | Finance & Operations | High | `OPEN_DECISION` |
 | `OD-PRIV-01` | User Data Retention & Anonymization Policy | Privacy & Governance | Medium | `OPEN_DECISION` |
 | `OD-ARCH-01` | Administration Web Portal Technology Stack | Frontend Architecture | High | `OPEN_DECISION` |
 | `OD-WALLET-01` | Wallet Balance Storage: Cached vs Real-Time Aggregation | Database Architecture | Critical | `OPEN_DECISION` |
-| `OD-NOTIF-01` | Push Notification Infrastructure & Gateway | Mobile Architecture | Medium | `OPEN_DECISION` |
 
 ---
 
-## Detailed Decision Specifications
+## Approved Decision Specifications
+
+### OD-NOTIF-01: Push Notification Infrastructure & Gateway — APPROVED
+
+* **Decision:** Bind Firebase Cloud Messaging (FCM) as the V1 Android push transport.
+* **Rationale:** Industry-standard, free-tier scalable, native Android background integration; aligns with README placeholder and avoids third-party subscription lock-in.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Existing provider-neutral notification adapter in Flutter/Supabase is retained.
+  * FCM is bound as the V1 Android transport implementation via a server-side Edge Function adapter.
+  * Flutter obtains and registers the FCM device token; token refresh and Android notification permission are handled client-side.
+  * Backend token registry supports safe registration, logout/device unlink, and invalid token retirement.
+  * Delivery responses are recorded; transient/permanent failures classified; bounded retries; idempotent dispatch; no duplicate domain event generation.
+  * FCM server credentials remain server-side only; no service-account private key in Flutter or in repository.
+* **Production Implications:** Physical pilot requires a real Firebase Android project configuration and server-side credentials deployed to the Edge Function secret configuration. Source/local E2E uses a fake/local transport adapter and does not require real FCM credentials.
+
+---
+
+### OD-FIN-01: Customer Deposit Verification & Proof Method — APPROVED
+
+* **Decision:** Manual finance review for V1 deposit verification.
+* **Rationale:** Zero banking API integration dependencies; removes the longest compliance/integration blocker from the V1 critical path while preserving an immutable, auditable approval flow.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Customer submits: amount, selected payment destination, transfer/reference identifier, and proof via the existing safe evidence/storage mechanism.
+  * Finance officer reviews manually and approves or rejects.
+  * Approval atomically credits the customer wallet exactly once using an idempotent ledger entry.
+  * No automatic bank API integration is built or assumed for V1.
+* **Production Implications:** Finance staffing must cover deposit review SLAs. Operational target remains < 15 minutes during business hours.
+
+---
+
+### OD-FIN-02: Platform Commission Architecture — APPROVED
+
+* **Decision:** Default platform commission = 3.00% of successful purchase value.
+* **Rationale:** Simple, mathematically transparent, scales linearly with revenue, and leaves a clear migration path to network-specific overrides without rewriting historical records.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Commission is computed server-side; client-provided commission values are never trusted.
+  * Purchase record stores immutable snapshot: gross amount, commission rate snapshot, commission amount, owner net amount.
+  * Deterministic currency rounding rules applied (half-even / banker's rounding or integer floor as documented in code).
+  * Configuration architecture supports a future network-specific override without changing purchase domain contracts.
+  * Commission cannot be set by customers, network operators, or network owners.
+  * Historical purchases remain immutable when the central rate changes; refunds/accounting use the original snapshot.
+* **Production Implications:** A central commission configuration row controls the default. Changing the default affects only new purchases; existing settlement lines and purchase records are never retroactively recalculated.
+
+---
+
+### OD-FIN-03: Deposit Bank Directory Accounts Selection — APPROVED
+
+* **Decision:** Admin-managed payment destination directory.
+* **Rationale:** Instant operational flexibility to add, update, reorder, or disable accounts without mobile app releases; eliminates hardcoded-account risk.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Directory supports: bank account, mobile wallet/payment account, and other explicitly supported manual transfer destinations.
+  * Fields include only operationally necessary values: provider type, display name, account holder, account identifier/number, instructions, display ordering, active/inactive flag.
+  * Customer sees active destinations and chooses one when creating a deposit request.
+  * Admin/Finance can create, edit, activate/deactivate, and reorder.
+  * Authorization is enforced server-side.
+  * Existing deposits preserve a destination snapshot/reference even if the directory later changes.
+  * No bank API integration in V1.
+* **Production Implications:** Real provider accounts (Kuraimi, OneCash, Al-Amqi, Floosak, Al-Najm, etc.) must be configured through the admin directory before customers can select them. Provider names in earlier documents remain illustrative until configured.
+
+---
+
+### OD-CARD-01: Internet Card Encryption & Storage Architecture — APPROVED
+
+* **Decision:** Server-side encrypted card vault using authenticated AES-256-GCM encryption.
+* **Rationale:** Plaintext voucher/card secret is isolated from normal application tables and never exposed through client APIs, logs, audit events, or notifications; key versioning and a narrow provider boundary allow future migration to a managed KMS without domain contract changes.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Plaintext voucher/card secret is NEVER persisted in normal application tables, logs, audit events, Admin list APIs, push notifications, or Flutter source/assets.
+  * Encrypted secret material persisted: ciphertext, unique nonce/IV, authentication tag, key_version, and non-secret card metadata.
+  * Encryption master key / KEK remains outside the card data table and is obtained only from server-side environment/secret configuration.
+  * Key is never returned to Flutter, never committed, and never hard-coded for production.
+  * Web Crypto / authenticated encryption is used server-side.
+  * For LOCAL tests only, a clearly `TEST_ONLY` generated key is used through ignored local environment configuration.
+  * Key versioning is implemented from day one.
+  * Boundary is designed so a future managed KMS can replace the secret provider without changing card/purchase domain contracts.
+* **Production Implications:** A production encryption master key (or KMS configuration) must be provisioned server-side before card ingestion. Loss of the key is irrecoverable; backup/recovery procedures are out of V1 scope but must be documented before production go-live.
+
+---
+
+### OD-CARD-02: Customer Card Dispute & Quarantine Window — APPROVED
+
+* **Decision:** Direct invalid-card dispute window = 30 minutes from first successful card reveal.
+* **Rationale:** Short enough to materially reduce abuse after card consumption; long enough for a customer to test a freshly revealed card; server-time authoritative.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * A purchased card can be decrypted/revealed only through an authenticated server-side operation after validating: authenticated user, purchase ownership, successful purchase, fulfillment/card assignment, reveal eligibility, and dispute/security state.
+  * Reveal metadata is recorded without recording the secret itself.
+  * Cross-user card reveal is prevented; direct ciphertext table access by customers is prevented.
+  * `first_revealed_at` and `dispute_deadline` are stored; `dispute_deadline = first_revealed_at + 30 minutes`.
+  * Server time is authoritative; client clock does not control eligibility.
+  * Within 30 minutes: customer can open the dedicated invalid-card dispute path.
+  * After 30 minutes: normal support ticket remains available, but automatic/direct refund eligibility is not assumed.
+* **Production Implications:** Support workflow must prioritize invalid-card disputes within the 30-minute window. Settlement batches should exclude or hold purchases with open disputes until resolved.
+
+---
+
+### OD-SETTLE-01: Network Owner Settlement Payout Schedule — APPROVED
+
+* **Decision:** Weekly settlement batch with finance review/approval in V1; no automatic bank payout.
+* **Rationale:** Predictable cash flow and administrative schedule; keeps payout execution manual in V1 to avoid production banking automation risk while preserving immutable accounting.
+* **Approved By:** OWNER
+* **Approved Date:** 2026-08-08
+* **Implementation Binding:**
+  * Settlement accounting: eligible successful sales MINUS platform commission MINUS completed refunds PLUS/MINUS approved accounting adjustments = owner net settlement.
+  * Settlement batches require finance review/approval in V1.
+  * No automatic bank payout is built.
+  * Immutable settlement snapshots and line references are stored.
+  * Batch lifecycle supports at minimum: `draft`, `ready_for_review`, `approved`, `paid`/`manual_external_confirmation`, `cancelled`/`corrected`.
+* **Production Implications:** Finance must run and approve batches weekly. Actual payout remains an external manual process recorded via batch status transition.
+
+---
+
+## Open Decision Specifications (Unchanged)
 
 ### 1. OD-AUTH-01: SMS OTP Gateway Provider Selection
 
@@ -49,101 +180,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 2. OD-FIN-01: Customer Deposit Verification & Proof Method
-
-* **Context:** The prototype includes `wallet_deposit_requests` with `payment_method` and `amount`, but lacks automated banking API links.
-* **Options:**
-  * **Option 1:** Manual Verification Queue — Customer uploads receipt screenshot and reference number; Finance Officer verifies in bank portal and approves manually.
-  * **Option 2:** Semi-Automated OCR — Uploaded receipt screenshot is parsed by OCR service to extract reference number and amount for automated comparison, requiring manual approval only on mismatch.
-  * **Option 3:** Direct API Integration with Yemeni Financial Institutions.
-* **Advantages & Risks:**
-  * *Option 1:* Zero financial institution integration dependencies; zero API integration risk. Risk: Operational bottleneck during peak deposit hours.
-  * *Option 2:* Reduces manual review workload by 70%. Risk: Image quality variations in Yemen leading to false negatives.
-  * *Option 3:* Real-time instant wallet credit. Risk: Complex institutional approvals, long integration lead times, high compliance barrier.
-* **Operational Impact:** Determines initial finance staffing requirements and deposit processing turnaround time (Target: < 15 minutes).
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Manual Verification Queue)** for V1 launch to achieve rapid market deployment without banking API blockers.
-
----
-
-### 3. OD-FIN-02: Platform Commission Architecture
-
-* **Context:** Code models track `price` and `denomination`, but no platform commission calculation logic exists in current codebase.
-* **Options:**
-  * **Option A:** Flat Percentage Commission (e.g., 5% retained by platform on every card purchase).
-  * **Option B:** Tiered Fixed Fee per Card Denomination (e.g., 20 YER on 500 YER card, 50 YER on 1,000 YER card).
-  * **Option C:** Owner Subscription Fee + 2% Low Margin Commission.
-* **Advantages & Risks:**
-  * *Option A:* Simple calculation; scales linearly with revenue. Risk: High denomination cards incur higher nominal platform fee.
-  * *Option B:* Predictable costs for network owners. Risk: Requires ongoing maintenance of commission tier lookup tables.
-  * *Option C:* Attractive for large network owners. Risk: Higher barrier to entry for small neighborhood hotspot owners.
-* **Operational Impact:** Core business model driver affecting owner margin and platform profitability.
-* **PROVISIONAL_RECOMMENDATION:** **Option A (Flat Percentage Commission - 5%)** for simplicity, mathematical clarity, and automated settlement calculations.
-
----
-
-### 4. OD-FIN-03: Deposit Bank Directory Accounts Selection (NY-PRODUCT-001F)
-
-* **Context:** The deposit directory displays financial channels for customer top-ups. Specific provider names (such as Kuraimi, OneCash, Al-Amqi, Floosak, Al-Najm) are illustrative examples in contract specifications and are NOT official platform accounts until approved by user management.
-* **Options:**
-  * **Option 1:** Configuration-Driven Bank Directory — Financial channels are created, enabled, or disabled dynamically via Admin Web portal (`F-ADM-09`) by authorized Platform Finance personnel.
-  * **Option 2:** Hardcoded In-App Accounts — Accounts embedded in client application builds.
-* **Advantages & Risks:**
-  * *Option 1:* Instant flexibility to add, update, or remove accounts without mobile app updates. Zero risk of hardcoding invalid accounts.
-  * *Option 2:* Zero database read query. Risk: Mobile app release required whenever a bank account number changes.
-* **Operational Impact:** Directly affects liquidity routing and customer deposit UX.
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Configuration-Driven Bank Directory)**. Specific provider names remain illustrative examples pending official account selection.
-
----
-
-### 5. OD-CARD-01: Internet Card Encryption & Storage Architecture
-
-* **Context:** Current prototype stores `card_number` in plaintext in `cards` table model.
-* **Options:**
-  * **Option 1:** PostgreSQL Column Encryption via `pgcrypto` using a database master key.
-  * **Option 2:** Vault Storage / KMS Encryption managed outside main table space, releasing plaintext only via specific RPC execution.
-  * **Option 3:** Application-level AES-256 encryption before inserting into Supabase tables.
-* **Advantages & Risks:**
-  * *Option 1:* Built natively into Supabase PostgreSQL; straightforward SQL RPC decryption during purchase. Risk: Key management within database context.
-  * *Option 2:* Maximum security isolation; database leak does not expose plaintext cards. Risk: Latency penalty during bulk card batch imports.
-  * *Option 3:* Plaintext cards never touch database unencrypted. Risk: Client key distribution and rotation complexity across mobile apps.
-* **Operational Impact:** Critical security control mitigating `SEC-01` and preventing unauthorized card inventory theft.
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (pgcrypto Column-Level Encryption)** within Supabase, decrypted exclusively inside the security-definer `purchase_card` RPC function for the verified buyer.
-
----
-
-### 6. OD-CARD-02: Customer Card Dispute & Quarantine Window
-
-* **Context:** No dispute window timeframe is defined in existing code.
-* **Options:**
-  * **Option A:** 12-Hour Strict Dispute Window post-purchase.
-  * **Option B:** 24-Hour Standard Dispute Window post-purchase.
-  * **Option C:** 48-Hour Extended Dispute Window post-purchase.
-* **Advantages & Risks:**
-  * *Option A:* Limits owner payout holds; minimizes fraudulent complaint attempts after using card internet volume. Risk: Customer may not test card immediately.
-  * *Option B:* Balanced protection for both customer and network owner. Risk: Standard operational workload for support.
-  * *Option C:* Maximum customer satisfaction. Risk: High exposure to abuse by customers consuming card quota then filing fake complaints.
-* **Operational Impact:** Governs settlement hold duration and support ticket SLA requirements.
-* **PROVISIONAL_RECOMMENDATION:** **Option B (24-Hour Standard Dispute Window)** with mandatory requirement for customer to specify failure reason.
-
----
-
-### 7. OD-SETTLE-01: Network Owner Settlement Payout Schedule
-
-* **Context:** Owner payout frequency is un-specified in current repository.
-* **Options:**
-  * **Option 1:** Fixed Weekly Automated Settlement Batch (e.g., Every Sunday).
-  * **Option 2:** Threshold-Triggered Settlement (e.g., Automatic voucher generation when net payable reaches 25,000 YER).
-  * **Option 3:** Manual Owner Payout Request (Owner requests payout via app; processed within 48 business hours).
-* **Advantages & Risks:**
-  * *Option 1:* Highly predictable cash flow and administrative processing schedule. Risk: Small owners may wait up to 7 days.
-  * *Option 2:* Favorable for high-volume network owners. Risk: Variable workload for finance staff.
-  * *Option 3:* Flexible for owners. Risk: Spikes in payout requests causing finance operational overload.
-* **Operational Impact:** Directly impacts platform liquidity management and finance officer operational workflows.
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Weekly Settlement Batch)** combined with a minimum payout threshold of 10,000 YER.
-
----
-
-### 8. OD-PRIV-01: User Data Retention & Account Anonymization Policy (NY-PRODUCT-001F)
+### 2. OD-PRIV-01: User Data Retention & Account Anonymization Policy (NY-PRODUCT-001F)
 
 * **Context:** Data retention duration is unconfirmed by official legal references and is registered as `OPEN_DECISION`.
 * **Options:**
@@ -159,7 +196,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 9. OD-ARCH-01: Administration Web Portal Technology Stack
+### 3. OD-ARCH-01: Administration Web Portal Technology Stack
 
 * **Context:** The README lists "Lovable (Web)" as a placeholder, but audit confirmed no Web application code exists.
 * **Options:**
@@ -175,7 +212,7 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 10. OD-WALLET-01: Wallet Balance Storage: Cached vs Real-Time Aggregation
+### 4. OD-WALLET-01: Wallet Balance Storage: Cached vs Real-Time Aggregation
 
 * **Context:** Prototype model `user_model.dart` contains `walletBalance` field, while financial best practices mandate append-only ledger entries.
 * **Options:**
@@ -189,16 +226,8 @@ Where business rules or technical parameters cannot be definitively established 
 
 ---
 
-### 11. OD-NOTIF-01: Push Notification Infrastructure & Gateway
+## Change Log
 
-* **Context:** README notes "Firebase Cloud Messaging (later)", but no notification setup exists in code.
-* **Options:**
-  * **Option 1:** Firebase Cloud Messaging (FCM) integrated directly via Supabase Database Webhooks & Edge Functions.
-  * **Option 2:** OneSignal Push Notification Platform.
-  * **Option 3:** Local in-app polling without external push gateway in V1.
-* **Advantages & Risks:**
-  * *Option 1:* Industry standard, free tier scalability, native Android background integration. Risk: Requires FCM service account key setup in Edge Functions.
-  * *Option 2:* Turnkey web dashboard and push segmentation. Risk: External third-party SDK dependency and subscription cost.
-  * *Option 3:* Zero external dependencies. Risk: Poor user experience for deposit approvals and card complaint updates.
-* **Operational Impact:** Essential for user engagement, instant deposit approval alerts, and purchase verification receipts.
-* **PROVISIONAL_RECOMMENDATION:** **Option 1 (Firebase Cloud Messaging via Supabase Edge Functions)**.
+| Date | Change | Author |
+|---|---|---|
+| 2026-08-08 | Owner approved OD-NOTIF-01, OD-FIN-01, OD-FIN-02, OD-FIN-03, OD-CARD-01, OD-CARD-02, OD-SETTLE-01; documented binding and production implications. | OWNER / Release Candidate Binding |

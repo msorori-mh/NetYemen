@@ -33,6 +33,7 @@ DECLARE
     v_err_occurred     BOOLEAN;
     v_ledger_count     INTEGER;
     v_inventory        INTEGER;
+    v_destination_id   UUID;
 BEGIN
     -- ------------------------------------------------------------------------
     -- FIXTURE SETUP (as postgres)
@@ -107,6 +108,26 @@ BEGIN
     PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner_id::text, 'role', 'authenticated')::text, true);
     PERFORM public.adjust_package_inventory(v_pkg_id, 10, 'Initial stock for commerce tests', gen_random_uuid());
 
+    -- Create a payment destination and seed the encrypted card vault so that
+    -- purchase_package can fulfill orders under the external-pilot binding.
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+    v_destination_id := public.admin_create_payment_destination(
+        'bank_account', 'TEST_ONLY Commerce Bank', NULL, 'TEST_ONLY-ACCT-CC', NULL, 'YER', 0
+    );
+    PERFORM public.admin_ingest_card_vault_batch(
+        v_net_id,
+        v_pkg_id,
+        ARRAY[
+            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_001'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_001','auth_tag','TEST_ONLY_TAG_CC_001'),
+            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_002'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_002','auth_tag','TEST_ONLY_TAG_CC_002'),
+            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_003'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_003','auth_tag','TEST_ONLY_TAG_CC_003'),
+            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_004'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_004','auth_tag','TEST_ONLY_TAG_CC_004'),
+            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_005'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_005','auth_tag','TEST_ONLY_TAG_CC_005')
+        ]::jsonb[],
+        'v1-test'
+    );
+
     -- ------------------------------------------------------------------------
     -- POS-01: Own wallet read
     -- ------------------------------------------------------------------------
@@ -125,7 +146,7 @@ BEGIN
     v_result := public.create_wallet_deposit_request(
         5000,
         'REF-0001',
-        NULL,
+        v_destination_id,
         NULL,
         gen_random_uuid()
     );

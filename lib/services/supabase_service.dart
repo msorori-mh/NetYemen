@@ -98,7 +98,7 @@ class SupabaseService {
 
   Future<List<dynamic>> getActiveDepositChannels() async {
     return await _client
-        .from('bank_directory')
+        .from('payment_destinations')
         .select()
         .eq('is_active', true)
         .order('sort_order');
@@ -106,7 +106,7 @@ class SupabaseService {
 
   Future<Map<String, dynamic>> createDepositRequest({
     required int amount,
-    String? channelId,
+    String? paymentDestinationId,
     String? proofReference,
     required String idempotencyKey,
   }) async {
@@ -115,7 +115,7 @@ class SupabaseService {
       params: {
         'p_amount': amount,
         'p_reference_number': proofReference ?? '',
-        'p_bank_directory_id': channelId,
+        'p_payment_destination_id': paymentDestinationId,
         'p_proof_storage_path': proofReference,
         'p_idempotency_key': idempotencyKey,
       },
