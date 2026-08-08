@@ -83,7 +83,74 @@ class SupabaseService {
         .toList();
   }
 
-  // ==================== CARDS & PURCHASES ====================
+  // ==================== WALLET (V1 commerce schema) ====================
+
+  Future<Map<String, dynamic>> getMyWalletSummary() async {
+    return await _client.rpc('get_customer_wallet') as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyDepositRequests() async {
+    return await _client
+        .from('wallet_deposit_requests')
+        .select()
+        .order('created_at', ascending: false);
+  }
+
+  Future<List<dynamic>> getActiveDepositChannels() async {
+    return await _client
+        .from('bank_directory')
+        .select()
+        .eq('is_active', true)
+        .order('sort_order');
+  }
+
+  Future<Map<String, dynamic>> createDepositRequest({
+    required int amount,
+    String? channelId,
+    String? proofReference,
+    required String idempotencyKey,
+  }) async {
+    return await _client.rpc(
+      'create_wallet_deposit_request',
+      params: {
+        'p_amount': amount,
+        'p_reference_number': proofReference ?? '',
+        'p_bank_directory_id': channelId,
+        'p_proof_storage_path': proofReference,
+        'p_idempotency_key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
+  }
+
+  // ==================== PURCHASES (V1 commerce schema) ====================
+
+  Future<Map<String, dynamic>> purchasePackage({
+    required String packageId,
+    required String idempotencyKey,
+  }) async {
+    return await _client.rpc('purchase_package', params: {
+      'p_package_id': packageId,
+      'p_idempotency_key': idempotencyKey,
+    }) as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyPurchaseOrders() async {
+    return await _client
+        .from('purchase_records')
+        .select('*, network_packages(name), networks(name)')
+        .order('created_at', ascending: false);
+  }
+
+  Future<List<dynamic>> getMyFulfillmentRecords() async {
+    // card_fulfillment_records RLS allows the purchase owner to see status
+    // columns only; secret payload fields are never returned to the client.
+    return await _client
+        .from('card_fulfillment_records')
+        .select('*, network_packages(name), networks(name)')
+        .order('created_at', ascending: false);
+  }
+
+  // ==================== LEGACY COMPATIBILITY (deprecated) ====================
 
   Future<CardModel?> getAvailableCard({
     required String networkId,
@@ -103,24 +170,6 @@ class SupabaseService {
     return CardModel.fromJson(response);
   }
 
-  Future<Map<String, dynamic>?> purchaseCard({
-    required String userId,
-    required String networkId,
-    required int denomination,
-  }) async {
-    try {
-      final result = await _client.rpc('purchase_card', params: {
-        'p_user_id': userId,
-        'p_network_id': networkId,
-        'p_denomination': denomination,
-      });
-
-      return result as Map<String, dynamic>?;
-    } catch (e) {
-      throw Exception('فشل شراء الكرت: $e');
-    }
-  }
-
   Future<List<Purchase>> getUserPurchases(String userId) async {
     final response = await _client
         .from('purchases')
@@ -129,30 +178,5 @@ class SupabaseService {
         .order('created_at', ascending: false);
 
     return (response as List).map((json) => Purchase.fromJson(json)).toList();
-  }
-
-  // ==================== WALLET ====================
-
-  Future<List<dynamic>> getWalletTransactions(String userId) async {
-    final response = await _client
-        .from('wallet_transactions')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-
-    return response as List;
-  }
-
-  Future<void> createDepositRequest({
-    required String userId,
-    required int amount,
-    required String paymentMethod,
-  }) async {
-    await _client.from('wallet_deposit_requests').insert({
-      'user_id': userId,
-      'amount': amount,
-      'payment_method': paymentMethod,
-      'status': 'pending',
-    });
   }
 }

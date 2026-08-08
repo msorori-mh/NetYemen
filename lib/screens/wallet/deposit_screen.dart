@@ -1,6 +1,7 @@
 // lib/screens/wallet/deposit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/uuid_generator.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 
@@ -41,9 +42,9 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
       final service = ref.read(supabaseServiceProvider);
       await service.createDepositRequest(
-        userId: user.id,
         amount: amount,
-        paymentMethod: _selectedMethod,
+        proofReference: _selectedMethod,
+        idempotencyKey: UuidGenerator.generateV4(),
       );
 
       if (!mounted) return;
