@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../network_discovery/domain/entities.dart';
+import '../../packages/presentation/network_packages_section.dart';
 
 class NetworkDetailsScreen extends StatelessWidget {
   final NetworkEntity network;
@@ -117,6 +118,8 @@ class NetworkDetailsScreen extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 16),
+          NetworkPackagesSection(networkId: network.id),
         ],
       ),
     );
