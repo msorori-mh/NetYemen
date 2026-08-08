@@ -5,6 +5,7 @@ import '../features/network_discovery/presentation/home_screen.dart';
 import '../features/network_discovery/presentation/networks_list_screen.dart';
 import '../features/network_requests/presentation/my_requests_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/support/presentation/support_screens.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -33,6 +34,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       label: 'طلباتي',
     ),
     NavigationDestination(
+      icon: Icon(Icons.support_agent_outlined),
+      selectedIcon: Icon(Icons.support_agent),
+      label: 'دعمي',
+    ),
+    NavigationDestination(
       icon: Icon(Icons.person_outline),
       selectedIcon: Icon(Icons.person),
       label: 'الحساب',
@@ -43,6 +49,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     HomeScreen(),
     NetworksListScreen(),
     MyRequestsScreen(),
+    MySupportScreen(),
     ProfileScreen(),
   ];
 
