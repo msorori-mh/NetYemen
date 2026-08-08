@@ -281,16 +281,17 @@ The following decisions remain open and prevent production binding. Source-only,
 
 ## COMMITS
 
-- *(Final commit SHA to be recorded after push.)*
+- `95b8846d4bd3bd81476f39ac8b3701e22fab737e` — feat(commerce): close V1 wallet/deposit/purchase/fulfillment/refund/settlement path
+- `cbf0b527fffa22dbe3f561fc6f4a68615e7cf870` — docs(report): record ending sha for commerce core closure
 
 ## PUSH
 
-- Pushed to: `kimi/NY-V1-COMMERCE-CORE-001`
-- Status: *(to be updated after push)*
+- Pushed to: `origin/kimi/NY-V1-COMMERCE-CORE-001`
+- Status: pending
 
 ## PR
 
-- Draft stacked PR created.
+- Draft stacked PR: pending
 - No merge performed.
 
 ---
