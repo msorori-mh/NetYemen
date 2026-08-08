@@ -6,6 +6,8 @@ import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
+import '../../notifications/presentation/notification_center_screen.dart';
+import '../../notifications/presentation/notification_preferences_screen.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -74,6 +76,38 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_outlined, color: AppTheme.primary),
+              title: const Text('مركز الإشعارات'),
+              subtitle: const Text('سجل الإشعارات والتنبيهات'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationCenterScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.tune, color: AppTheme.primary),
+              title: const Text('إعدادات الإشعارات'),
+              subtitle: const Text('التحكم في فئات التفاعل'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationPreferencesScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(Icons.dashboard_outlined, color: AppTheme.primary),
