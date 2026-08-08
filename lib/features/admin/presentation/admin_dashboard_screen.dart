@@ -10,6 +10,7 @@ import 'admin_networks_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_audit_screen.dart';
 import '../../notifications/presentation/admin_notification_composer_screen.dart';
+import '../../support/presentation/support_screens.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -187,6 +188,19 @@ class _NavigationSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
+        _NavCard(
+          icon: Icons.support_agent_outlined,
+          title: 'الإشراف على الدعم والنزاعات',
+          subtitle: 'متابعة جميع الحالات ومؤشرات SLA',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SupportQueueScreen(
+                includeClosed: true,
+                title: 'الإشراف على الدعم',
+              ),
+            ),
+          ),
+        ),
         _NavCard(
           icon: Icons.list_alt_outlined,
           title: 'طلبات الشبكات',
