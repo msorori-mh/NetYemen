@@ -21,7 +21,7 @@ Closed the complete **source-side** mobile notification and user-engagement path
 | Item | Value |
 |---|---|
 | Starting SHA | `2b8a6e25bee675e24803b42cec7703c33c144797` |
-| Ending SHA | `98c3d349ad58e2dd861f7bcb779e2356978c8375` |
+| Ending SHA | `a35ddcaa1ca5ae5b5559e1f5e315279df17f799a` |
 | Feature commit | `1c0cad90846132ef57b9419b9c4fdd7af07ade9a` |
 | Branch | `cursor/NY-V1-NOTIFICATIONS-ENGAGEMENT-001` |
 | Base (stacked) | `kimi/NY-V1-ADMIN-OPS-001` |
