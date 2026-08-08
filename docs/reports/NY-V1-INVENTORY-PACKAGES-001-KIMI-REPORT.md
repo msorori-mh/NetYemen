@@ -209,7 +209,7 @@ Branch `kimi/NY-V1-INVENTORY-PACKAGES-001` pushed to origin.
 
 ## PR
 
-- **URL:** PLACEHOLDER
+- **URL:** https://github.com/msorori-mh/NetYemen/pull/6
 - **Base:** `kimi/NY-V1-NETWORK-DISCOVERY-001-CONTINUE`
 - **Head:** `kimi/NY-V1-INVENTORY-PACKAGES-001`
 - **Draft status:** Draft
