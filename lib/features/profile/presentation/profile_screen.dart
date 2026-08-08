@@ -5,7 +5,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
-import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
