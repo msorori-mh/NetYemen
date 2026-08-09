@@ -5,7 +5,7 @@
 **Repository:** `C:/projects/NetYemen-external-pilot`  
 **Branch:** `kimi/NY-V1-EXTERNAL-PILOT-BINDING-001`  
 **Starting SHA:** `e41a861aff3809504571c53cce13831990f29267`  
-**Ending SHA:** `bb334f76fa2741c7b5cb73b1f4bbc6987f5e52d8`  
+**Ending SHA:** `6b8d94cb681a20f006ac194e8174f3c299ed71ff`  
 **Report Date:** 2026-08-09  
 **Device:** Samsung physical Android device `R5CY246Q11J` connected via ADB  
 **Local Supabase:** `http://127.0.0.1:54321` (loopback via `adb reverse tcp:54321 tcp:54321`)
