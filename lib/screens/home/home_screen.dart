@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/network_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 import 'network_detail_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NetYemen'),
+        title: const Text(AppConstants.appNameAr),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),

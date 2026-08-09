@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../utils/constants.dart';
 import '../../network_discovery/domain/entities.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
@@ -19,7 +20,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('نت اليمن'),
+        title: const Text(AppConstants.appNameAr),
         actions: [
           const _NotificationAction(),
           IconButton(

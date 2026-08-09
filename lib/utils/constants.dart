@@ -8,10 +8,11 @@ class AppConstants {
   static const String supabaseUrl = '';
   static const String supabaseAnonKey = '';
 
-  static const String appName = 'NetYemen';
+  static const String appName = 'WASEL NET';
+  static const String appNameAr = 'واصل نت';
   static const String appVersion = '1.0.0';
 
   // ALAWAEL SMS API (لاحقاً — يُملأ يدوياً عند الربط)
   static const String alawaelApiKey = '';
-  static const String alawaelSenderId = 'NetYemen';
+  static const String alawaelSenderId = 'WASELNET';
 }

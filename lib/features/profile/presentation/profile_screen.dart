@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
+import '../../../utils/constants.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
@@ -157,7 +158,7 @@ class ProfileScreen extends ConsumerWidget {
             child: ListTile(
               leading: Icon(Icons.info_outline, color: AppTheme.primary),
               title: Text('عن التطبيق'),
-              subtitle: Text('نت اليمن — الإصدار 1.0.0'),
+              subtitle: Text('${AppConstants.appNameAr} — الإصدار ${AppConstants.appVersion}'),
             ),
           ),
           const Card(

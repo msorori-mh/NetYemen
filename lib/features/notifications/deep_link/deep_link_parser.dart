@@ -1,11 +1,12 @@
-/// Parses NetYemen deep-link routes used by notifications.
+/// Parses WASEL NET deep-link routes used by notifications.
 ///
 /// Supported forms:
-/// - `netyemen://network/{id}`
-/// - `netyemen://package/{id}`
-/// - `netyemen://request/{id}`
-/// - `netyemen://notifications`
-/// - `netyemen://profile`
+/// - `waselnet://network/{id}`
+/// - `waselnet://package/{id}`
+/// - `waselnet://request/{id}`
+/// - `waselnet://notifications`
+/// - `waselnet://profile`
+/// - legacy compatibility: `netyemen://...`
 /// - bare paths: `network/{id}`, `package/{id}`, ...
 class DeepLinkTarget {
   final DeepLinkKind kind;
@@ -32,7 +33,10 @@ class DeepLinkParser {
     }
 
     var value = raw.trim();
-    if (value.startsWith('netyemen://')) {
+    if (value.startsWith('waselnet://')) {
+      value = value.substring('waselnet://'.length);
+    } else if (value.startsWith('netyemen://')) {
+      // V1 transition compatibility for legacy links.
       value = value.substring('netyemen://'.length);
     }
     if (value.startsWith('/')) {
