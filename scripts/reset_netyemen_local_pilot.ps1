@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
@@ -8,7 +8,7 @@ if (-not $status.DB_URL -or $status.DB_URL -notmatch '127\.0\.0\.1|localhost') {
     throw 'LOCAL_ONLY guard failed: Supabase DB_URL is not loopback.'
 }
 
-npx supabase db reset --no-seed
+npx supabase db reset --no-seed 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Local database reset failed.' }
 
 Get-Content -Raw 'supabase/seed.sql' |

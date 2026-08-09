@@ -41,3 +41,23 @@ enable_signup = true
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
+
+# TEST_ONLY local SMS config for physical pilot. No real gateway is used;
+# auth.sms.test_otp bypasses external SMS delivery and supplies a fixed code.
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+max_frequency = "5s"
+
+[auth.sms.test_otp]
+"+967771111111" = "123456"
+"+967772222222" = "123456"
+
+# A provider must be enabled for phone auth to be active locally. These are
+# TEST_ONLY dummy values; test_otp intercepts all OTP traffic so no real SMS
+# is sent and no production credential is committed.
+[auth.sms.twilio]
+enabled = true
+account_sid = "TEST_ONLY_ACCOUNT_SID"
+message_service_sid = "TEST_ONLY_MESSAGE_SERVICE_SID"
+auth_token = "TEST_ONLY_AUTH_TOKEN"
