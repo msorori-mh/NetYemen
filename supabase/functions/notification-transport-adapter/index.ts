@@ -71,6 +71,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "INVALID_JSON", message: e.message }, 400);
   }
 
+  // Sensitive actions are restricted to server-side/service-role callers.
+  // Anon or customer JWTs must never be able to dispatch pushes or decrypt
+  // card secrets generically.
+  if (body.action === "dispatch_push" || body.action === "decrypt_card_secret") {
+    const authError = requireInternalAuth(req);
+    if (authError) return authError;
+  }
+
   try {
     switch (body.action) {
       case "dispatch_push":
@@ -85,6 +93,34 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "INTERNAL_ERROR", message: e.message }, 500);
   }
 });
+
+/**
+ * Verifies that the request carries the service-role key (or a dedicated
+ * internal function secret). This prevents anon/customer JWTs from reaching
+ * dispatch_push / decrypt_card_secret.
+ */
+function requireInternalAuth(req: Request): Response | null {
+  const authHeader = req.headers.get("authorization") || "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    console.error("Authorization missing for sensitive action");
+    return jsonResponse({ error: "UNAUTHORIZED", status: "forbidden" }, 401);
+  }
+
+  const token = match[1];
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
+
+  const isServiceRole = serviceRoleKey && token === serviceRoleKey;
+  const isInternalSecret = internalSecret && token === internalSecret;
+
+  if (!isServiceRole && !isInternalSecret) {
+    console.error("Authorization rejected for sensitive action");
+    return jsonResponse({ error: "FORBIDDEN", status: "forbidden" }, 403);
+  }
+
+  return null;
+}
 
 async function handleDispatchPush(payload: DispatchPushPayload): Promise<Response> {
   const projectId = Deno.env.get("FCM_PROJECT_ID");
