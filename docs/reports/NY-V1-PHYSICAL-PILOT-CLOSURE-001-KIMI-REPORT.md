@@ -5,7 +5,7 @@
 **Repository:** `C:/projects/NetYemen-external-pilot`  
 **Branch:** `kimi/NY-V1-EXTERNAL-PILOT-BINDING-001`  
 **Starting SHA:** `e41a861aff3809504571c53cce13831990f29267`  
-**Ending SHA:** `6b8d94cb681a20f006ac194e8174f3c299ed71ff`  
+**Validated implementation SHA:** `4fb9a8f39db83cd70b6663dc9aeb0f6444394b3d`  
 **Report Date:** 2026-08-09  
 **Device:** Samsung physical Android device `R5CY246Q11J` connected via ADB  
 **Local Supabase:** `http://127.0.0.1:54321` (loopback via `adb reverse tcp:54321 tcp:54321`)
@@ -209,7 +209,7 @@ Full smoke of login → home → networks → packages → notifications → wal
 |-------|---------|--------|
 | Analyze | `flutter analyze` | PASS — no issues |
 | Unit / widget tests | `flutter test` | PASS — 109 tests passed |
-| Debug APK build | `flutter build apk --debug --dart-define=SUPABASE_URL=http://127.0.0.1:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH` | PASS |
+| Debug APK build | `flutter build apk --debug --dart-define=SUPABASE_URL=http://127.0.0.1:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<LOCAL_SUPABASE_PUBLISHABLE_KEY>` | PASS |
 | APK SHA-256 | `sha256sum build/app/outputs/flutter-apk/app-debug.apk` | `04d4b148aa5a2b7b44c3d2e6da1160bf89b1015ad3c70bb0ffdad80b1791a452` |
 
 ---
