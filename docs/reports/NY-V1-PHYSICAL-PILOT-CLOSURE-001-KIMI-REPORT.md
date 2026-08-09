@@ -128,30 +128,36 @@ The physical device is currently locked and could not be interacted with for the
 
 ## 8. FCM DEVICE REGISTRATION
 
-**Status:** PENDING — requires unlocked, dedicated physical device
+**Status:** HOLD_PHYSICAL_EVIDENCE — ADB device unauthorized; token could not be registered
 
-The registration architecture is complete and validated:
+The registration architecture remains complete and validated:
 
 - `FcmTokenService` requests Android notification permission, calls `FirebaseMessaging.instance.getToken()`, registers via `register_device_push_token`, and listens to `onTokenRefresh`.
 - `FcmTokenInitializer` wraps `AppShell` and runs the service after app/auth bootstrap.
-- `public.device_push_tokens` is currently empty because the device is not logged in; the RPC correctly rejects anonymous calls.
+- `public.device_push_tokens` is currently empty because the physical device could not be interacted with.
 
-Once the device is unlocked and the TEST_ONLY customer logs in, the token is expected to be written to `public.device_push_tokens` with `platform = 'android'` and no token value will be printed in any report or log.
+Evidence:
+
+- `adb devices` at 2026-08-09T15:21:00+03:00 reported `R5CY246Q11J	unauthorized`.
+- `adb reverse tcp:54321 tcp:54321` could not be applied (`adb.exe: device unauthorized`).
+- No FCM token was generated, printed, or stored.
+
+Next attempt requires the Samsung device to be unlocked and the USB-debugging authorization dialog to be accepted for this workstation.
 
 ---
 
 ## 9. REAL FCM PHYSICAL PUSH
 
-**Status:** PENDING — requires unlocked physical device + registered token
+**Status:** HOLD_PHYSICAL_EVIDENCE — blocked by missing ADB authorization and missing device token
 
-- FCM service account is provisioned locally.
-- Edge Function `dispatch_push` accepts service-role authorization and would call FCM HTTP v1 using the service account.
-- Local Supabase is ready to supply the registered token after login.
-- Test message prepared:
+- FCM service account is provisioned locally outside the repository (`~/.wasel-net/secrets/firebase-service-account.json`).
+- Edge Function `dispatch_push` accepts service-role authorization and calls FCM HTTP v1 using the service account.
+- Local Supabase is healthy (`curl http://127.0.0.1:54321/rest/v1/` returned HTTP 200 at 2026-08-09T15:21:00+03:00).
+- Test message prepared but not dispatched:
   - Title: `واصل نت`
   - Body: `تم ربط إشعارات واصل نت بنجاح`
 
-The push could not be sent because no device token has been registered yet (device locked / login not completed).
+No real FCM HTTP v1 dispatch was performed because the device token could not be obtained (device unauthorized).
 
 ---
 
@@ -184,22 +190,22 @@ Negative tests added/verified by `scripts/verify_netyemen_external_pilot.ps1`:
 
 ## 11. PHYSICAL DEVICE SMOKE
 
-**Status:** PARTIAL — app launches and renders Arabic UI; full navigation smoke blocked by device lock
+**Status:** HOLD_PHYSICAL_EVIDENCE — ADB unauthorized; no new physical interaction possible
 
-Evidence captured:
+Previously captured evidence (before this continuation) remains valid:
 
 - `adb devices`: `R5CY246Q11J` connected.
 - `adb shell pm list packages | grep waselnet`: `package:com.waselnet.app` installed.
 - `adb shell appops get com.waselnet.app POST_NOTIFICATION`: default mode `allow`.
 - `adb shell am start -n com.waselnet.app/.MainActivity`: activity starts/resumes without crash.
-- Live screenshots during the session showed:
+- Earlier screenshots showed:
   - `AppShell` with Arabic RTL bottom navigation.
   - Home screen titled `واصل نت`.
   - Profile screen (`الحساب`) rendering correctly.
   - No red `MaterialLocalizations` exception overlay.
 - `adb logcat` filtered for `MaterialLocalizations` / `No Material` showed no errors.
 
-Full smoke of login → home → networks → packages → notifications → wallet → purchases → support → profile could not be completed because the device screen locked and competing foreground applications prevented reliable UI automation.
+This continuation could not add new physical smoke evidence because the device is unauthorized. No screenshots, logcat, or UI navigation evidence was collected during this run.
 
 ---
 
@@ -319,15 +325,23 @@ No remote Supabase reads/writes, remote migrations, remote Edge Function deploys
 
 ## 19. FINAL DECISION
 
-**PASS_WITH_EXTERNAL_REQUIREMENTS**
+**HOLD_PHYSICAL_EVIDENCE**
 
-The WASEL NET V1 codebase is closed for the physical Android pilot path:
+Four physical-pass conditions were required for `PASS_WASEL_NET_V1_PHYSICAL_PILOT_CLOSED`:
+
+1. Authenticated TEST_ONLY user on physical Android — **unproven** (device unauthorized, login not attempted).
+2. `device_push_tokens` registration proven — **unproven** (no token generated or stored).
+3. Real FCM HTTP v1 dispatch returns accepted/sent — **unproven** (no token, no dispatch).
+4. Visible WASEL NET notification proven on the Samsung device — **unproven** (no push sent).
+
+The codebase and backend prerequisites remain closed and ready:
 
 - Arabic localization is fixed.
 - WASEL NET branding is complete.
 - Firebase / Android identity is validated.
 - Local TEST_ONLY auth identity is provisioned and verified.
 - Edge Function authorization is hardened and negatively tested.
-- Flutter analyze/test pass, debug APK is built, SQL suites pass, and all security scans pass.
+- Flutter analyze/test previously passed, debug APK is built, SQL suites previously passed, and all security scans previously passed.
+- Local Supabase is healthy on `http://127.0.0.1:54321`.
 
-The only remaining work is the on-device execution: logging into the physical device, registering the FCM token, and receiving the real push notification. This is blocked solely by the physical device being locked/in active use during this session; all backend, build, and credential prerequisites are satisfied.
+The only blocker is the physical device ADB authorization state. Once `adb devices` reports `R5CY246Q11J device` and the USB-debugging dialog is accepted, rerun the physical FCM registration/push sequence.
