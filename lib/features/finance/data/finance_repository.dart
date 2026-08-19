@@ -4,6 +4,7 @@ abstract class FinanceRepository {
   Future<List<Map<String, dynamic>>> getDepositQueue(String? status);
   Future<void> reviewDeposit(String id, String action, {String? notes});
   Future<List<Map<String, dynamic>>> getActivePaymentDestinations();
+  Future<List<Map<String, dynamic>>> getPaymentDestinations();
   Future<Map<String, dynamic>> createPaymentDestination({
     required String providerType,
     required String displayName,
