@@ -28,7 +28,7 @@ class SupabasePurchaseRepository implements PurchaseRepository {
   Future<List<PurchaseOrder>> getMyPurchaseOrders() async {
     final result = await _client
         .from('purchase_records')
-        .select('*, network_packages(name), networks(name)')
+        .select('*, network_packages(name), networks(commercial_name)')
         .order('created_at', ascending: false);
     final list = result as List<dynamic>;
     return list.map((row) {
@@ -63,7 +63,7 @@ class SupabasePurchaseRepository implements PurchaseRepository {
     // columns only; secret payload fields are never returned to the client.
     final result = await _client
         .from('card_fulfillment_records')
-        .select('*, network_packages(name), networks(name)')
+        .select('*, network_packages(name), networks(commercial_name)')
         .order('created_at', ascending: false);
     final list = result as List<dynamic>;
     return list.map((row) {
@@ -74,7 +74,7 @@ class SupabasePurchaseRepository implements PurchaseRepository {
         packageId: json['package_id'] as String? ?? '',
         networkId: json['network_id'] as String? ?? '',
         packageName: json['network_packages']?['name'] as String?,
-        networkName: json['networks']?['name'] as String?,
+        networkName: json['networks']?['commercial_name'] as String?,
         status: json['status'] as String? ?? 'pending',
         disputeWindowEndsAt: json['dispute_window_ends_at'] != null
             ? DateTime.parse(json['dispute_window_ends_at'] as String)
