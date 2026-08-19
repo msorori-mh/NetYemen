@@ -510,6 +510,49 @@ class FakeAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<void> setUserPlatformRole({
+    required String userId,
+    required String role,
+    required bool enabled,
+  }) async {
+    final index = _users.indexWhere((user) => user.id == userId);
+    if (index == -1) throw StateError('المستخدم غير موجود');
+    final user = _users[index];
+    final roles = List<String>.of(user.roles);
+    if (enabled && !roles.contains(role)) roles.add(role);
+    if (!enabled) roles.remove(role);
+    _users[index] = AdminUser(
+      id: user.id,
+      fullName: user.fullName,
+      accountStatus: user.accountStatus,
+      roles: roles,
+    );
+    _recordAudit(
+      enabled ? 'ADMIN_GRANT_PLATFORM_ROLE' : 'ADMIN_REVOKE_PLATFORM_ROLE',
+      'user',
+      userId,
+    );
+  }
+
+  @override
+  Future<void> setUserAccountStatus({
+    required String userId,
+    required String status,
+    String? reason,
+  }) async {
+    final index = _users.indexWhere((user) => user.id == userId);
+    if (index == -1) throw StateError('المستخدم غير موجود');
+    final user = _users[index];
+    _users[index] = AdminUser(
+      id: user.id,
+      fullName: user.fullName,
+      accountStatus: status,
+      roles: user.roles,
+    );
+    _recordAudit('ADMIN_SET_ACCOUNT_STATUS', 'user', userId);
+  }
+
+  @override
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
     String? networkId,
   }) async {
