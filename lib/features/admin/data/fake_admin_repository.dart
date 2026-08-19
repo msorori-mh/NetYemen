@@ -367,8 +367,9 @@ class FakeAdminRepository implements AdminRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return _networks.where((n) {
-      if (status != null && status.isNotEmpty && n.status != status)
+      if (status != null && status.isNotEmpty && n.status != status) {
         return false;
+      }
       if (verificationStatus != null &&
           verificationStatus.isNotEmpty &&
           n.verificationStatus != verificationStatus) {
