@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../domain/admin_notification_policy.dart';
 import 'notification_providers.dart';
 
 class AdminNotificationComposerScreen extends ConsumerStatefulWidget {
@@ -66,12 +67,21 @@ class _AdminNotificationComposerScreenState
   Future<void> _send() async {
     final title = _titleCtrl.text.trim();
     final body = _bodyCtrl.text.trim();
-    if (title.isEmpty || body.isEmpty) {
+    final validationMessage = AdminNotificationPolicy.validate(
+      title: title,
+      body: body,
+      audienceType: _audienceType,
+      audienceValue: _audienceValueCtrl.text,
+    );
+    if (validationMessage != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('العنوان والنص مطلوبان')));
+      ).showSnackBar(SnackBar(content: Text(validationMessage)));
       return;
     }
+
+    final confirmed = await _confirmSend();
+    if (!confirmed || !mounted) return;
 
     setState(() {
       _sending = true;
@@ -97,15 +107,41 @@ class _AdminNotificationComposerScreenState
           const SnackBar(content: Text('تم إنشاء حدث الإعلان من جهة الخادم')),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('فشل الإرسال: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر إنشاء الإعلان. تحقق من البيانات وحاول مجدداً.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  Future<bool> _confirmSend() async {
+    final audienceLabel = _audiences[_audienceType] ?? 'الجمهور المحدد';
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('تأكيد إنشاء الإعلان'),
+            content: Text(
+              'سيُنشأ الإعلان من الخادم للجمهور: $audienceLabel. هل تريد المتابعة؟',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('إنشاء الإعلان'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -152,7 +188,7 @@ class _AdminNotificationComposerScreenState
               border: OutlineInputBorder(),
             ),
             onChanged: (_) => setState(() {}),
-            maxLength: 120,
+            maxLength: AdminNotificationPolicy.maximumTitleLength,
           ),
           const SizedBox(height: 12),
           TextField(
@@ -163,7 +199,7 @@ class _AdminNotificationComposerScreenState
             ),
             onChanged: (_) => setState(() {}),
             maxLines: 4,
-            maxLength: 500,
+            maxLength: AdminNotificationPolicy.maximumBodyLength,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
