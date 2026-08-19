@@ -523,7 +523,9 @@ class FakeAdminRepository implements AdminRepository {
     final index = _users.indexWhere((user) => user.id == userId);
     if (index == -1) throw StateError('المستخدم غير موجود');
     final user = _users[index];
-    final updatedRoles = user.roles.where((role) => !manageable.contains(role)).toList()
+    final updatedRoles = user.roles
+        .where((role) => !manageable.contains(role))
+        .toList()
       ..addAll(roles);
     _users[index] = AdminUser(
       id: user.id,
