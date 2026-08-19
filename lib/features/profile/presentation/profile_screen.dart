@@ -253,6 +253,7 @@ class _AdminDashboardEntryCard extends ConsumerWidget {
 
   static const _adminRoles = {
     'platform_admin',
+    'finance_officer',
     'support_agent',
     'system_auditor',
   };
