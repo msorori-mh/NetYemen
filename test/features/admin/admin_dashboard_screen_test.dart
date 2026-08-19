@@ -8,7 +8,7 @@ import 'package:netyemen/features/admin/presentation/admin_dashboard_screen.dart
 import 'package:netyemen/features/admin/presentation/admin_providers.dart';
 import 'package:netyemen/providers/app_providers.dart';
 
-class _FakeAdminRepository implements AdminRepository {
+class _FakeAdminRepository extends AdminRepository {
   @override
   Future<AdminDashboardKpi> fetchDashboardKpis() async {
     return const AdminDashboardKpi(
