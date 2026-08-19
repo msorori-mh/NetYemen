@@ -34,8 +34,7 @@ final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
 ) async {
   final repo = ref.watch(financeRepositoryProvider);
-  // Active destinations are sufficient for the customer deposit screen.
-  return await repo.getActivePaymentDestinations();
+  return await repo.getPaymentDestinations();
 });
 
 final settlementBatchesProvider =
