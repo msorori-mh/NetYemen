@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:net_yemen/features/finance/domain/finance_operation_policy.dart';
+import 'package:netyemen/features/finance/domain/finance_operation_policy.dart';
 
 void main() {
   group('FinanceOperationPolicy settlement periods', () {
