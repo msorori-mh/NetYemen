@@ -12,8 +12,9 @@ class PurchaseHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
-    if (user == null) {
+    if (user == null && !config.isDemoMode) {
       return Scaffold(
         appBar: AppBar(title: const Text('سجل المشتريات')),
         body: Directionality(
