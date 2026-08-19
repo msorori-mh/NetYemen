@@ -78,8 +78,7 @@ class _ConsoleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFinanceOnly =
-        capabilities.contains(AdminCapability.payments) &&
+    final isFinanceOnly = capabilities.contains(AdminCapability.payments) &&
         !capabilities.contains(AdminCapability.overview);
 
     return Card(
