@@ -8,6 +8,7 @@ import '../../../screens/auth/login_screen.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 import '../../notifications/presentation/notification_preferences_screen.dart';
+import '../../notifications/presentation/fcm_token_service.dart';
 import '../../network_requests/presentation/my_requests_screen.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
 import '../../support/presentation/support_screens.dart';
@@ -178,6 +179,9 @@ class ProfileScreen extends ConsumerWidget {
                 ? OutlinedButton.icon(
                     onPressed: config.isConfigured
                         ? () async {
+                            await ref
+                                .read(fcmTokenServiceProvider)
+                                .stop(deactivateToken: true);
                             await Supabase.instance.client.auth.signOut();
                           }
                         : null,
