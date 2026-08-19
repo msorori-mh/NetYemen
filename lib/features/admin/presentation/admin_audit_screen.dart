@@ -31,7 +31,7 @@ class AdminAuditScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل السجل: $e',
+          message: 'تعذر تحميل سجل التدقيق. حاول مرة أخرى.',
           onRetry: () => ref.read(adminAuditEventsProvider.notifier).refresh(),
         ),
       ),
@@ -131,6 +131,14 @@ class _AuditEventCard extends StatelessWidget {
         return 'رفض اسم لاسلكي';
       case 'RESOLVE_NETWORK_REQUEST':
         return 'معالجة طلب شبكة';
+      case 'ADMIN_REPLACE_PLATFORM_ROLES':
+        return 'تحديث الأدوار الإدارية';
+      case 'ADMIN_GRANT_PLATFORM_ROLE':
+        return 'منح دور إداري';
+      case 'ADMIN_REVOKE_PLATFORM_ROLE':
+        return 'سحب دور إداري';
+      case 'ADMIN_SET_ACCOUNT_STATUS':
+        return 'تغيير حالة حساب';
       default:
         return action;
     }
