@@ -6,7 +6,7 @@ import 'package:netyemen/features/admin/domain/entities.dart';
 import 'package:netyemen/features/admin/presentation/admin_providers.dart';
 import 'package:netyemen/providers/app_providers.dart';
 
-class _FakeAdminRepository implements AdminRepository {
+class _FakeAdminRepository extends AdminRepository {
   final AdminDashboardKpi kpis;
   final List<AdminNetworkRequest> requests;
 
