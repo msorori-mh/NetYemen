@@ -267,7 +267,8 @@ class _NetworkActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر تنفيذ الموافقة. حاول مرة أخرى.')));
+        ).showSnackBar(const SnackBar(
+            content: Text('تعذر تنفيذ الموافقة. حاول مرة أخرى.')));
       }
     }
   }
@@ -294,7 +295,8 @@ class _NetworkActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر تعليق الشبكة. حاول مرة أخرى.')));
+        ).showSnackBar(
+            const SnackBar(content: Text('تعذر تعليق الشبكة. حاول مرة أخرى.')));
       }
     }
   }
@@ -489,7 +491,8 @@ class _AliasCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر توثيق الاسم اللاسلكي. حاول مرة أخرى.')));
+        ).showSnackBar(const SnackBar(
+            content: Text('تعذر توثيق الاسم اللاسلكي. حاول مرة أخرى.')));
       }
     }
   }
@@ -508,7 +511,8 @@ class _AliasCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر رفض الاسم اللاسلكي. حاول مرة أخرى.')));
+        ).showSnackBar(const SnackBar(
+            content: Text('تعذر رفض الاسم اللاسلكي. حاول مرة أخرى.')));
       }
     }
   }
