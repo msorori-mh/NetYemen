@@ -54,7 +54,7 @@ class PurchaseOrder {
       packageId: json['package_id'] as String? ?? '',
       networkId: json['network_id'] as String? ?? '',
       networkName: json['network_name'] as String? ??
-          json['networks']?['name'] as String?,
+          json['networks']?['commercial_name'] as String?,
       packageName: json['package_name'] as String? ??
           json['network_packages']?['name'] as String?,
       quantity: (json['quantity'] as num?)?.toInt() ??
