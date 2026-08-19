@@ -26,7 +26,7 @@ void main() {
 
       expect(find.text('المحفظة'), findsOneWidget);
       expect(find.text('رصيد المحفظة'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'طلب إيداع'), findsOneWidget);
+      expect(find.text('طلب إيداع'), findsOneWidget);
       expect(
         find.widgetWithText(OutlinedButton, 'سجل الإيداعات'),
         findsOneWidget,
