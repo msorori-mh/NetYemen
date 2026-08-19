@@ -238,6 +238,17 @@ class AdminUsersNotifier extends AsyncNotifier<List<AdminUser>> {
     });
   }
 
+  Future<void> replacePlatformRoles({
+    required String userId,
+    required Set<String> roles,
+  }) async {
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.replaceUserPlatformRoles(userId: userId, roles: roles);
+      return repo.fetchUsers();
+    });
+  }
+
   Future<void> setPlatformRole({
     required String userId,
     required String role,
