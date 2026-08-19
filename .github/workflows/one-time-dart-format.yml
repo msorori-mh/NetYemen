@@ -1,0 +1,41 @@
+name: One-time Dart Formatting
+
+on:
+  push:
+    branches:
+      - 'kimi/NY-V1-EXTERNAL-PILOT-BINDING-001'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-time-dart-format
+  cancel-in-progress: true
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: stable
+          cache: true
+      - run: dart format lib test
+      - name: Commit formatting
+        run: |
+          if git diff --quiet -- lib test; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          git commit -m "style: apply canonical Dart formatting"
+          git push origin "HEAD:${{ github.ref_name }}"
