@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/app_providers.dart';
+import '../../../screens/auth/login_screen.dart';
 import 'wallet_providers.dart';
 import 'deposit_screen.dart';
 import 'deposit_history_screen.dart';
@@ -11,6 +13,41 @@ class WalletScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('المحفظة')),
+        body: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, size: 56),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'يرجى تسجيل الدخول لعرض المحفظة',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    ),
+                    icon: const Icon(Icons.login),
+                    label: const Text('تسجيل الدخول'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final walletAsync = ref.watch(walletSummaryProvider);
 
     return Scaffold(
