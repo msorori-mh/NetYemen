@@ -510,6 +510,31 @@ class FakeAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<void> replaceUserPlatformRoles({
+    required String userId,
+    required Set<String> roles,
+  }) async {
+    const manageable = {
+      'platform_admin',
+      'finance_officer',
+      'support_agent',
+      'system_auditor',
+    };
+    final index = _users.indexWhere((user) => user.id == userId);
+    if (index == -1) throw StateError('المستخدم غير موجود');
+    final user = _users[index];
+    final updatedRoles = user.roles.where((role) => !manageable.contains(role)).toList()
+      ..addAll(roles);
+    _users[index] = AdminUser(
+      id: user.id,
+      fullName: user.fullName,
+      accountStatus: user.accountStatus,
+      roles: updatedRoles,
+    );
+    _recordAudit('ADMIN_REPLACE_PLATFORM_ROLES', 'user', userId);
+  }
+
+  @override
   Future<void> setUserPlatformRole({
     required String userId,
     required String role,
