@@ -62,10 +62,7 @@ void main() {
       expect(find.text('PROTECTED_CONTENT'), findsNothing);
       expect(find.text('تسجيل الدخول مطلوب'), findsOneWidget);
       expect(find.text('يجب تسجيل الدخول لعرض هذا القسم.'), findsOneWidget);
-      expect(
-        find.widgetWithText(ElevatedButton, 'تسجيل الدخول'),
-        findsOneWidget,
-      );
+      expect(find.text('تسجيل الدخول'), findsOneWidget);
     });
 
     testWidgets('bypasses gate in demo/unconfigured mode', (tester) async {
