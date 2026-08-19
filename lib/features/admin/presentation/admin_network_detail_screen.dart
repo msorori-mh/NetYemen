@@ -46,7 +46,7 @@ class AdminNetworkDetailScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل تفاصيل الشبكة: $e',
+          message: 'تعذر تحميل تفاصيل الشبكة. حاول مرة أخرى.',
           onRetry: () => ref.invalidate(adminNetworkDetailProvider(networkId)),
         ),
       ),
@@ -92,7 +92,7 @@ class _NetworkDetailBody extends ConsumerWidget {
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => AdminErrorState(
-              message: 'حدث خطأ في تحميل الأسماء: $e',
+              message: 'تعذر تحميل أسماء الشبكة اللاسلكية. حاول مرة أخرى.',
               onRetry: () =>
                   ref.invalidate(adminNetworkAliasesProvider(network.id)),
             ),
@@ -267,7 +267,7 @@ class _NetworkActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشلت الموافقة: $e')));
+        ).showSnackBar(const SnackBar(content: Text('تعذر تنفيذ الموافقة. حاول مرة أخرى.')));
       }
     }
   }
@@ -294,7 +294,7 @@ class _NetworkActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشل التعليق: $e')));
+        ).showSnackBar(const SnackBar(content: Text('تعذر تعليق الشبكة. حاول مرة أخرى.')));
       }
     }
   }
@@ -489,7 +489,7 @@ class _AliasCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشل التوثيق: $e')));
+        ).showSnackBar(const SnackBar(content: Text('تعذر توثيق الاسم اللاسلكي. حاول مرة أخرى.')));
       }
     }
   }
@@ -508,7 +508,7 @@ class _AliasCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشل الرفض: $e')));
+        ).showSnackBar(const SnackBar(content: Text('تعذر رفض الاسم اللاسلكي. حاول مرة أخرى.')));
       }
     }
   }
