@@ -47,8 +47,7 @@ void main() {
     test('rejects notes beyond the server-safe limit', () {
       expect(
         () => FinanceOperationPolicy.normalizePaymentNotes(
-          'x' *
-              (FinanceOperationPolicy.maximumPaymentNotesLength + 1),
+          'x' * (FinanceOperationPolicy.maximumPaymentNotesLength + 1),
         ),
         throwsFormatException,
       );
