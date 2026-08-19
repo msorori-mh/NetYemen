@@ -58,6 +58,34 @@ class AdminEmptyState extends StatelessWidget {
   }
 }
 
+class AdminSearchField extends StatelessWidget {
+  final String hintText;
+  final ValueChanged<String> onChanged;
+
+  const AdminSearchField({
+    required this.hintText,
+    required this.onChanged,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: TextField(
+        textDirection: TextDirection.rtl,
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: const Icon(Icons.manage_search_outlined),
+          border: const OutlineInputBorder(),
+        ),
+        onChanged: (value) => onChanged(value.trim().toLowerCase()),
+      ),
+    );
+  }
+}
+
 class AdminErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
