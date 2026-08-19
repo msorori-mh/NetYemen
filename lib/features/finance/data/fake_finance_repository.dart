@@ -58,6 +58,12 @@ class FakeFinanceRepository implements FinanceRepository {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getPaymentDestinations() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return List.unmodifiable(_paymentDestinations);
+  }
+
+  @override
   Future<Map<String, dynamic>> createPaymentDestination({
     required String providerType,
     required String displayName,
