@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../domain/finance_operation_policy.dart';
 import 'finance_providers.dart';
 import 'settlement_detail_screen.dart';
 
@@ -232,7 +233,10 @@ class _CreateBatchDialogState extends ConsumerState<_CreateBatchDialog> {
   }
 
   Future<void> _create() async {
-    if (_periodStart.isAfter(_periodEnd)) {
+    if (!FinanceOperationPolicy.isValidSettlementPeriod(
+      _periodStart,
+      _periodEnd,
+    )) {
       setState(() {
         _message = 'يجب أن تكون بداية الفترة قبل نهايتها أو مساوية لها.';
       });
