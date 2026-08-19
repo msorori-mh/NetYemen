@@ -12,9 +12,7 @@ class DepositHistoryScreen extends ConsumerWidget {
     final depositsAsync = ref.watch(depositHistoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('سجل الإيداعات'),
-      ),
+      appBar: AppBar(title: const Text('سجل الإيداعات')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: depositsAsync.when(
@@ -27,7 +25,10 @@ class DepositHistoryScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final deposit = deposits[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: ListTile(
                     title: Text('${deposit.amount} ${deposit.currency}'),
                     subtitle: Text(

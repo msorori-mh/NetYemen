@@ -55,9 +55,7 @@ class _InventoryAdjustmentScreenState
     final balanceAsync = ref.watch(packageBalanceProvider(widget.package.id));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('تعديل المخزون'),
-      ),
+      appBar: AppBar(title: const Text('تعديل المخزون')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -163,15 +161,15 @@ class _InventoryAdjustmentScreenState
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تعديل المخزون')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تعديل المخزون')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -183,10 +181,7 @@ class _BalanceCard extends StatelessWidget {
   final NetworkPackage package;
   final AsyncValue<PackageInventoryBalance?> balanceAsync;
 
-  const _BalanceCard({
-    required this.package,
-    required this.balanceAsync,
-  });
+  const _BalanceCard({required this.package, required this.balanceAsync});
 
   @override
   Widget build(BuildContext context) {
@@ -215,14 +210,19 @@ class _BalanceCard extends StatelessWidget {
                     _BalanceRow(
                       label: 'المتوفر للبيع',
                       value: balance.availableUnits.toString(),
-                      valueColor: balance.isOutOfStock ? AppTheme.error : AppTheme.accent,
+                      valueColor: balance.isOutOfStock
+                          ? AppTheme.error
+                          : AppTheme.accent,
                     ),
                     if (balance.isOutOfStock)
                       const Padding(
                         padding: EdgeInsets.only(top: 8),
                         child: Text(
                           'المخزون نفد',
-                          style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: AppTheme.error,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],

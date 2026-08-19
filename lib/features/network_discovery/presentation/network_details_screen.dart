@@ -11,9 +11,7 @@ class NetworkDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(network.commercialName),
-      ),
+      appBar: AppBar(title: Text(network.commercialName)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -27,8 +25,9 @@ class NetworkDetailsScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 32,
-                        backgroundColor:
-                            AppTheme.primary.withValues(alpha: 0.1),
+                        backgroundColor: AppTheme.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         child: Text(
                           network.commercialName.isNotEmpty
                               ? network.commercialName[0]
@@ -55,8 +54,11 @@ class NetworkDetailsScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             const Row(
                               children: [
-                                Icon(Icons.verified,
-                                    color: AppTheme.accent, size: 16),
+                                Icon(
+                                  Icons.verified,
+                                  color: AppTheme.accent,
+                                  size: 16,
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'شبكة معتمدة',
@@ -92,8 +94,10 @@ class NetworkDetailsScreen extends StatelessWidget {
           if (network.locationText.isNotEmpty) ...[
             Card(
               child: ListTile(
-                leading: const Icon(Icons.location_on_outlined,
-                    color: AppTheme.info),
+                leading: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppTheme.info,
+                ),
                 title: const Text('الموقع'),
                 subtitle: Text(network.locationText),
               ),

@@ -27,7 +27,9 @@ class FakeFinanceRepository implements FinanceRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     final index = _deposits.indexWhere((d) => d['id'] == id);
     if (index >= 0) {
-      _deposits[index]['status'] = action == 'approve' ? 'approved' : 'rejected';
+      _deposits[index]['status'] = action == 'approve'
+          ? 'approved'
+          : 'rejected';
       _deposits[index]['rejection_reason'] = notes;
     }
   }
@@ -109,7 +111,10 @@ class FakeFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> setPaymentDestinationActive(String id, bool active) async {
+  Future<Map<String, dynamic>> setPaymentDestinationActive(
+    String id,
+    bool active,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final index = _paymentDestinations.indexWhere((d) => d['id'] == id);
     if (index < 0) throw StateError('NOT_FOUND');
@@ -118,10 +123,14 @@ class FakeFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> reorderPaymentDestinations(List<String> orderedIds) async {
+  Future<Map<String, dynamic>> reorderPaymentDestinations(
+    List<String> orderedIds,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 200));
     for (var i = 0; i < orderedIds.length; i++) {
-      final d = _paymentDestinations.firstWhere((d) => d['id'] == orderedIds[i]);
+      final d = _paymentDestinations.firstWhere(
+        (d) => d['id'] == orderedIds[i],
+      );
       d['sort_order'] = i;
     }
     return {'updated': orderedIds.length};
@@ -164,7 +173,10 @@ class FakeFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> markSettlementPaid(String batchId, {String? notes}) async {
+  Future<Map<String, dynamic>> markSettlementPaid(
+    String batchId, {
+    String? notes,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final batch = _settlementBatches.firstWhere((b) => b['id'] == batchId);
     batch['status'] = 'paid';
@@ -173,14 +185,20 @@ class FakeFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(String? status) async {
+  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(
+    String? status,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 200));
     if (status == null) return List.unmodifiable(_settlementBatches);
-    return List.unmodifiable(_settlementBatches.where((b) => b['status'] == status));
+    return List.unmodifiable(
+      _settlementBatches.where((b) => b['status'] == status),
+    );
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getOwnerSettlements(String? networkId) async {
+  Future<List<Map<String, dynamic>>> getOwnerSettlements(
+    String? networkId,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return List.unmodifiable(_settlementBatches);
   }

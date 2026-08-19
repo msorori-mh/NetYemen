@@ -48,9 +48,7 @@ class NotificationCenterScreen extends ConsumerWidget {
       body: inboxAsync.when(
         data: (items) {
           if (items.isEmpty) {
-            return const Center(
-              child: Text('لا توجد إشعارات بعد'),
-            );
+            return const Center(child: Text('لا توجد إشعارات بعد'));
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
@@ -63,9 +61,7 @@ class NotificationCenterScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text('تعذر تحميل الإشعارات: $e'),
-        ),
+        error: (e, _) => Center(child: Text('تعذر تحميل الإشعارات: $e')),
       ),
     );
   }
@@ -130,9 +126,9 @@ Future<void> navigateNotificationDeepLink(
           ),
         );
       } else {
-        await Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NetworksListScreen()),
-        );
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const NetworksListScreen()));
       }
       break;
     case DeepLinkKind.package:
@@ -148,9 +144,9 @@ Future<void> navigateNotificationDeepLink(
       );
       break;
     case DeepLinkKind.request:
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const MyRequestsScreen()),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const MyRequestsScreen()));
       break;
     case DeepLinkKind.notifications:
       break;
@@ -166,10 +162,7 @@ class _DeepLinkInfoScreen extends StatelessWidget {
   final String title;
   final String message;
 
-  const _DeepLinkInfoScreen({
-    required this.title,
-    required this.message,
-  });
+  const _DeepLinkInfoScreen({required this.title, required this.message});
 
   @override
   Widget build(BuildContext context) {

@@ -18,7 +18,9 @@ abstract class PackageRepository {
   Future<PackageInventoryBalance?> fetchPackageBalance(String packageId);
 
   /// Recent inventory movements for a network.
-  Future<List<PackageInventoryMovement>> fetchNetworkMovements(String networkId);
+  Future<List<PackageInventoryMovement>> fetchNetworkMovements(
+    String networkId,
+  );
 
   /// Create a new package (owner only).
   Future<NetworkPackage> createPackage({

@@ -50,10 +50,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'الشبكات المعتمدة',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
               ]),
@@ -123,10 +120,7 @@ class _ScanSection extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'البحث عن شبكات قريبة',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -134,10 +128,7 @@ class _ScanSection extends ConsumerWidget {
             const SizedBox(height: 8),
             const Text(
               'المسح يتم بضغط منك فقط. لا يتم رفع BSSID أو هوية الجهاز.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppTheme.textSecondary,
-              ),
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -149,7 +140,8 @@ class _ScanSection extends ConsumerWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const ScanResultsScreen()),
+                        builder: (_) => const ScanResultsScreen(),
+                      ),
                     );
                   }
                 },
@@ -231,15 +223,17 @@ class _NetworkCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 4,
                   children: network.ssidAliases
-                      .map((a) => Chip(
-                            label: Text(
-                              a.ssidDisplay,
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ))
+                      .map(
+                        (a) => Chip(
+                          label: Text(
+                            a.ssidDisplay,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -312,9 +306,7 @@ class _NotificationAction extends ConsumerWidget {
       tooltip: 'الإشعارات',
       onPressed: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const NotificationCenterScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const NotificationCenterScreen()),
         );
       },
       icon: Badge(

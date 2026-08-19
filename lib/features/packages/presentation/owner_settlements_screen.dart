@@ -21,17 +21,16 @@ class OwnerSettlementsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(ownerSettlementsProvider(networkId)),
+            onPressed: () =>
+                ref.invalidate(ownerSettlementsProvider(networkId)),
           ),
         ],
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: settlementsAsync.when(
-          data: (settlements) => _SettlementList(
-            settlements: settlements,
-            networkId: networkId,
-          ),
+          data: (settlements) =>
+              _SettlementList(settlements: settlements, networkId: networkId),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('خطأ: $e')),
         ),
@@ -66,7 +65,9 @@ class _SettlementList extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  title: Text('${batch['period_start']} إلى ${batch['period_end']}'),
+                  title: Text(
+                    '${batch['period_start']} إلى ${batch['period_end']}',
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -75,7 +76,9 @@ class _SettlementList extends StatelessWidget {
                       Text('الصافي: ${batch['net_settlement']}'),
                     ],
                   ),
-                  trailing: _StatusChip(status: batch['status'] as String? ?? 'draft'),
+                  trailing: _StatusChip(
+                    status: batch['status'] as String? ?? 'draft',
+                  ),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => SettlementDetailScreen(batch: batch),
@@ -99,11 +102,7 @@ class _SettlementList extends StatelessWidget {
       commission += (item['total_commission'] as num?)?.toInt() ?? 0;
       net += (item['net_settlement'] as num?)?.toInt() ?? 0;
     }
-    return {
-      'gross': gross,
-      'commission': commission,
-      'net': net,
-    };
+    return {'gross': gross, 'commission': commission, 'net': net};
   }
 }
 
@@ -119,8 +118,16 @@ class _SummaryBanner extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          _summaryColumn('إجمالي المبيعات', totals['gross'] ?? 0, AppTheme.success),
-          _summaryColumn('إجمالي العمولة', totals['commission'] ?? 0, AppTheme.error),
+          _summaryColumn(
+            'إجمالي المبيعات',
+            totals['gross'] ?? 0,
+            AppTheme.success,
+          ),
+          _summaryColumn(
+            'إجمالي العمولة',
+            totals['commission'] ?? 0,
+            AppTheme.error,
+          ),
           _summaryColumn('الصافي', totals['net'] ?? 0, AppTheme.info),
         ],
       ),
@@ -175,7 +182,11 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         _statusLabel(status),
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

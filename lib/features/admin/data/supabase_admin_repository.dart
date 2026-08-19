@@ -9,12 +9,16 @@ class SupabaseAdminRepository implements AdminRepository {
 
   @override
   Future<AdminDashboardKpi> fetchDashboardKpis() async {
-    final result = await _client.rpc<Map<String, dynamic>>('admin_dashboard_kpis');
+    final result = await _client.rpc<Map<String, dynamic>>(
+      'admin_dashboard_kpis',
+    );
     return AdminDashboardKpi.fromJson(result);
   }
 
   @override
-  Future<List<AdminNetworkRequest>> fetchPendingRequests({String? status}) async {
+  Future<List<AdminNetworkRequest>> fetchPendingRequests({
+    String? status,
+  }) async {
     var query = _client
         .from('network_addition_requests')
         .select(
@@ -32,7 +36,9 @@ class SupabaseAdminRepository implements AdminRepository {
 
     final response = await query.order('created_at', ascending: false);
     return (response as List)
-        .map((json) => AdminNetworkRequest.fromJson(json as Map<String, dynamic>))
+        .map(
+          (json) => AdminNetworkRequest.fromJson(json as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -100,22 +106,19 @@ class SupabaseAdminRepository implements AdminRepository {
   Future<AdminNetwork> approveNetwork(String networkId, {String? note}) async {
     await _client.rpc<Map<String, dynamic>>(
       'admin_approve_network',
-      params: {
-        'p_network_id': networkId,
-        'p_resolution_note': note,
-      },
+      params: {'p_network_id': networkId, 'p_resolution_note': note},
     );
     return _fetchNetworkById(networkId);
   }
 
   @override
-  Future<AdminNetwork> suspendNetwork(String networkId, {String? reason}) async {
+  Future<AdminNetwork> suspendNetwork(
+    String networkId, {
+    String? reason,
+  }) async {
     await _client.rpc<Map<String, dynamic>>(
       'admin_suspend_network',
-      params: {
-        'p_network_id': networkId,
-        'p_reason': reason,
-      },
+      params: {'p_network_id': networkId, 'p_reason': reason},
     );
     return _fetchNetworkById(networkId);
   }
@@ -161,10 +164,7 @@ class SupabaseAdminRepository implements AdminRepository {
   Future<AdminSsidAlias> rejectAlias(String aliasId, {String? reason}) async {
     await _client.rpc<Map<String, dynamic>>(
       'admin_reject_ssid_alias',
-      params: {
-        'p_alias_id': aliasId,
-        'p_reason': reason,
-      },
+      params: {'p_alias_id': aliasId, 'p_reason': reason},
     );
     return _fetchAliasById(aliasId);
   }
@@ -198,7 +198,10 @@ class SupabaseAdminRepository implements AdminRepository {
         .order('sort_order', ascending: true)
         .order('created_at', ascending: false);
     return (response as List)
-        .map((json) => AdminPackageInventory.fromJson(json as Map<String, dynamic>))
+        .map(
+          (json) =>
+              AdminPackageInventory.fromJson(json as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -231,7 +234,10 @@ class SupabaseAdminRepository implements AdminRepository {
 
     final response = await query.order('created_at', ascending: false);
     return (response as List)
-        .map((json) => AdminNetworkMembership.fromJson(json as Map<String, dynamic>))
+        .map(
+          (json) =>
+              AdminNetworkMembership.fromJson(json as Map<String, dynamic>),
+        )
         .toList();
   }
 

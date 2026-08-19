@@ -20,9 +20,7 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('تأكيد الشراء'),
-      ),
+      appBar: AppBar(title: const Text('تأكيد الشراء')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -39,7 +37,10 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'السعر: ${package.price} ${package.currency}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               ElevatedButton(
@@ -62,9 +63,7 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
 
     try {
       final repo = ref.read(purchaseRepositoryProvider);
-      final result = await repo.purchasePackage(
-        packageId: package.id,
-      );
+      final result = await repo.purchasePackage(packageId: package.id);
 
       if (context.mounted) {
         Navigator.of(context).pop();

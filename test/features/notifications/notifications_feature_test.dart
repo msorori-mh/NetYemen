@@ -12,8 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final _testAuthUserProvider = StateProvider<User?>((ref) => null);
 
 class _RecordingFcmTokenService extends FcmTokenService {
-  _RecordingFcmTokenService()
-      : super(repository: FakeNotificationRepository());
+  _RecordingFcmTokenService() : super(repository: FakeNotificationRepository());
 
   int initializeCalls = 0;
   int deactivateCalls = 0;
@@ -59,15 +58,19 @@ void main() {
       );
     });
 
-    test('keeps transactional preference conceptually locked via defaults',
-        () async {
-      final repo = FakeNotificationRepository();
-      final updated = await repo.updatePreferences(
-        NotificationPreferences.defaults().copyWith(networkAddedEnabled: false),
-      );
-      expect(updated.transactionalEnabled, isTrue);
-      expect(updated.networkAddedEnabled, isFalse);
-    });
+    test(
+      'keeps transactional preference conceptually locked via defaults',
+      () async {
+        final repo = FakeNotificationRepository();
+        final updated = await repo.updatePreferences(
+          NotificationPreferences.defaults().copyWith(
+            networkAddedEnabled: false,
+          ),
+        );
+        expect(updated.transactionalEnabled, isTrue);
+        expect(updated.networkAddedEnabled, isFalse);
+      },
+    );
 
     test('rejects secret announcement payloads', () async {
       final repo = FakeNotificationRepository();
@@ -98,8 +101,9 @@ void main() {
   });
 
   group('FcmTokenInitializer', () {
-    testWidgets('registers only after sign-in and stops after sign-out',
-        (tester) async {
+    testWidgets('registers only after sign-in and stops after sign-out', (
+      tester,
+    ) async {
       final service = _RecordingFcmTokenService();
       late ProviderContainer container;
 

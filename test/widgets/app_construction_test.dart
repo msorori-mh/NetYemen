@@ -5,8 +5,9 @@ import 'package:netyemen/utils/app_theme.dart';
 
 void main() {
   group('Basic Application Construction Test', () {
-    testWidgets('App theme and basic widget tree construct successfully',
-        (WidgetTester tester) async {
+    testWidgets('App theme and basic widget tree construct successfully', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
@@ -19,9 +20,7 @@ void main() {
               scaffoldBackgroundColor: AppTheme.background,
             ),
             home: const Scaffold(
-              body: Center(
-                child: Text('NetYemen Baseline Test'),
-              ),
+              body: Center(child: Text('NetYemen Baseline Test')),
             ),
           ),
         ),

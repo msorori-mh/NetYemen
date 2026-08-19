@@ -10,9 +10,7 @@ class SupabaseService {
   // ==================== AUTH ====================
 
   Future<void> signInWithPhone(String phone) async {
-    await _client.auth.signInWithOtp(
-      phone: phone,
-    );
+    await _client.auth.signInWithOtp(phone: phone);
   }
 
   Future<AuthResponse> verifyOTP(String phone, String otp) async {
@@ -38,7 +36,9 @@ class SupabaseService {
   Future<AppUser?> getUserProfile(String userId) async {
     final response = await _client
         .from('profiles')
-        .select('id, full_name, account_status, default_governorate, default_city, created_at')
+        .select(
+          'id, full_name, account_status, default_governorate, default_city, created_at',
+        )
         .eq('id', userId)
         .maybeSingle();
 
@@ -111,15 +111,16 @@ class SupabaseService {
     required String idempotencyKey,
   }) async {
     return await _client.rpc(
-      'create_wallet_deposit_request',
-      params: {
-        'p_amount': amount,
-        'p_reference_number': proofReference ?? '',
-        'p_payment_destination_id': paymentDestinationId,
-        'p_proof_storage_path': proofReference,
-        'p_idempotency_key': idempotencyKey,
-      },
-    ) as Map<String, dynamic>;
+          'create_wallet_deposit_request',
+          params: {
+            'p_amount': amount,
+            'p_reference_number': proofReference ?? '',
+            'p_payment_destination_id': paymentDestinationId,
+            'p_proof_storage_path': proofReference,
+            'p_idempotency_key': idempotencyKey,
+          },
+        )
+        as Map<String, dynamic>;
   }
 
   // ==================== PURCHASES (V1 commerce schema) ====================
@@ -128,10 +129,14 @@ class SupabaseService {
     required String packageId,
     required String idempotencyKey,
   }) async {
-    return await _client.rpc('purchase_package', params: {
-      'p_package_id': packageId,
-      'p_idempotency_key': idempotencyKey,
-    }) as Map<String, dynamic>;
+    return await _client.rpc(
+          'purchase_package',
+          params: {
+            'p_package_id': packageId,
+            'p_idempotency_key': idempotencyKey,
+          },
+        )
+        as Map<String, dynamic>;
   }
 
   Future<List<dynamic>> getMyPurchaseOrders() async {

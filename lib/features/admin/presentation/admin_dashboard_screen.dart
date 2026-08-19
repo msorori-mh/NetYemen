@@ -209,9 +209,7 @@ class _NavigationSection extends StatelessWidget {
           title: 'طلبات الشبكات',
           subtitle: 'مراجعة ومعالجة الطلبات',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminRequestsScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AdminRequestsScreen()),
           ),
         ),
         _NavCard(
@@ -219,9 +217,7 @@ class _NavigationSection extends StatelessWidget {
           title: 'الشبكات',
           subtitle: 'الموافقة والتعليق والتوثيق',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminNetworksScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AdminNetworksScreen()),
           ),
         ),
         _NavCard(
@@ -229,30 +225,24 @@ class _NavigationSection extends StatelessWidget {
           title: 'الباقات والمخزون',
           subtitle: 'مراقبة الباقات والمخزون',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminPackagesScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AdminPackagesScreen()),
           ),
         ),
         _NavCard(
           icon: Icons.people_outline,
           title: 'المستخدمين',
           subtitle: 'الأدوار والعضويات',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminUsersScreen(),
-            ),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AdminUsersScreen())),
         ),
         _NavCard(
           icon: Icons.history_outlined,
           title: 'سجل التدقيق',
           subtitle: 'الأحداث والعمليات الإدارية',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminAuditScreen(),
-            ),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AdminAuditScreen())),
         ),
         _NavCard(
           icon: Icons.campaign_outlined,
@@ -279,9 +269,7 @@ class _NavigationSection extends StatelessWidget {
           title: 'دفعات التسوية',
           subtitle: 'إنشاء واعتماد وتسجيل دفعات التسوية',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const SettlementBatchesScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const SettlementBatchesScreen()),
           ),
         ),
         _NavCard(

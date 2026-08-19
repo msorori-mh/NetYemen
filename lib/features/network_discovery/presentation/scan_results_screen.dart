@@ -56,8 +56,11 @@ class _ScanResultsBody extends ConsumerWidget {
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppTheme.accent.withValues(alpha: 0.1),
-                  child: const Icon(Icons.check_circle,
-                      color: AppTheme.accent, size: 20),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: AppTheme.accent,
+                    size: 20,
+                  ),
                 ),
                 title: Text(network.commercialName),
                 subtitle: Text(network.locationText),
@@ -85,8 +88,11 @@ class _ScanResultsBody extends ConsumerWidget {
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppTheme.warning.withValues(alpha: 0.1),
-                  child: const Icon(Icons.help_outline,
-                      color: AppTheme.warning, size: 20),
+                  child: const Icon(
+                    Icons.help_outline,
+                    color: AppTheme.warning,
+                    size: 20,
+                  ),
                 ),
                 title: Text(ssid),
                 subtitle: const Text('غير موجودة في القائمة المعتمدة'),

@@ -21,9 +21,7 @@ class OwnerPackagesScreen extends ConsumerWidget {
     final packagesAsync = ref.watch(networkPackagesProvider(networkId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('باقات $networkName'),
-      ),
+      appBar: AppBar(title: Text('باقات $networkName')),
       body: packagesAsync.when(
         data: (packages) => _buildContent(context, ref, packages),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -51,10 +49,7 @@ class OwnerPackagesScreen extends ConsumerWidget {
       itemCount: packages.length,
       itemBuilder: (context, index) {
         final package = packages[index];
-        return _OwnerPackageCard(
-          package: package,
-          networkId: networkId,
-        );
+        return _OwnerPackageCard(package: package, networkId: networkId);
       },
     );
   }
@@ -95,16 +90,35 @@ class _OwnerPackageCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (package.description != null && package.description!.isNotEmpty)
-                  Text(package.description!, style: const TextStyle(color: AppTheme.textSecondary)),
+                if (package.description != null &&
+                    package.description!.isNotEmpty)
+                  Text(
+                    package.description!,
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
                 const SizedBox(height: 12),
-                _InfoRow(label: 'المدة', value: package.durationText.isEmpty ? '—' : package.durationText),
-                _InfoRow(label: 'السرعة', value: package.speedMbps != null ? '${package.speedMbps} Mbps' : '—'),
-                _InfoRow(label: 'النوع', value: _packageTypeLabel(package.packageType)),
+                _InfoRow(
+                  label: 'المدة',
+                  value: package.durationText.isEmpty
+                      ? '—'
+                      : package.durationText,
+                ),
+                _InfoRow(
+                  label: 'السرعة',
+                  value: package.speedMbps != null
+                      ? '${package.speedMbps} Mbps'
+                      : '—',
+                ),
+                _InfoRow(
+                  label: 'النوع',
+                  value: _packageTypeLabel(package.packageType),
+                ),
                 _InfoRow(
                   label: 'المخزون المتاح',
                   value: balanceAsync.when(
-                    data: (b) => b == null ? '—' : '${b.availableUnits} / ${b.totalUnits}',
+                    data: (b) => b == null
+                        ? '—'
+                        : '${b.availableUnits} / ${b.totalUnits}',
                     loading: () => '...',
                     error: (_, __) => 'خطأ',
                   ),
@@ -120,7 +134,8 @@ class _OwnerPackageCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    if (package.status == 'draft' || package.status == 'inactive')
+                    if (package.status == 'draft' ||
+                        package.status == 'inactive')
                       _ActionButton(
                         label: 'نشر',
                         icon: Icons.publish,
@@ -142,7 +157,10 @@ class _OwnerPackageCard extends ConsumerWidget {
                     const Spacer(),
                     if (package.status != 'archived')
                       IconButton(
-                        icon: const Icon(Icons.archive, color: AppTheme.textSecondary),
+                        icon: const Icon(
+                          Icons.archive,
+                          color: AppTheme.textSecondary,
+                        ),
                         onPressed: () => _archive(context, ref),
                         tooltip: 'أرشفة',
                       ),
@@ -159,7 +177,8 @@ class _OwnerPackageCard extends ConsumerWidget {
   void _navigateToEdit(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PackageFormScreen(networkId: networkId, package: package),
+        builder: (_) =>
+            PackageFormScreen(networkId: networkId, package: package),
       ),
     );
   }
@@ -228,16 +247,16 @@ class _OwnerPackageCard extends ConsumerWidget {
     try {
       await action();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(successMessage)));
       }
       ref.invalidate(networkPackagesProvider(networkId));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -301,10 +320,7 @@ class _InfoRow extends StatelessWidget {
             '$label: ',
             style: const TextStyle(color: AppTheme.textSecondary),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -345,7 +361,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: AppTheme.textSecondary),
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 64,
+            color: AppTheme.textSecondary,
+          ),
           SizedBox(height: 16),
           Text(
             'لا توجد باقات لهذه الشبكة',
@@ -375,10 +395,7 @@ class _ErrorState extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
           const SizedBox(height: 16),
-          Text(
-            'تعذر تحميل الباقات: $message',
-            textAlign: TextAlign.center,
-          ),
+          Text('تعذر تحميل الباقات: $message', textAlign: TextAlign.center),
         ],
       ),
     );

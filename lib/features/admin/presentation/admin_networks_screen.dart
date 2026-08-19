@@ -42,10 +42,7 @@ class _NetworksBody extends ConsumerStatefulWidget {
   final List<AdminNetwork> networks;
   final Future<void> Function() onRefresh;
 
-  const _NetworksBody({
-    required this.networks,
-    required this.onRefresh,
-  });
+  const _NetworksBody({required this.networks, required this.onRefresh});
 
   @override
   ConsumerState<_NetworksBody> createState() => _NetworksBodyState();
@@ -124,9 +121,8 @@ class _NetworksBodyState extends ConsumerState<_NetworksBody> {
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _filteredNetworks.length,
-                    itemBuilder: (_, i) => _NetworkCard(
-                      network: _filteredNetworks[i],
-                    ),
+                    itemBuilder: (_, i) =>
+                        _NetworkCard(network: _filteredNetworks[i]),
                   ),
           ),
         ),

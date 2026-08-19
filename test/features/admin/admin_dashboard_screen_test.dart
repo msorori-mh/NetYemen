@@ -24,7 +24,9 @@ class _FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<List<AdminNetworkRequest>> fetchPendingRequests({String? status}) async => [];
+  Future<List<AdminNetworkRequest>> fetchPendingRequests({
+    String? status,
+  }) async => [];
 
   @override
   Future<AdminNetworkRequest> resolveRequest(
@@ -48,12 +50,16 @@ class _FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<AdminNetwork> suspendNetwork(String networkId, {String? reason}) async {
+  Future<AdminNetwork> suspendNetwork(
+    String networkId, {
+    String? reason,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<List<AdminSsidAlias>> fetchNetworkAliases(String networkId) async => [];
+  Future<List<AdminSsidAlias>> fetchNetworkAliases(String networkId) async =>
+      [];
 
   @override
   Future<AdminSsidAlias> verifyAlias(String aliasId) async {
@@ -66,7 +72,9 @@ class _FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<List<AdminPackageInventory>> fetchPackages({String? networkId}) async => [];
+  Future<List<AdminPackageInventory>> fetchPackages({
+    String? networkId,
+  }) async => [];
 
   @override
   Future<List<AdminUser>> fetchUsers() async => [];
@@ -96,11 +104,11 @@ void main() {
           overrides: [
             appConfigProvider.overrideWithValue(AppConfig.demo),
             adminRepositoryProvider.overrideWithValue(_FakeAdminRepository()),
-            currentUserRolesProvider.overrideWith((_) => const ['platform_admin']),
+            currentUserRolesProvider.overrideWith(
+              (_) => const ['platform_admin'],
+            ),
           ],
-          child: const MaterialApp(
-            home: AdminDashboardScreen(),
-          ),
+          child: const MaterialApp(home: AdminDashboardScreen()),
         ),
       );
 
@@ -121,11 +129,11 @@ void main() {
           overrides: [
             appConfigProvider.overrideWithValue(AppConfig.demo),
             adminRepositoryProvider.overrideWithValue(_FakeAdminRepository()),
-            currentUserRolesProvider.overrideWith((_) => const ['platform_admin']),
+            currentUserRolesProvider.overrideWith(
+              (_) => const ['platform_admin'],
+            ),
           ],
-          child: const MaterialApp(
-            home: AdminDashboardScreen(),
-          ),
+          child: const MaterialApp(home: AdminDashboardScreen()),
         ),
       );
 

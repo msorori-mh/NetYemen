@@ -46,9 +46,7 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('كرتك'),
-      ),
+      appBar: AppBar(title: const Text('كرتك')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -105,11 +103,17 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () => setState(() => _showSecret = !_showSecret),
-                            icon: Icon(_showSecret ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () =>
+                                setState(() => _showSecret = !_showSecret),
+                            icon: Icon(
+                              _showSecret
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
                           ),
                           IconButton(
-                            onPressed: () => _copyToClipboard(widget.revealedInfo.plaintext),
+                            onPressed: () =>
+                                _copyToClipboard(widget.revealedInfo.plaintext),
                             icon: const Icon(Icons.copy),
                           ),
                         ],
@@ -145,7 +149,10 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('الكرت غير صالح - فتح نزاع'),
                 ),
@@ -155,7 +162,9 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                 Text(
                   _message!,
                   style: TextStyle(
-                    color: _message!.startsWith('تم') ? Colors.green : Colors.red,
+                    color: _message!.startsWith('تم')
+                        ? Colors.green
+                        : Colors.red,
                   ),
                 ),
               ],
@@ -169,9 +178,9 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   Future<void> _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم النسخ')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم النسخ')));
     }
   }
 
@@ -189,7 +198,10 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
 
     try {
       final repo = ref.read(purchaseRepositoryProvider);
-      await repo.submitInvalidCardDispute(widget.revealedInfo.purchaseId, reason);
+      await repo.submitInvalidCardDispute(
+        widget.revealedInfo.purchaseId,
+        reason,
+      );
       if (mounted) {
         setState(() => _message = 'تم فتح النزاع بنجاح');
         _reasonController.clear();

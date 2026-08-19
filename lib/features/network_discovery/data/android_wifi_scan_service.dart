@@ -63,10 +63,7 @@ class AndroidWifiScanService implements WifiScanService {
       case CanStartScan.noLocationServiceDisabled:
         throw const WifiDisabledException();
       case CanStartScan.failed:
-        throw const ScanException(
-          'تعذّر بدء المسح',
-          code: 'SCAN_FAILED',
-        );
+        throw const ScanException('تعذّر بدء المسح', code: 'SCAN_FAILED');
     }
   }
 

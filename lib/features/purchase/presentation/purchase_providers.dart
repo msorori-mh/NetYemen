@@ -16,17 +16,24 @@ final purchaseRepositoryProvider = Provider<PurchaseRepository>((ref) {
   return SupabasePurchaseRepository(Supabase.instance.client);
 });
 
-final purchaseHistoryProvider = FutureProvider<List<PurchaseOrder>>((ref) async {
+final purchaseHistoryProvider = FutureProvider<List<PurchaseOrder>>((
+  ref,
+) async {
   final repo = ref.watch(purchaseRepositoryProvider);
   return await repo.getMyPurchaseOrders();
 });
 
-final fulfillmentRecordsProvider = FutureProvider<List<FulfillmentRecord>>((ref) async {
+final fulfillmentRecordsProvider = FutureProvider<List<FulfillmentRecord>>((
+  ref,
+) async {
   final repo = ref.watch(purchaseRepositoryProvider);
   return await repo.getMyFulfillmentRecords();
 });
 
-final purchaseDetailProvider = FutureProvider.family<PurchaseOrder?, String>((ref, purchaseId) async {
+final purchaseDetailProvider = FutureProvider.family<PurchaseOrder?, String>((
+  ref,
+  purchaseId,
+) async {
   final repo = ref.watch(purchaseRepositoryProvider);
   final orders = await repo.getMyPurchaseOrders();
   try {
@@ -50,6 +57,7 @@ class CardRevealNotifier extends AsyncNotifier<CardRevealResult?> {
   Future<void> reset() async => state = const AsyncValue.data(null);
 }
 
-final cardRevealNotifierProvider = AsyncNotifierProvider<CardRevealNotifier, CardRevealResult?>(
-  CardRevealNotifier.new,
-);
+final cardRevealNotifierProvider =
+    AsyncNotifierProvider<CardRevealNotifier, CardRevealResult?>(
+      CardRevealNotifier.new,
+    );

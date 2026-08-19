@@ -44,17 +44,15 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.network.name),
-      ),
+      appBar: AppBar(title: Text(widget.network.name)),
       body: Column(
         children: [
           // Network Info Header

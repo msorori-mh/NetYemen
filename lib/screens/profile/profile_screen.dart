@@ -26,9 +26,7 @@ class ProfileScreen extends ConsumerWidget {
     final userAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('حسابي'),
-      ),
+      appBar: AppBar(title: const Text('حسابي')),
       body: userAsync.when(
         data: (user) {
           if (user == null) {

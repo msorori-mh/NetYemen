@@ -41,10 +41,7 @@ class _PackagesBody extends StatelessWidget {
   final List<AdminPackageInventory> packages;
   final Future<void> Function() onRefresh;
 
-  const _PackagesBody({
-    required this.packages,
-    required this.onRefresh,
-  });
+  const _PackagesBody({required this.packages, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +110,9 @@ class _PackageCard extends StatelessWidget {
                 ),
                 AdminStatusChip(
                   label: package.isOutOfStock ? 'غير متوفر' : 'متوفر',
-                  color: package.isOutOfStock ? AppTheme.error : AppTheme.success,
+                  color: package.isOutOfStock
+                      ? AppTheme.error
+                      : AppTheme.success,
                 ),
               ],
             ),
@@ -140,13 +139,12 @@ class _PackageCard extends StatelessWidget {
                 _MetricChip(
                   label: 'المتوفر',
                   value: package.availableUnits.toString(),
-                  color: package.isOutOfStock ? AppTheme.error : AppTheme.success,
+                  color: package.isOutOfStock
+                      ? AppTheme.error
+                      : AppTheme.success,
                 ),
                 if (package.durationText.isNotEmpty)
-                  _MetricChip(
-                    label: 'المدة',
-                    value: package.durationText,
-                  ),
+                  _MetricChip(label: 'المدة', value: package.durationText),
                 if (package.speedMbps != null)
                   _MetricChip(
                     label: 'السرعة',
@@ -166,11 +164,7 @@ class _MetricChip extends StatelessWidget {
   final String value;
   final Color? color;
 
-  const _MetricChip({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  const _MetricChip({required this.label, required this.value, this.color});
 
   @override
   Widget build(BuildContext context) {

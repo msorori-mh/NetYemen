@@ -25,10 +25,7 @@ class UnconfiguredScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Text(
                   'التطبيق غير مُعدّ',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -59,10 +56,7 @@ class UnconfiguredScreen extends StatelessWidget {
                         'flutter run '
                         '--dart-define=SUPABASE_URL=<url> '
                         '--dart-define=SUPABASE_PUBLISHABLE_KEY=<key>',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                       ),
                     ],
                   ),

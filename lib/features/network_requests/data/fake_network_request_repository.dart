@@ -10,10 +10,10 @@ class FakeNetworkRequestRepository implements NetworkRequestRepository {
     List<NetworkAdditionRequest> requests = const [],
     Map<String, NetworkAdditionRequest>? idempotency,
     this.shouldThrow = false,
-  })  : _requests = List.of(requests),
-        _idempotency = idempotency != null
-            ? Map<String, NetworkAdditionRequest>.from(idempotency)
-            : {};
+  }) : _requests = List.of(requests),
+       _idempotency = idempotency != null
+           ? Map<String, NetworkAdditionRequest>.from(idempotency)
+           : {};
 
   List<NetworkAdditionRequest> get requests => List.unmodifiable(_requests);
 

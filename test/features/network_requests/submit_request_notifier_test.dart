@@ -48,15 +48,19 @@ void main() {
       expect(state, isA<AsyncData>());
 
       final session = container.read(pendingIdempotencySessionProvider);
-      expect(session, isNull,
-          reason: 'session should be cleared after a successful submission');
+      expect(
+        session,
+        isNull,
+        reason: 'session should be cleared after a successful submission',
+      );
     });
 
     test('submit uses the same idempotency key on retry', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo = container.read(networkRequestRepositoryProvider)
-          as FakeNetworkRequestRepository;
+      final repo =
+          container.read(networkRequestRepositoryProvider)
+              as FakeNetworkRequestRepository;
 
       // First attempt fails, so the session must be retained for a retry.
       repo.shouldThrow = true;
@@ -73,16 +77,20 @@ void main() {
       final result = await notifier.submit(observedSsidDisplay: 'HomeWiFi');
 
       final secondSession = container.read(pendingIdempotencySessionProvider);
-      expect(secondSession, isNull,
-          reason: 'session should be cleared after success');
+      expect(
+        secondSession,
+        isNull,
+        reason: 'session should be cleared after success',
+      );
       expect(result.observedSsidDisplay, 'HomeWiFi');
     });
 
     test('independent submissions receive distinct idempotency keys', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo = container.read(networkRequestRepositoryProvider)
-          as FakeNetworkRequestRepository;
+      final repo =
+          container.read(networkRequestRepositoryProvider)
+              as FakeNetworkRequestRepository;
 
       final capturedKeys = <String>{};
       for (var i = 0; i < 5; i++) {
@@ -93,35 +101,42 @@ void main() {
       expect(capturedKeys.length, 5);
     });
 
-    test('retry after failure with the same payload returns the same request',
-        () async {
-      final container = createContainer();
-      final notifier = container.read(submitRequestNotifierProvider);
-      final repo = container.read(networkRequestRepositoryProvider)
-          as FakeNetworkRequestRepository;
+    test(
+      'retry after failure with the same payload returns the same request',
+      () async {
+        final container = createContainer();
+        final notifier = container.read(submitRequestNotifierProvider);
+        final repo =
+            container.read(networkRequestRepositoryProvider)
+                as FakeNetworkRequestRepository;
 
-      repo.shouldThrow = true;
-      await expectLater(
-        () => notifier.submit(observedSsidDisplay: 'SameSSID'),
-        throwsException,
-      );
+        repo.shouldThrow = true;
+        await expectLater(
+          () => notifier.submit(observedSsidDisplay: 'SameSSID'),
+          throwsException,
+        );
 
-      final failedSession = container.read(pendingIdempotencySessionProvider);
-      expect(failedSession, isNotNull);
+        final failedSession = container.read(pendingIdempotencySessionProvider);
+        expect(failedSession, isNotNull);
 
-      repo.shouldThrow = false;
-      final result = await notifier.submit(observedSsidDisplay: 'SameSSID');
+        repo.shouldThrow = false;
+        final result = await notifier.submit(observedSsidDisplay: 'SameSSID');
 
-      expect(result.observedSsidDisplay, 'SameSSID');
-      expect(repo.requests.length, 1,
-          reason: 'retry after failure must not create a duplicate request');
-    });
+        expect(result.observedSsidDisplay, 'SameSSID');
+        expect(
+          repo.requests.length,
+          1,
+          reason: 'retry after failure must not create a duplicate request',
+        );
+      },
+    );
 
     test('changed payload after failure mints a new idempotency key', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo = container.read(networkRequestRepositoryProvider)
-          as FakeNetworkRequestRepository;
+      final repo =
+          container.read(networkRequestRepositoryProvider)
+              as FakeNetworkRequestRepository;
 
       repo.shouldThrow = true;
       await expectLater(
@@ -139,8 +154,11 @@ void main() {
       final newSession = container.read(pendingIdempotencySessionProvider);
       expect(newSession, isNull);
       expect(repo.requests.length, 1);
-      expect(repo.idempotencyKeys.single, isNot(failedKey),
-          reason: 'a changed logical request must use a new idempotency key');
+      expect(
+        repo.idempotencyKeys.single,
+        isNot(failedKey),
+        reason: 'a changed logical request must use a new idempotency key',
+      );
     });
 
     test('resetIdempotency discards a pending session', () {

@@ -35,8 +35,9 @@ class SupabaseNotificationRepository implements NotificationRepository {
 
   @override
   Future<NotificationPreferences> getPreferences() async {
-    final result =
-        await _client.rpc<Map<String, dynamic>>('get_notification_preferences');
+    final result = await _client.rpc<Map<String, dynamic>>(
+      'get_notification_preferences',
+    );
     return NotificationPreferences.fromJson(result);
   }
 
@@ -64,10 +65,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
   }) async {
     final result = await _client.rpc<List<dynamic>>(
       'list_my_notifications',
-      params: {
-        'p_limit': limit,
-        'p_unread_only': unreadOnly,
-      },
+      params: {'p_limit': limit, 'p_unread_only': unreadOnly},
     );
     return result
         .map((row) => InboxNotification.fromJson(row as Map<String, dynamic>))
@@ -84,16 +82,16 @@ class SupabaseNotificationRepository implements NotificationRepository {
 
   @override
   Future<int> unreadCount() async {
-    final result =
-        await _client.rpc<dynamic>('get_unread_notification_count');
+    final result = await _client.rpc<dynamic>('get_unread_notification_count');
     if (result is int) return result;
     return int.tryParse('$result') ?? 0;
   }
 
   @override
   Future<TransportStatus> transportStatus() async {
-    final result = await _client
-        .rpc<Map<String, dynamic>>('get_notification_transport_status');
+    final result = await _client.rpc<Map<String, dynamic>>(
+      'get_notification_transport_status',
+    );
     return TransportStatus.fromJson(result);
   }
 

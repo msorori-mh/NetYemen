@@ -12,7 +12,8 @@ class PurchaseDetailScreen extends ConsumerStatefulWidget {
   const PurchaseDetailScreen({super.key, required this.purchaseId});
 
   @override
-  ConsumerState<PurchaseDetailScreen> createState() => _PurchaseDetailScreenState();
+  ConsumerState<PurchaseDetailScreen> createState() =>
+      _PurchaseDetailScreenState();
 }
 
 class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
@@ -24,9 +25,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
     final purchaseAsync = ref.watch(purchaseDetailProvider(widget.purchaseId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل المشتريات'),
-      ),
+      appBar: AppBar(title: const Text('تفاصيل المشتريات')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: purchaseAsync.when(
@@ -53,7 +52,9 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
           const SizedBox(height: 16),
           if (isCompleted)
             ElevatedButton.icon(
-              onPressed: _revealing ? null : () => _revealCard(context, purchase),
+              onPressed: _revealing
+                  ? null
+                  : () => _revealCard(context, purchase),
               icon: const Icon(Icons.visibility),
               label: _revealing
                   ? const SizedBox(
@@ -133,10 +134,22 @@ class _InfoCard extends StatelessWidget {
             _row('الحالة', _statusText(purchase.status)),
             _row('تاريخ الشراء', _formatDate(purchase.createdAt)),
             const Divider(height: 24),
-            _row('المبلغ الإجمالي', '${purchase.grossAmount} ${purchase.currency}'),
-            _row('نسبة العمولة', '${(purchase.commissionRateSnapshot * 100).toStringAsFixed(2)}%'),
-            _row('قيمة العمولة', '${purchase.commissionAmount} ${purchase.currency}'),
-            _row('الصافي لصاحب الشبكة', '${purchase.ownerNetAmount} ${purchase.currency}'),
+            _row(
+              'المبلغ الإجمالي',
+              '${purchase.grossAmount} ${purchase.currency}',
+            ),
+            _row(
+              'نسبة العمولة',
+              '${(purchase.commissionRateSnapshot * 100).toStringAsFixed(2)}%',
+            ),
+            _row(
+              'قيمة العمولة',
+              '${purchase.commissionAmount} ${purchase.currency}',
+            ),
+            _row(
+              'الصافي لصاحب الشبكة',
+              '${purchase.ownerNetAmount} ${purchase.currency}',
+            ),
           ],
         ),
       ),
@@ -148,10 +161,7 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(color: Colors.grey),
-          ),
+          Text('$label: ', style: const TextStyle(color: Colors.grey)),
           Expanded(child: Text(value)),
         ],
       ),

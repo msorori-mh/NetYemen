@@ -16,8 +16,9 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
         .eq('verification_status', 'verified')
         .order('commercial_name');
 
-    final networks =
-        (networkResponse as List).map((j) => _parseNetwork(j)).toList();
+    final networks = (networkResponse as List)
+        .map((j) => _parseNetwork(j))
+        .toList();
 
     if (networks.isEmpty) return [];
 
@@ -30,12 +31,14 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
         .inFilter('network_id', networkIds);
 
     final aliases = (aliasResponse as List)
-        .map((j) => SsidAlias(
-              id: j['id'] as String,
-              networkId: j['network_id'] as String,
-              ssidDisplay: j['ssid_display'] as String,
-              ssidNormalized: j['ssid_normalized'] as String,
-            ))
+        .map(
+          (j) => SsidAlias(
+            id: j['id'] as String,
+            networkId: j['network_id'] as String,
+            ssidDisplay: j['ssid_display'] as String,
+            ssidNormalized: j['ssid_normalized'] as String,
+          ),
+        )
         .toList();
 
     final aliasMap = <String, List<SsidAlias>>{};
@@ -69,12 +72,14 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
         .eq('status', 'active');
 
     final aliases = (aliasResponse as List)
-        .map((j) => SsidAlias(
-              id: j['id'] as String,
-              networkId: j['network_id'] as String,
-              ssidDisplay: j['ssid_display'] as String,
-              ssidNormalized: j['ssid_normalized'] as String,
-            ))
+        .map(
+          (j) => SsidAlias(
+            id: j['id'] as String,
+            networkId: j['network_id'] as String,
+            ssidDisplay: j['ssid_display'] as String,
+            ssidNormalized: j['ssid_normalized'] as String,
+          ),
+        )
         .toList();
 
     return network.copyWith(ssidAliases: aliases);

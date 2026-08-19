@@ -17,9 +17,9 @@ class PurchaseSuccessScreen extends StatelessWidget {
 
   void _copyToClipboard(BuildContext context) {
     Clipboard.setData(ClipboardData(text: cardNumber));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ الرقم')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم نسخ الرقم')));
   }
 
   @override

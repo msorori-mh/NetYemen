@@ -14,9 +14,7 @@ class WalletScreen extends ConsumerWidget {
     final walletAsync = ref.watch(walletSummaryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('المحفظة'),
-      ),
+      appBar: AppBar(title: const Text('المحفظة')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -60,7 +58,9 @@ class WalletScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DepositHistoryScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const DepositHistoryScreen(),
+                  ),
                 ),
                 icon: const Icon(Icons.history),
                 label: const Text('سجل الإيداعات'),

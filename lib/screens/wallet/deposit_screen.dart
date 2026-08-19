@@ -21,7 +21,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     {
       'id': 'bank_transfer',
       'name': 'تحويل بنكي',
-      'icon': Icons.account_balance
+      'icon': Icons.account_balance,
     },
     {'id': 'ewallet', 'name': 'محفظة إلكترونية', 'icon': Icons.phone_android},
     {'id': 'agent', 'name': 'وكيل شحن', 'icon': Icons.storefront},
@@ -74,17 +74,15 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('شحن المحفظة'),
-      ),
+      appBar: AppBar(title: const Text('شحن المحفظة')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -113,13 +111,15 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               final isSelected = _selectedMethod == method['id'];
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
-                color:
-                    isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
+                color: isSelected
+                    ? AppTheme.primary.withValues(alpha: 0.1)
+                    : null,
                 child: ListTile(
                   leading: Icon(
                     method['icon'] as IconData,
-                    color:
-                        isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.textSecondary,
                   ),
                   title: Text(method['name'] as String),
                   trailing: isSelected

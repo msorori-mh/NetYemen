@@ -11,8 +11,8 @@ import 'notification_permission_service.dart';
 
 final notificationTransportAdapterProvider =
     Provider<NotificationTransportAdapter>((ref) {
-  return const UnboundNotificationTransportAdapter();
-});
+      return const UnboundNotificationTransportAdapter();
+    });
 
 final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
   return const DeepLinkParser();
@@ -20,8 +20,8 @@ final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
 
 final notificationPermissionServiceProvider =
     Provider<NotificationPermissionService>((ref) {
-  return const NotificationPermissionService();
-});
+      return const NotificationPermissionService();
+    });
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   final config = ref.watch(appConfigProvider);
@@ -31,14 +31,16 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return SupabaseNotificationRepository(Supabase.instance.client);
 });
 
-final notificationPreferencesProvider =
-    FutureProvider<NotificationPreferences>((ref) async {
-  final repo = ref.watch(notificationRepositoryProvider);
-  return repo.getPreferences();
-});
+final notificationPreferencesProvider = FutureProvider<NotificationPreferences>(
+  (ref) async {
+    final repo = ref.watch(notificationRepositoryProvider);
+    return repo.getPreferences();
+  },
+);
 
-final notificationInboxProvider =
-    FutureProvider<List<InboxNotification>>((ref) async {
+final notificationInboxProvider = FutureProvider<List<InboxNotification>>((
+  ref,
+) async {
   final repo = ref.watch(notificationRepositoryProvider);
   return repo.listInbox();
 });
@@ -66,5 +68,6 @@ class ForegroundNotificationBanner {
   });
 }
 
-final foregroundBannerProvider =
-    StateProvider<ForegroundNotificationBanner?>((ref) => null);
+final foregroundBannerProvider = StateProvider<ForegroundNotificationBanner?>(
+  (ref) => null,
+);

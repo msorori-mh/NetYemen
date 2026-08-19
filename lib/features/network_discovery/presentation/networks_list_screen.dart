@@ -37,9 +37,11 @@ class NetworksListScreen extends ConsumerWidget {
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () => ref
-                            .read(networkSearchQueryProvider.notifier)
-                            .state = '',
+                        onPressed: () =>
+                            ref
+                                    .read(networkSearchQueryProvider.notifier)
+                                    .state =
+                                '',
                       )
                     : null,
               ),
@@ -53,8 +55,11 @@ class NetworksListScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.wifi_off,
-                            size: 64, color: AppTheme.textMuted),
+                        Icon(
+                          Icons.wifi_off,
+                          size: 64,
+                          color: AppTheme.textMuted,
+                        ),
                         SizedBox(height: 16),
                         Text('لا توجد شبكات'),
                       ],
@@ -67,9 +72,8 @@ class NetworksListScreen extends ConsumerWidget {
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: networks.length,
-                    itemBuilder: (_, i) => _NetworkListCard(
-                      network: networks[i],
-                    ),
+                    itemBuilder: (_, i) =>
+                        _NetworkListCard(network: networks[i]),
                   ),
                 );
               },
@@ -78,8 +82,11 @@ class NetworksListScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: AppTheme.error),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppTheme.error,
+                    ),
                     const SizedBox(height: 12),
                     const Text('حدث خطأ في تحميل الشبكات'),
                     const SizedBox(height: 16),
@@ -148,8 +155,11 @@ class _NetworkListCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Icon(Icons.verified,
-                            color: AppTheme.accent, size: 18),
+                        const Icon(
+                          Icons.verified,
+                          color: AppTheme.accent,
+                          size: 18,
+                        ),
                       ],
                     ),
                     if (network.locationText.isNotEmpty)

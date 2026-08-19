@@ -33,21 +33,25 @@ void main() {
     });
 
     test('normalizeForMatching lowercases and replaces whitespace', () {
-      expect(ScanMatcher.normalizeForMatching('  Yemen   Hotspot   '),
-          'yemen-hotspot');
+      expect(
+        ScanMatcher.normalizeForMatching('  Yemen   Hotspot   '),
+        'yemen-hotspot',
+      );
       expect(ScanMatcher.normalizeForMatching('YemenNet_5G'), 'yemennet_5g');
     });
 
-    test('matchSsidsToNetworks returns matched network and unmatched ssids',
-        () {
-      final result = ScanMatcher.matchSsidsToNetworks(
-        scannedSsids: ['YemenNet_5G', 'UnknownNet'],
-        networks: const [network],
-      );
+    test(
+      'matchSsidsToNetworks returns matched network and unmatched ssids',
+      () {
+        final result = ScanMatcher.matchSsidsToNetworks(
+          scannedSsids: ['YemenNet_5G', 'UnknownNet'],
+          networks: const [network],
+        );
 
-      expect(result.matchedNetworks, [network]);
-      expect(result.unmatchedSsids, ['UnknownNet']);
-    });
+        expect(result.matchedNetworks, [network]);
+        expect(result.unmatchedSsids, ['UnknownNet']);
+      },
+    );
 
     test('matchSsidsToNetworks matches by display name ignoring case', () {
       final result = ScanMatcher.matchSsidsToNetworks(
@@ -81,12 +85,18 @@ void main() {
     });
 
     test('normalizeForMatching collapses internal whitespace and hyphens', () {
-      expect(ScanMatcher.normalizeForMatching('  Yemen   Hotspot   '),
-          'yemen-hotspot');
-      expect(ScanMatcher.normalizeForMatching('Yemen---Hotspot'),
-          'yemen-hotspot');
-      expect(ScanMatcher.normalizeForMatching('-Yemen-Hotspot-'),
-          'yemen-hotspot');
+      expect(
+        ScanMatcher.normalizeForMatching('  Yemen   Hotspot   '),
+        'yemen-hotspot',
+      );
+      expect(
+        ScanMatcher.normalizeForMatching('Yemen---Hotspot'),
+        'yemen-hotspot',
+      );
+      expect(
+        ScanMatcher.normalizeForMatching('-Yemen-Hotspot-'),
+        'yemen-hotspot',
+      );
     });
 
     group('Unicode whitespace contract', () {
@@ -108,8 +118,11 @@ void main() {
       test('collapses U+2000 through U+200A spaces', () {
         for (var code = 0x2000; code <= 0x200A; code++) {
           final input = 'Yemen${String.fromCharCode(code)}Hotspot';
-          expect(ScanMatcher.normalizeForMatching(input), 'yemen-hotspot',
-              reason: 'U+${code.toRadixString(16).toUpperCase()} should collapse');
+          expect(
+            ScanMatcher.normalizeForMatching(input),
+            'yemen-hotspot',
+            reason: 'U+${code.toRadixString(16).toUpperCase()} should collapse',
+          );
         }
       });
 
@@ -122,8 +135,10 @@ void main() {
         // Decomposed ALEF WITH HAMZA ABOVE vs pre-composed.
         const decomposed = '\u0623\u0645\u0627\u0646\u0629';
         const composed = '\u0623\u0645\u0627\u0646\u0629';
-        expect(ScanMatcher.normalizeForMatching(decomposed),
-            ScanMatcher.normalizeForMatching(composed));
+        expect(
+          ScanMatcher.normalizeForMatching(decomposed),
+          ScanMatcher.normalizeForMatching(composed),
+        );
       });
 
       test('empty string when input is only Unicode whitespace', () {

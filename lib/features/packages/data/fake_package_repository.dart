@@ -16,11 +16,7 @@ class FakePackageRepository implements PackageRepository {
 
   void _seedDemoPackages() {
     const demoNetId = _demoNetId;
-    const packageIds = [
-      'demo-pkg-1',
-      'demo-pkg-2',
-      'demo-pkg-3',
-    ];
+    const packageIds = ['demo-pkg-1', 'demo-pkg-2', 'demo-pkg-3'];
 
     final packages = [
       NetworkPackage(
@@ -100,8 +96,7 @@ class FakePackageRepository implements PackageRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     return _packages.values
         .where(
-          (p) =>
-              p.networkId == networkId && p.status == 'active' && p.isPublic,
+          (p) => p.networkId == networkId && p.status == 'active' && p.isPublic,
         )
         .toList();
   }
@@ -123,9 +118,7 @@ class FakePackageRepository implements PackageRepository {
     String networkId,
   ) async {
     await Future.delayed(const Duration(milliseconds: 150));
-    return _movements.values
-        .where((m) => m.networkId == networkId)
-        .toList();
+    return _movements.values.where((m) => m.networkId == networkId).toList();
   }
 
   @override

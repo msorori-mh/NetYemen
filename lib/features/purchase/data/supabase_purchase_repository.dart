@@ -14,10 +14,13 @@ class SupabasePurchaseRepository implements PurchaseRepository {
   Future<Map<String, dynamic>> purchasePackage({
     required String packageId,
   }) async {
-    final result = await _client.rpc('purchase_package', params: {
-      'p_package_id': packageId,
-      'p_idempotency_key': UuidGenerator.generateV4(),
-    });
+    final result = await _client.rpc(
+      'purchase_package',
+      params: {
+        'p_package_id': packageId,
+        'p_idempotency_key': UuidGenerator.generateV4(),
+      },
+    );
     return result as Map<String, dynamic>;
   }
 
@@ -44,13 +47,13 @@ class SupabasePurchaseRepository implements PurchaseRepository {
   }
 
   @override
-  Future<void> submitInvalidCardDispute(String purchaseId, String reason) async {
+  Future<void> submitInvalidCardDispute(
+    String purchaseId,
+    String reason,
+  ) async {
     await _client.rpc(
       'submit_invalid_card_dispute',
-      params: {
-        'p_purchase_id': purchaseId,
-        'p_reason': reason,
-      },
+      params: {'p_purchase_id': purchaseId, 'p_reason': reason},
     );
   }
 

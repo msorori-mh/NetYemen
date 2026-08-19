@@ -25,18 +25,21 @@ void main() {
       expect(networks, isNotEmpty);
     });
 
-    test('createPackage initializes with draft status and zero balance', () async {
-      final created = await repository.createPackage(
-        networkId: 'demo-net-1',
-        name: 'باقة تجريبية',
-        price: 1500,
-      );
-      expect(created.status, 'draft');
+    test(
+      'createPackage initializes with draft status and zero balance',
+      () async {
+        final created = await repository.createPackage(
+          networkId: 'demo-net-1',
+          name: 'باقة تجريبية',
+          price: 1500,
+        );
+        expect(created.status, 'draft');
 
-      final balance = await repository.fetchPackageBalance(created.id);
-      expect(balance, isNotNull);
-      expect(balance!.availableUnits, 0);
-    });
+        final balance = await repository.fetchPackageBalance(created.id);
+        expect(balance, isNotNull);
+        expect(balance!.availableUnits, 0);
+      },
+    );
 
     test('publishPackage activates package', () async {
       final created = await repository.createPackage(
@@ -79,8 +82,15 @@ void main() {
       );
       expect(balanceAfter.availableUnits, beforeAvailable + 10);
 
-      final movements = await repository.fetchNetworkMovements(package.networkId);
-      expect(movements.any((m) => m.packageId == package.id && m.quantityChange == 10), isTrue);
+      final movements = await repository.fetchNetworkMovements(
+        package.networkId,
+      );
+      expect(
+        movements.any(
+          (m) => m.packageId == package.id && m.quantityChange == 10,
+        ),
+        isTrue,
+      );
     });
 
     test('adjustInventory prevents negative stock', () async {
@@ -96,7 +106,9 @@ void main() {
     });
 
     test('cross-network package update is isolated', () async {
-      final networkAPackage = (await repository.fetchNetworkPackages('demo-net-1')).first;
+      final networkAPackage = (await repository.fetchNetworkPackages(
+        'demo-net-1',
+      )).first;
       // Simulate an update attempt targeted at network B.
       final updated = await repository.updatePackage(
         networkAPackage.id,

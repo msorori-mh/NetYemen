@@ -20,33 +20,35 @@ final ownedNetworksProvider = FutureProvider<List<NetworkEntity>>((ref) async {
   return repo.fetchOwnedNetworks();
 });
 
-final publicPackagesProvider = FutureProvider.family<List<NetworkPackage>, String>(
-  (ref, networkId) async {
-    final repo = ref.watch(packageRepositoryProvider);
-    return repo.fetchPublicPackages(networkId);
-  },
-);
+final publicPackagesProvider =
+    FutureProvider.family<List<NetworkPackage>, String>((ref, networkId) async {
+      final repo = ref.watch(packageRepositoryProvider);
+      return repo.fetchPublicPackages(networkId);
+    });
 
-final networkPackagesProvider = FutureProvider.family<List<NetworkPackage>, String>(
-  (ref, networkId) async {
-    final repo = ref.watch(packageRepositoryProvider);
-    return repo.fetchNetworkPackages(networkId);
-  },
-);
+final networkPackagesProvider =
+    FutureProvider.family<List<NetworkPackage>, String>((ref, networkId) async {
+      final repo = ref.watch(packageRepositoryProvider);
+      return repo.fetchNetworkPackages(networkId);
+    });
 
-final packageBalanceProvider = FutureProvider.family<PackageInventoryBalance?, String>(
-  (ref, packageId) async {
-    final repo = ref.watch(packageRepositoryProvider);
-    return repo.fetchPackageBalance(packageId);
-  },
-);
+final packageBalanceProvider =
+    FutureProvider.family<PackageInventoryBalance?, String>((
+      ref,
+      packageId,
+    ) async {
+      final repo = ref.watch(packageRepositoryProvider);
+      return repo.fetchPackageBalance(packageId);
+    });
 
-final networkMovementsProvider = FutureProvider.family<List<PackageInventoryMovement>, String>(
-  (ref, networkId) async {
-    final repo = ref.watch(packageRepositoryProvider);
-    return repo.fetchNetworkMovements(networkId);
-  },
-);
+final networkMovementsProvider =
+    FutureProvider.family<List<PackageInventoryMovement>, String>((
+      ref,
+      networkId,
+    ) async {
+      final repo = ref.watch(packageRepositoryProvider);
+      return repo.fetchNetworkMovements(networkId);
+    });
 
 class PackageNotifier extends FamilyAsyncNotifier<NetworkPackage, String> {
   @override
@@ -81,6 +83,7 @@ class PackageNotifier extends FamilyAsyncNotifier<NetworkPackage, String> {
   }
 }
 
-final packageNotifierProvider = AsyncNotifierProvider.family<PackageNotifier, NetworkPackage, String>(
-  PackageNotifier.new,
-);
+final packageNotifierProvider =
+    AsyncNotifierProvider.family<PackageNotifier, NetworkPackage, String>(
+      PackageNotifier.new,
+    );

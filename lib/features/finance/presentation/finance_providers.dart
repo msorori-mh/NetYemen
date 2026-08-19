@@ -15,28 +15,43 @@ final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
   return SupabaseFinanceRepository(Supabase.instance.client);
 });
 
-final depositQueueProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, status) async {
-  final repo = ref.watch(financeRepositoryProvider);
-  return await repo.getDepositQueue(status);
-});
+final depositQueueProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((
+      ref,
+      status,
+    ) async {
+      final repo = ref.watch(financeRepositoryProvider);
+      return await repo.getDepositQueue(status);
+    });
 
-final activePaymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final repo = ref.watch(financeRepositoryProvider);
-  return await repo.getActivePaymentDestinations();
-});
+final activePaymentDestinationsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+      final repo = ref.watch(financeRepositoryProvider);
+      return await repo.getActivePaymentDestinations();
+    });
 
-final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final repo = ref.watch(financeRepositoryProvider);
   // Active destinations are sufficient for the customer deposit screen.
   return await repo.getActivePaymentDestinations();
 });
 
-final settlementBatchesProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, status) async {
-  final repo = ref.watch(financeRepositoryProvider);
-  return await repo.getFinanceSettlementBatches(status);
-});
+final settlementBatchesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((
+      ref,
+      status,
+    ) async {
+      final repo = ref.watch(financeRepositoryProvider);
+      return await repo.getFinanceSettlementBatches(status);
+    });
 
-final ownerSettlementsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, networkId) async {
-  final repo = ref.watch(financeRepositoryProvider);
-  return await repo.getOwnerSettlements(networkId);
-});
+final ownerSettlementsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((
+      ref,
+      networkId,
+    ) async {
+      final repo = ref.watch(financeRepositoryProvider);
+      return await repo.getOwnerSettlements(networkId);
+    });

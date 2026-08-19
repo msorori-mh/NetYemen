@@ -10,10 +10,12 @@ class AdminCardVaultIngestScreen extends ConsumerStatefulWidget {
   const AdminCardVaultIngestScreen({super.key});
 
   @override
-  ConsumerState<AdminCardVaultIngestScreen> createState() => _AdminCardVaultIngestScreenState();
+  ConsumerState<AdminCardVaultIngestScreen> createState() =>
+      _AdminCardVaultIngestScreenState();
 }
 
-class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultIngestScreen> {
+class _AdminCardVaultIngestScreenState
+    extends ConsumerState<AdminCardVaultIngestScreen> {
   String? _selectedNetworkId;
   String? _selectedPackageId;
   final _keyVersionController = TextEditingController(text: 'v1');
@@ -72,7 +74,8 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
       );
       if (mounted) {
         setState(() {
-          _result = 'تم استيراد ${result['ingested_count']} بطاقة\nمعرف الدفعة: ${result['batch_id']}';
+          _result =
+              'تم استيراد ${result['ingested_count']} بطاقة\nمعرف الدفعة: ${result['batch_id']}';
           _cardsController.clear();
         });
       }
@@ -97,9 +100,7 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('استيراد دفعة كروت'),
-      ),
+      appBar: AppBar(title: const Text('استيراد دفعة كروت')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: ListView(
@@ -143,7 +144,8 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
                       child: Text(package.name),
                     );
                   }).toList(),
-                  onChanged: (value) => setState(() => _selectedPackageId = value),
+                  onChanged: (value) =>
+                      setState(() => _selectedPackageId = value),
                 ),
                 loading: () => const CircularProgressIndicator(),
                 error: (e, _) => Text('خطأ في الباقات: $e'),
@@ -161,7 +163,8 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
               controller: _cardsController,
               decoration: const InputDecoration(
                 labelText: 'مصفوفة الكروت المشفرة (JSON)',
-                hintText: '[{"ciphertext":"...","nonce":"...","auth_tag":"...","expires_at":"..."}]',
+                hintText:
+                    '[{"ciphertext":"...","nonce":"...","auth_tag":"...","expires_at":"..."}]',
                 border: OutlineInputBorder(),
               ),
               maxLines: 10,
@@ -174,8 +177,10 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
                     'ciphertext': 'BASE64_CIPHERTEXT_HERE',
                     'nonce': 'NONCE_HERE',
                     'auth_tag': 'AUTH_TAG_HERE',
-                    'expires_at': DateTime.now().add(const Duration(days: 365)).toIso8601String(),
-                  }
+                    'expires_at': DateTime.now()
+                        .add(const Duration(days: 365))
+                        .toIso8601String(),
+                  },
                 ]);
               },
               icon: const Icon(Icons.paste),
@@ -195,10 +200,7 @@ class _AdminCardVaultIngestScreenState extends ConsumerState<AdminCardVaultInges
             ),
             if (_message != null) ...[
               const SizedBox(height: 16),
-              Text(
-                _message!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_message!, style: const TextStyle(color: Colors.red)),
             ],
             if (_result != null) ...[
               const SizedBox(height: 16),

@@ -24,9 +24,7 @@ void main() {
           appConfigProvider.overrideWithValue(config),
         ],
         child: MaterialApp(
-          home: Scaffold(
-            body: AuthRequiredGate(child: child),
-          ),
+          home: Scaffold(body: AuthRequiredGate(child: child)),
         ),
       );
     }
@@ -50,7 +48,9 @@ void main() {
       expect(find.text('تسجيل الدخول مطلوب'), findsNothing);
     });
 
-    testWidgets('shows Arabic auth-required state when user is null', (tester) async {
+    testWidgets('shows Arabic auth-required state when user is null', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildGate(
           user: null,
@@ -62,7 +62,10 @@ void main() {
       expect(find.text('PROTECTED_CONTENT'), findsNothing);
       expect(find.text('تسجيل الدخول مطلوب'), findsOneWidget);
       expect(find.text('يجب تسجيل الدخول لعرض هذا القسم.'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'تسجيل الدخول'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('bypasses gate in demo/unconfigured mode', (tester) async {

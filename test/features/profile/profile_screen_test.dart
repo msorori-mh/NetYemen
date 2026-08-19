@@ -20,9 +20,7 @@ void main() {
           appConfigProvider.overrideWithValue(configuredConfig),
           currentUserRolesProvider.overrideWith((ref) async => const []),
         ],
-        child: const MaterialApp(
-          home: ProfileScreen(),
-        ),
+        child: const MaterialApp(home: ProfileScreen()),
       );
     }
 
@@ -58,15 +56,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsOneWidget);
+        find.widgetWithText(OutlinedButton, 'تسجيل الخروج'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsNothing);
     });
 
-    testWidgets('shows sign-in button for unauthenticated user',
-        (tester) async {
-      await tester.pumpWidget(
-        buildScreen(user: null),
-      );
+    testWidgets('shows sign-in button for unauthenticated user', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildScreen(user: null));
 
       expect(find.text('غير مسجل'), findsOneWidget);
 
@@ -78,7 +77,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsOneWidget);
+        find.widgetWithText(ElevatedButton, 'تسجيل الدخول'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsNothing);
     });
   });

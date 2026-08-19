@@ -13,9 +13,7 @@ class PurchaseHistoryScreen extends ConsumerWidget {
     final purchasesAsync = ref.watch(purchaseHistoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('سجل المشتريات'),
-      ),
+      appBar: AppBar(title: const Text('سجل المشتريات')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: purchasesAsync.when(
@@ -28,7 +26,10 @@ class PurchaseHistoryScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final purchase = purchases[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: ListTile(
                     title: Text(purchase.packageName ?? 'باقة'),
                     subtitle: Text(
@@ -45,7 +46,8 @@ class PurchaseHistoryScreen extends ConsumerWidget {
                     ),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PurchaseDetailScreen(purchaseId: purchase.id),
+                        builder: (_) =>
+                            PurchaseDetailScreen(purchaseId: purchase.id),
                       ),
                     ),
                   ),

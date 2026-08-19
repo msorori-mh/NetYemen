@@ -10,16 +10,15 @@ class _FakeAdminRepository implements AdminRepository {
   final AdminDashboardKpi kpis;
   final List<AdminNetworkRequest> requests;
 
-  _FakeAdminRepository({
-    required this.kpis,
-    required this.requests,
-  });
+  _FakeAdminRepository({required this.kpis, required this.requests});
 
   @override
   Future<AdminDashboardKpi> fetchDashboardKpis() async => kpis;
 
   @override
-  Future<List<AdminNetworkRequest>> fetchPendingRequests({String? status}) async {
+  Future<List<AdminNetworkRequest>> fetchPendingRequests({
+    String? status,
+  }) async {
     if (status == null) return requests;
     return requests.where((r) => r.status == status).toList();
   }
@@ -53,12 +52,16 @@ class _FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<AdminNetwork> suspendNetwork(String networkId, {String? reason}) async {
+  Future<AdminNetwork> suspendNetwork(
+    String networkId, {
+    String? reason,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<List<AdminSsidAlias>> fetchNetworkAliases(String networkId) async => [];
+  Future<List<AdminSsidAlias>> fetchNetworkAliases(String networkId) async =>
+      [];
 
   @override
   Future<AdminSsidAlias> verifyAlias(String aliasId) async {
@@ -71,7 +74,9 @@ class _FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<List<AdminPackageInventory>> fetchPackages({String? networkId}) async => [];
+  Future<List<AdminPackageInventory>> fetchPackages({
+    String? networkId,
+  }) async => [];
 
   @override
   Future<List<AdminUser>> fetchUsers() async => [];
@@ -103,7 +108,9 @@ void main() {
         overrides: [
           appConfigProvider.overrideWithValue(config),
           adminRepositoryProvider.overrideWithValue(repository),
-          currentUserRolesProvider.overrideWith((_) => const ['platform_admin']),
+          currentUserRolesProvider.overrideWith(
+            (_) => const ['platform_admin'],
+          ),
         ],
       );
     }
@@ -148,22 +155,27 @@ void main() {
       ];
 
       final container = createContainer(
-        repository: _FakeAdminRepository(kpis: const AdminDashboardKpi(
-          activeNetworks: 0,
-          pendingRequests: 0,
-          approvedRequests: 0,
-          rejectedRequests: 0,
-          activePackages: 0,
-          outOfStockPackages: 0,
-          networkOwners: 0,
-          networkOperators: 0,
-        ), requests: requests),
+        repository: _FakeAdminRepository(
+          kpis: const AdminDashboardKpi(
+            activeNetworks: 0,
+            pendingRequests: 0,
+            approvedRequests: 0,
+            rejectedRequests: 0,
+            activePackages: 0,
+            outOfStockPackages: 0,
+            networkOwners: 0,
+            networkOperators: 0,
+          ),
+          requests: requests,
+        ),
       );
 
       final allRequests = await container.read(adminRequestsProvider.future);
       expect(allRequests.length, 2);
 
-      await container.read(adminRequestsProvider.notifier).setStatusFilter('submitted');
+      await container
+          .read(adminRequestsProvider.notifier)
+          .setStatusFilter('submitted');
       final filtered = await container.read(adminRequestsProvider.future);
       expect(filtered.length, 1);
       expect(filtered.first.status, 'submitted');

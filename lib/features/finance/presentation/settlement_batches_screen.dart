@@ -10,10 +10,12 @@ class SettlementBatchesScreen extends ConsumerStatefulWidget {
   const SettlementBatchesScreen({super.key});
 
   @override
-  ConsumerState<SettlementBatchesScreen> createState() => _SettlementBatchesScreenState();
+  ConsumerState<SettlementBatchesScreen> createState() =>
+      _SettlementBatchesScreenState();
 }
 
-class _SettlementBatchesScreenState extends ConsumerState<SettlementBatchesScreen> {
+class _SettlementBatchesScreenState
+    extends ConsumerState<SettlementBatchesScreen> {
   String? _statusFilter;
 
   @override
@@ -26,7 +28,8 @@ class _SettlementBatchesScreenState extends ConsumerState<SettlementBatchesScree
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(settlementBatchesProvider(_statusFilter)),
+            onPressed: () =>
+                ref.invalidate(settlementBatchesProvider(_statusFilter)),
           ),
         ],
       ),
@@ -40,7 +43,8 @@ class _SettlementBatchesScreenState extends ConsumerState<SettlementBatchesScree
             ),
             Expanded(
               child: batchesAsync.when(
-                data: (batches) => _BatchList(batches: batches, statusFilter: _statusFilter),
+                data: (batches) =>
+                    _BatchList(batches: batches, statusFilter: _statusFilter),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text('خطأ: $e')),
               ),
@@ -56,10 +60,7 @@ class _SettlementBatchesScreenState extends ConsumerState<SettlementBatchesScree
   }
 
   void _openCreateDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => const _CreateBatchDialog(),
-    );
+    showDialog(context: context, builder: (_) => const _CreateBatchDialog());
   }
 }
 
@@ -127,11 +128,17 @@ class _BatchList extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('المالك: ${batch['owner_name'] ?? '-'}'),
-                Text('الفترة: ${batch['period_start']} إلى ${batch['period_end']}'),
-                Text('الإجمالي: ${batch['gross_sales']} | العمولة: ${batch['total_commission']} | الصافي: ${batch['net_settlement']}'),
+                Text(
+                  'الفترة: ${batch['period_start']} إلى ${batch['period_end']}',
+                ),
+                Text(
+                  'الإجمالي: ${batch['gross_sales']} | العمولة: ${batch['total_commission']} | الصافي: ${batch['net_settlement']}',
+                ),
               ],
             ),
-            trailing: _StatusChip(status: batch['status'] as String? ?? 'draft'),
+            trailing: _StatusChip(
+              status: batch['status'] as String? ?? 'draft',
+            ),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => SettlementDetailScreen(batch: batch),
@@ -169,7 +176,11 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         _statusLabel(status),
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -254,21 +265,22 @@ class _CreateBatchDialogState extends ConsumerState<_CreateBatchDialog> {
           children: [
             ListTile(
               title: const Text('بداية الفترة'),
-              subtitle: Text('${_periodStart.year}-${_periodStart.month}-${_periodStart.day}'),
+              subtitle: Text(
+                '${_periodStart.year}-${_periodStart.month}-${_periodStart.day}',
+              ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () => _pickDate(true),
             ),
             ListTile(
               title: const Text('نهاية الفترة'),
-              subtitle: Text('${_periodEnd.year}-${_periodEnd.month}-${_periodEnd.day}'),
+              subtitle: Text(
+                '${_periodEnd.year}-${_periodEnd.month}-${_periodEnd.day}',
+              ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () => _pickDate(false),
             ),
             if (_message != null)
-              Text(
-                _message!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_message!, style: const TextStyle(color: Colors.red)),
           ],
         ),
       ),

@@ -22,33 +22,37 @@ class FakePurchaseRepository implements PurchaseRepository {
     const commission = 30;
     const net = 970;
 
-    _orders.add(PurchaseOrder(
-      id: purchaseId,
-      packageId: packageId,
-      networkId: 'fake-network',
-      packageName: 'باقة تجريبية',
-      quantity: 1,
-      unitPrice: gross,
-      totalPrice: gross,
-      currency: 'YER',
-      status: 'completed',
-      createdAt: now,
-      grossAmount: gross,
-      commissionRateSnapshot: rate,
-      commissionAmount: commission,
-      ownerNetAmount: net,
-    ));
+    _orders.add(
+      PurchaseOrder(
+        id: purchaseId,
+        packageId: packageId,
+        networkId: 'fake-network',
+        packageName: 'باقة تجريبية',
+        quantity: 1,
+        unitPrice: gross,
+        totalPrice: gross,
+        currency: 'YER',
+        status: 'completed',
+        createdAt: now,
+        grossAmount: gross,
+        commissionRateSnapshot: rate,
+        commissionAmount: commission,
+        ownerNetAmount: net,
+      ),
+    );
 
-    _fulfillments.add(FulfillmentRecord(
-      id: fulfillmentId,
-      purchaseOrderId: purchaseId,
-      packageId: packageId,
-      networkId: 'fake-network',
-      packageName: 'باقة تجريبية',
-      status: 'pending_secret',
-      disputeWindowEndsAt: now.add(const Duration(hours: 24)),
-      createdAt: now,
-    ));
+    _fulfillments.add(
+      FulfillmentRecord(
+        id: fulfillmentId,
+        purchaseOrderId: purchaseId,
+        packageId: packageId,
+        networkId: 'fake-network',
+        packageName: 'باقة تجريبية',
+        status: 'pending_secret',
+        disputeWindowEndsAt: now.add(const Duration(hours: 24)),
+        createdAt: now,
+      ),
+    );
 
     return {
       'purchase_id': purchaseId,
@@ -89,7 +93,10 @@ class FakePurchaseRepository implements PurchaseRepository {
   }
 
   @override
-  Future<void> submitInvalidCardDispute(String purchaseId, String reason) async {
+  Future<void> submitInvalidCardDispute(
+    String purchaseId,
+    String reason,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 300));
     if (reason.trim().isEmpty) {
       throw ArgumentError('REASON_REQUIRED');

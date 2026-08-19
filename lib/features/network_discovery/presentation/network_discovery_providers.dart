@@ -13,8 +13,9 @@ import '../../network_discovery/domain/entities.dart';
 
 export '../../network_discovery/data/scan_matcher.dart';
 
-final networkCatalogRepositoryProvider =
-    Provider<NetworkCatalogRepository>((ref) {
+final networkCatalogRepositoryProvider = Provider<NetworkCatalogRepository>((
+  ref,
+) {
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return DemoNetworkCatalogRepository();
@@ -36,8 +37,8 @@ final appConfigProvider = Provider<AppConfig>((ref) {
 
 final networkCatalogProvider =
     AsyncNotifierProvider<NetworkCatalogNotifier, List<NetworkEntity>>(
-  NetworkCatalogNotifier.new,
-);
+      NetworkCatalogNotifier.new,
+    );
 
 class NetworkCatalogNotifier extends AsyncNotifier<List<NetworkEntity>> {
   @override
@@ -56,8 +57,9 @@ class NetworkCatalogNotifier extends AsyncNotifier<List<NetworkEntity>> {
 
 final networkSearchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredNetworksProvider =
-    Provider<AsyncValue<List<NetworkEntity>>>((ref) {
+final filteredNetworksProvider = Provider<AsyncValue<List<NetworkEntity>>>((
+  ref,
+) {
   final networksAsync = ref.watch(networkCatalogProvider);
   final query = ScanMatcher.normalizeForMatching(
     ref.watch(networkSearchQueryProvider),
@@ -69,8 +71,9 @@ final filteredNetworksProvider =
   });
 });
 
-final scanResultProvider =
-    StateProvider<AsyncValue<ScanMatchResult>?>((ref) => null);
+final scanResultProvider = StateProvider<AsyncValue<ScanMatchResult>?>(
+  (ref) => null,
+);
 
 final scanNotifierProvider = Provider<ScanNotifier>((ref) {
   return ScanNotifier(ref);
@@ -98,11 +101,15 @@ class ScanNotifier {
 
       _ref.read(scanResultProvider.notifier).state = AsyncValue.data(result);
     } on ScanException catch (e) {
-      _ref.read(scanResultProvider.notifier).state =
-          AsyncValue.error(e, StackTrace.current);
+      _ref.read(scanResultProvider.notifier).state = AsyncValue.error(
+        e,
+        StackTrace.current,
+      );
     } catch (e) {
-      _ref.read(scanResultProvider.notifier).state =
-          AsyncValue.error(e, StackTrace.current);
+      _ref.read(scanResultProvider.notifier).state = AsyncValue.error(
+        e,
+        StackTrace.current,
+      );
     }
   }
 

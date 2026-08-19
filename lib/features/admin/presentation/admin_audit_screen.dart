@@ -43,10 +43,7 @@ class _AuditBody extends StatelessWidget {
   final List<AdminAuditEvent> events;
   final Future<void> Function() onRefresh;
 
-  const _AuditBody({
-    required this.events,
-    required this.onRefresh,
-  });
+  const _AuditBody({required this.events, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -106,21 +103,16 @@ class _AuditEventCard extends StatelessWidget {
             const SizedBox(height: 8),
             AdminInfoRow(
               label: 'الكيان',
-              value: '${event.entityType}${event.entityId != null ? ' (${event.entityId})' : ''}',
+              value:
+                  '${event.entityType}${event.entityId != null ? ' (${event.entityId})' : ''}',
             ),
-            AdminInfoRow(
-              label: 'الدور',
-              value: event.actorRole,
-            ),
+            AdminInfoRow(label: 'الدور', value: event.actorRole),
             AdminInfoRow(
               label: 'التاريخ',
               value: _formatDateTime(event.occurredAt),
             ),
             if (event.reasonCode != null)
-              AdminInfoRow(
-                label: 'سبب',
-                value: event.reasonCode,
-              ),
+              AdminInfoRow(label: 'سبب', value: event.reasonCode),
           ],
         ),
       ),

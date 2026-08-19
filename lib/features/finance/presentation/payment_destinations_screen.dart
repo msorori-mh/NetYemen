@@ -37,7 +37,11 @@ class PaymentDestinationsScreen extends ConsumerWidget {
     );
   }
 
-  void _openEditor(BuildContext context, WidgetRef ref, {Map<String, dynamic>? destination}) {
+  void _openEditor(
+    BuildContext context,
+    WidgetRef ref, {
+    Map<String, dynamic>? destination,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -61,7 +65,11 @@ class _DestinationList extends ConsumerWidget {
     }
 
     final sorted = List<Map<String, dynamic>>.from(destinations)
-      ..sort((a, b) => (a['sort_order'] as int? ?? 0).compareTo(b['sort_order'] as int? ?? 0));
+      ..sort(
+        (a, b) => (a['sort_order'] as int? ?? 0).compareTo(
+          b['sort_order'] as int? ?? 0,
+        ),
+      );
 
     return ListView(
       children: sorted.asMap().entries.map((entry) {
@@ -97,7 +105,8 @@ class _DestinationList extends ConsumerWidget {
                 ),
                 Switch(
                   value: isActive,
-                  onChanged: (value) => _toggleActive(context, ref, d['id'] as String, value),
+                  onChanged: (value) =>
+                      _toggleActive(context, ref, d['id'] as String, value),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit),
@@ -139,21 +148,30 @@ class _DestinationList extends ConsumerWidget {
     ref.invalidate(paymentDestinationsProvider);
   }
 
-  Future<void> _toggleActive(BuildContext context, WidgetRef ref, String id, bool active) async {
+  Future<void> _toggleActive(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    bool active,
+  ) async {
     try {
       final repo = ref.read(financeRepositoryProvider);
       await repo.setPaymentDestinationActive(id, active);
       ref.invalidate(paymentDestinationsProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
 
-  void _openEditor(BuildContext context, WidgetRef ref, {Map<String, dynamic>? destination}) {
+  void _openEditor(
+    BuildContext context,
+    WidgetRef ref, {
+    Map<String, dynamic>? destination,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -258,9 +276,9 @@ class _DestinationEditorState extends ConsumerState<_DestinationEditor> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -281,8 +299,13 @@ class _DestinationEditorState extends ConsumerState<_DestinationEditor> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                widget.destination == null ? 'إضافة وجهة دفع' : 'تعديل وجهة الدفع',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                widget.destination == null
+                    ? 'إضافة وجهة دفع'
+                    : 'تعديل وجهة الدفع',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -292,12 +315,22 @@ class _DestinationEditorState extends ConsumerState<_DestinationEditor> {
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'bank_account', child: Text('حساب بنكي')),
-                  DropdownMenuItem(value: 'mobile_wallet', child: Text('محفظة جوال')),
-                  DropdownMenuItem(value: 'manual_transfer', child: Text('تحويل يدوي')),
+                  DropdownMenuItem(
+                    value: 'bank_account',
+                    child: Text('حساب بنكي'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'mobile_wallet',
+                    child: Text('محفظة جوال'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'manual_transfer',
+                    child: Text('تحويل يدوي'),
+                  ),
                   DropdownMenuItem(value: 'other', child: Text('أخرى')),
                 ],
-                onChanged: (value) => setState(() => _providerType = value ?? 'bank_account'),
+                onChanged: (value) =>
+                    setState(() => _providerType = value ?? 'bank_account'),
               ),
               const SizedBox(height: 12),
               TextField(

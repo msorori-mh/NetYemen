@@ -23,21 +23,23 @@ void main() {
       expect(request.governorate, 'Sanaa');
     });
 
-    test('fetchMyRequests returns submitted requests in reverse order',
-        () async {
-      await repository.submitRequest(
-        idempotencyKey: 'key-1',
-        observedSsidDisplay: 'First',
-      );
-      await repository.submitRequest(
-        idempotencyKey: 'key-2',
-        observedSsidDisplay: 'Second',
-      );
+    test(
+      'fetchMyRequests returns submitted requests in reverse order',
+      () async {
+        await repository.submitRequest(
+          idempotencyKey: 'key-1',
+          observedSsidDisplay: 'First',
+        );
+        await repository.submitRequest(
+          idempotencyKey: 'key-2',
+          observedSsidDisplay: 'Second',
+        );
 
-      final requests = await repository.fetchMyRequests();
-      expect(requests.length, 2);
-      expect(requests.first.observedSsidDisplay, 'Second');
-    });
+        final requests = await repository.fetchMyRequests();
+        expect(requests.length, 2);
+        expect(requests.first.observedSsidDisplay, 'Second');
+      },
+    );
 
     test('cancelRequest transitions status to cancelled', () async {
       final submitted = await repository.submitRequest(
@@ -53,10 +55,7 @@ void main() {
     });
 
     test('cancelRequest throws for unknown request', () async {
-      expect(
-        () => repository.cancelRequest('missing'),
-        throwsException,
-      );
+      expect(() => repository.cancelRequest('missing'), throwsException);
     });
   });
 }

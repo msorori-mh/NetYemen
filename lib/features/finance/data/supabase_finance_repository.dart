@@ -10,9 +10,10 @@ class SupabaseFinanceRepository implements FinanceRepository {
 
   @override
   Future<List<Map<String, dynamic>>> getDepositQueue(String? status) async {
-    final result = await _client.rpc('get_finance_deposit_queue', params: {
-      'p_status': status,
-    });
+    final result = await _client.rpc(
+      'get_finance_deposit_queue',
+      params: {'p_status': status},
+    );
     return (result as List<dynamic>)
         .map((row) => row as Map<String, dynamic>)
         .toList();
@@ -91,7 +92,10 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> setPaymentDestinationActive(String id, bool active) async {
+  Future<Map<String, dynamic>> setPaymentDestinationActive(
+    String id,
+    bool active,
+  ) async {
     final result = await _client.rpc(
       'admin_set_payment_destination_active',
       params: {'p_id': id, 'p_active': active},
@@ -100,7 +104,9 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> reorderPaymentDestinations(List<String> orderedIds) async {
+  Future<Map<String, dynamic>> reorderPaymentDestinations(
+    List<String> orderedIds,
+  ) async {
     final result = await _client.rpc(
       'admin_reorder_payment_destinations',
       params: {'p_ordered_ids': orderedIds},
@@ -135,7 +141,10 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> markSettlementPaid(String batchId, {String? notes}) async {
+  Future<Map<String, dynamic>> markSettlementPaid(
+    String batchId, {
+    String? notes,
+  }) async {
     final result = await _client.rpc(
       'finance_mark_settlement_paid',
       params: {'p_batch_id': batchId, 'p_notes': notes},
@@ -144,7 +153,9 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(String? status) async {
+  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(
+    String? status,
+  ) async {
     final result = await _client.rpc(
       'get_finance_settlement_batches',
       params: {'p_status': status},
@@ -155,7 +166,9 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getOwnerSettlements(String? networkId) async {
+  Future<List<Map<String, dynamic>>> getOwnerSettlements(
+    String? networkId,
+  ) async {
     final result = await _client.rpc(
       'get_owner_settlements',
       params: {'p_network_id': networkId},

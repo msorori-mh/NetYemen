@@ -16,43 +16,40 @@ void main() {
       supabasePublishableKey: 'test-publishable-key',
     );
 
-    Widget buildScreen({
-      required FakeSupabaseService service,
-      User? user,
-    }) {
+    Widget buildScreen({required FakeSupabaseService service, User? user}) {
       return ProviderScope(
         overrides: [
           supabaseServiceProvider.overrideWithValue(service),
           currentUserProvider.overrideWithValue(user),
           appConfigProvider.overrideWithValue(configuredConfig),
         ],
-        child: const MaterialApp(
-          home: OTPScreen(phone: '+967770000000'),
-        ),
+        child: const MaterialApp(home: OTPScreen(phone: '+967770000000')),
       );
     }
 
-    testWidgets('successful OTP verification navigates to AppShell without legacy users table call',
-        (tester) async {
-      final service = FakeSupabaseService()
-        ..verifyResult = User(
-          id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
-          appMetadata: {},
-          userMetadata: {},
-          aud: 'authenticated',
-          createdAt: DateTime.now().toIso8601String(),
-        );
+    testWidgets(
+      'successful OTP verification navigates to AppShell without legacy users table call',
+      (tester) async {
+        final service = FakeSupabaseService()
+          ..verifyResult = User(
+            id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
+            appMetadata: {},
+            userMetadata: {},
+            aud: 'authenticated',
+            createdAt: DateTime.now().toIso8601String(),
+          );
 
-      await tester.pumpWidget(buildScreen(service: service));
+        await tester.pumpWidget(buildScreen(service: service));
 
-      await tester.enterText(find.byType(TextField), '123456');
-      await tester.tap(find.byType(ElevatedButton));
-      await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), '123456');
+        await tester.tap(find.byType(ElevatedButton));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(service.verifyPhone, '+967770000000');
-      expect(service.verifyOtp, '123456');
-    });
+        expect(find.byType(AppShell), findsOneWidget);
+        expect(service.verifyPhone, '+967770000000');
+        expect(service.verifyOtp, '123456');
+      },
+    );
 
     testWidgets('invalid OTP shows Arabic error', (tester) async {
       final service = FakeSupabaseService()

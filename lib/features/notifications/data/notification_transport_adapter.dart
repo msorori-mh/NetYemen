@@ -30,7 +30,8 @@ class TransportDispatchResult {
 }
 
 /// Default V1 adapter: records that provider binding is required.
-class UnboundNotificationTransportAdapter implements NotificationTransportAdapter {
+class UnboundNotificationTransportAdapter
+    implements NotificationTransportAdapter {
   const UnboundNotificationTransportAdapter();
 
   @override
@@ -50,7 +51,8 @@ class UnboundNotificationTransportAdapter implements NotificationTransportAdapte
     return const TransportDispatchResult(
       accepted: false,
       status: 'dispatch_blocked_unbound_provider',
-      error: 'OD-NOTIF-01 OPEN: provider binding required before external push.',
+      error:
+          'OD-NOTIF-01 OPEN: provider binding required before external push.',
     );
   }
 }

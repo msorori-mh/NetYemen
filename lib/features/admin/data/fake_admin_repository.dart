@@ -263,7 +263,9 @@ class FakeAdminRepository implements AdminRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     return AdminDashboardKpi(
       activeNetworks: _networks
-          .where((n) => n.status == 'active' && n.verificationStatus == 'verified')
+          .where(
+            (n) => n.status == 'active' && n.verificationStatus == 'verified',
+          )
           .length,
       pendingRequests: _requests
           .where((r) => r.status == 'submitted' || r.status == 'under_review')
@@ -272,14 +274,19 @@ class FakeAdminRepository implements AdminRepository {
       rejectedRequests: _requests.where((r) => r.status == 'rejected').length,
       activePackages: _packages.where((p) => p.status == 'active').length,
       outOfStockPackages: _packages.where((p) => p.availableUnits <= 0).length,
-      networkOwners: _users.where((u) => u.roles.contains('network_owner')).length,
-      networkOperators:
-          _users.where((u) => u.roles.contains('network_operator')).length,
+      networkOwners: _users
+          .where((u) => u.roles.contains('network_owner'))
+          .length,
+      networkOperators: _users
+          .where((u) => u.roles.contains('network_operator'))
+          .length,
     );
   }
 
   @override
-  Future<List<AdminNetworkRequest>> fetchPendingRequests({String? status}) async {
+  Future<List<AdminNetworkRequest>> fetchPendingRequests({
+    String? status,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 200));
     if (status == null || status.isEmpty) {
       return List.of(_requests);
@@ -341,12 +348,18 @@ class FakeAdminRepository implements AdminRepository {
     );
 
     _requests[index] = resolved;
-    _recordAudit('RESOLVE_NETWORK_REQUEST', 'network_addition_request', requestId);
+    _recordAudit(
+      'RESOLVE_NETWORK_REQUEST',
+      'network_addition_request',
+      requestId,
+    );
     return resolved;
   }
 
   bool _isTerminal(String status) {
-    return status == 'approved' || status == 'rejected' || status == 'matched_existing';
+    return status == 'approved' ||
+        status == 'rejected' ||
+        status == 'matched_existing';
   }
 
   @override
@@ -356,7 +369,8 @@ class FakeAdminRepository implements AdminRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return _networks.where((n) {
-      if (status != null && status.isNotEmpty && n.status != status) return false;
+      if (status != null && status.isNotEmpty && n.status != status)
+        return false;
       if (verificationStatus != null &&
           verificationStatus.isNotEmpty &&
           n.verificationStatus != verificationStatus) {
@@ -396,7 +410,10 @@ class FakeAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<AdminNetwork> suspendNetwork(String networkId, {String? reason}) async {
+  Future<AdminNetwork> suspendNetwork(
+    String networkId, {
+    String? reason,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 150));
     final index = _networks.indexWhere((n) => n.id == networkId);
     if (index == -1) throw StateError('الشبكة غير موجودة');
@@ -520,7 +537,8 @@ class FakeAdminRepository implements AdminRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     for (final card in cards) {
-      if (card['ciphertext'] == null || (card['ciphertext'] as String).isEmpty) {
+      if (card['ciphertext'] == null ||
+          (card['ciphertext'] as String).isEmpty) {
         throw ArgumentError('INVALID_CARD: ciphertext is required');
       }
       if (card['nonce'] == null || (card['nonce'] as String).isEmpty) {

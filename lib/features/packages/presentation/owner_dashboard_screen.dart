@@ -15,13 +15,12 @@ class OwnerDashboardScreen extends ConsumerWidget {
     final settlementsAsync = ref.watch(ownerSettlementsProvider(null));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('لوحة مالك الشبكة'),
-      ),
+      appBar: AppBar(title: const Text('لوحة مالك الشبكة')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: ownedNetworksAsync.when(
-          data: (networks) => _buildContent(context, ref, networks, settlementsAsync),
+          data: (networks) =>
+              _buildContent(context, ref, networks, settlementsAsync),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => _ErrorState(message: error.toString()),
         ),
@@ -57,34 +56,38 @@ class OwnerDashboardScreen extends ConsumerWidget {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        ...networks.map((network) => Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    network.commercialName.isNotEmpty
-                        ? network.commercialName[0]
-                        : '?',
-                    style: const TextStyle(color: AppTheme.primary),
-                  ),
+        ...networks.map(
+          (network) => Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                child: Text(
+                  network.commercialName.isNotEmpty
+                      ? network.commercialName[0]
+                      : '?',
+                  style: const TextStyle(color: AppTheme.primary),
                 ),
-                title: Text(network.commercialName),
-                subtitle: Text(
-                  network.locationText.isEmpty ? 'لا يوجد موقع' : network.locationText,
-                ),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => OwnerPackagesScreen(
-                        networkId: network.id,
-                        networkName: network.commercialName,
-                      ),
-                    ),
-                  );
-                },
               ),
-            )),
+              title: Text(network.commercialName),
+              subtitle: Text(
+                network.locationText.isEmpty
+                    ? 'لا يوجد موقع'
+                    : network.locationText,
+              ),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => OwnerPackagesScreen(
+                      networkId: network.id,
+                      networkName: network.commercialName,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -149,11 +152,18 @@ class _SettlementSummary extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
           const SizedBox(height: 4),
           Text(
             '$value',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -170,7 +180,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.business_outlined, size: 64, color: AppTheme.textSecondary),
+          Icon(
+            Icons.business_outlined,
+            size: 64,
+            color: AppTheme.textSecondary,
+          ),
           SizedBox(height: 16),
           Text(
             'لا تمتلك شبكات مسجلة حالياً',
@@ -200,10 +214,7 @@ class _ErrorState extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
           const SizedBox(height: 16),
-          Text(
-            'تعذر تحميل الشبكات: $message',
-            textAlign: TextAlign.center,
-          ),
+          Text('تعذر تحميل الشبكات: $message', textAlign: TextAlign.center),
         ],
       ),
     );

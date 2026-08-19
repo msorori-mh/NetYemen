@@ -21,10 +21,7 @@ class FakeSupabaseService extends SupabaseService {
     if (verifyException != null) {
       throw verifyException!;
     }
-    return AuthResponse(
-      user: verifyResult,
-      session: null,
-    );
+    return AuthResponse(user: verifyResult, session: null);
   }
 
   @override

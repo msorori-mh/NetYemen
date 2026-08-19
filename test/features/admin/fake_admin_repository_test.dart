@@ -22,12 +22,16 @@ void main() {
     });
 
     test('fetchPendingRequests filters by status', () async {
-      final requests = await repository.fetchPendingRequests(status: 'submitted');
+      final requests = await repository.fetchPendingRequests(
+        status: 'submitted',
+      );
       expect(requests.every((r) => r.status == 'submitted'), isTrue);
     });
 
     test('resolveRequest transitions status and preserves data', () async {
-      final requests = await repository.fetchPendingRequests(status: 'submitted');
+      final requests = await repository.fetchPendingRequests(
+        status: 'submitted',
+      );
       final request = requests.first;
 
       final resolved = await repository.resolveRequest(
@@ -40,7 +44,9 @@ void main() {
     });
 
     test('resolveRequest supports matched_existing with network', () async {
-      final requests = await repository.fetchPendingRequests(status: 'submitted');
+      final requests = await repository.fetchPendingRequests(
+        status: 'submitted',
+      );
       final request = requests.first;
 
       final resolved = await repository.resolveRequest(
@@ -65,7 +71,9 @@ void main() {
     });
 
     test('approveNetwork activates pending network', () async {
-      final networks = await repository.fetchNetworks(status: 'pending_approval');
+      final networks = await repository.fetchNetworks(
+        status: 'pending_approval',
+      );
       final network = networks.first;
 
       final approved = await repository.approveNetwork(network.id);
@@ -89,7 +97,9 @@ void main() {
 
     test('verifyAlias activates pending alias', () async {
       final aliases = await repository.fetchNetworkAliases('demo-net-1');
-      final pending = aliases.firstWhere((a) => a.status == 'pending_verification');
+      final pending = aliases.firstWhere(
+        (a) => a.status == 'pending_verification',
+      );
 
       final verified = await repository.verifyAlias(pending.id);
       expect(verified.status, 'active');
@@ -97,7 +107,9 @@ void main() {
 
     test('rejectAlias rejects pending alias', () async {
       final aliases = await repository.fetchNetworkAliases('demo-net-2');
-      final pending = aliases.firstWhere((a) => a.status == 'pending_verification');
+      final pending = aliases.firstWhere(
+        (a) => a.status == 'pending_verification',
+      );
 
       final rejected = await repository.rejectAlias(pending.id);
       expect(rejected.status, 'rejected');
@@ -130,8 +142,9 @@ void main() {
     });
 
     test('fetchNetworkMemberships filters by network', () async {
-      final memberships =
-          await repository.fetchNetworkMemberships(networkId: 'demo-net-1');
+      final memberships = await repository.fetchNetworkMemberships(
+        networkId: 'demo-net-1',
+      );
       expect(memberships.every((m) => m.networkId == 'demo-net-1'), isTrue);
     });
 

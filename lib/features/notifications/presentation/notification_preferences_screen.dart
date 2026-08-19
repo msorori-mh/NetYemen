@@ -16,8 +16,7 @@ class NotificationPreferencesScreen extends ConsumerStatefulWidget {
 class _NotificationPreferencesScreenState
     extends ConsumerState<NotificationPreferencesScreen> {
   bool _saving = false;
-  NotificationPermissionState _permission =
-      NotificationPermissionState.unknown;
+  NotificationPermissionState _permission = NotificationPermissionState.unknown;
 
   @override
   void initState() {
@@ -26,8 +25,9 @@ class _NotificationPreferencesScreenState
   }
 
   Future<void> _loadPermission() async {
-    final state =
-        await ref.read(notificationPermissionServiceProvider).currentState();
+    final state = await ref
+        .read(notificationPermissionServiceProvider)
+        .currentState();
     if (mounted) setState(() => _permission = state);
   }
 
@@ -53,9 +53,9 @@ class _NotificationPreferencesScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر الحفظ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -68,23 +68,21 @@ class _NotificationPreferencesScreenState
     final transportAsync = ref.watch(transportStatusProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('إعدادات الإشعارات'),
-      ),
+      appBar: AppBar(title: const Text('إعدادات الإشعارات')),
       body: prefsAsync.when(
         data: (prefs) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _PermissionCard(
-              state: _permission,
-              onRequest: _requestPermission,
-            ),
+            _PermissionCard(state: _permission, onRequest: _requestPermission),
             const SizedBox(height: 16),
             transportAsync.when(
               data: (t) => Card(
                 color: AppTheme.warning.withValues(alpha: 0.08),
                 child: ListTile(
-                  leading: const Icon(Icons.info_outline, color: AppTheme.warning),
+                  leading: const Icon(
+                    Icons.info_outline,
+                    color: AppTheme.warning,
+                  ),
                   title: const Text('قناة الدفع الخارجية'),
                   subtitle: Text(
                     t.isUnbound
@@ -106,9 +104,7 @@ class _NotificationPreferencesScreenState
               value: true,
               onChanged: null,
               title: Text('حالة الطلبات والمعاملات'),
-              subtitle: Text(
-                'لا يمكن تعطيل إشعارات الحالة التشغيلية والأمان',
-              ),
+              subtitle: Text('لا يمكن تعطيل إشعارات الحالة التشغيلية والأمان'),
             ),
             const Divider(height: 32),
             const Text(
@@ -148,8 +144,7 @@ class _NotificationPreferencesScreenState
               value: prefs.offersAnnouncementsEnabled,
               onChanged: _saving
                   ? null
-                  : (v) =>
-                      _save(prefs.copyWith(offersAnnouncementsEnabled: v)),
+                  : (v) => _save(prefs.copyWith(offersAnnouncementsEnabled: v)),
               title: const Text('العروض والإعلانات'),
             ),
           ],
@@ -165,10 +160,7 @@ class _PermissionCard extends StatelessWidget {
   final NotificationPermissionState state;
   final VoidCallback onRequest;
 
-  const _PermissionCard({
-    required this.state,
-    required this.onRequest,
-  });
+  const _PermissionCard({required this.state, required this.onRequest});
 
   @override
   Widget build(BuildContext context) {

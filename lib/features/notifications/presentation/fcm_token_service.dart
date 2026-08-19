@@ -22,7 +22,7 @@ class FcmTokenService {
   StreamSubscription<String>? _tokenRefreshSubscription;
 
   FcmTokenService({required NotificationRepository repository})
-      : _repository = repository;
+    : _repository = repository;
 
   /// Ensures Android notification permission is granted, then fetches and
   /// registers the current FCM token. Also starts listening for token refreshes.
@@ -35,13 +35,16 @@ class FcmTokenService {
       if (token != null && token.isNotEmpty) {
         await _registerToken(token);
       }
-      _tokenRefreshSubscription =
-          FirebaseMessaging.instance.onTokenRefresh.listen(
-        _registerToken,
-        onError: (Object error) {
-          developer.log('FCM token refresh stream error: $error', name: 'FcmTokenService');
-        },
-      );
+      _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh
+          .listen(
+            _registerToken,
+            onError: (Object error) {
+              developer.log(
+                'FCM token refresh stream error: $error',
+                name: 'FcmTokenService',
+              );
+            },
+          );
     } catch (e) {
       // Firebase may not be initialized in unconfigured/demo builds.
       developer.log('FCM initialization skipped: $e', name: 'FcmTokenService');
@@ -86,13 +89,13 @@ class FcmTokenService {
 
   Future<void> _registerToken(String token) async {
     try {
-      await _repository.registerDeviceToken(
-        platform: 'android',
-        token: token,
-      );
+      await _repository.registerDeviceToken(platform: 'android', token: token);
       developer.log('FCM token registered', name: 'FcmTokenService');
     } catch (e) {
-      developer.log('FCM token registration failed: $e', name: 'FcmTokenService');
+      developer.log(
+        'FCM token registration failed: $e',
+        name: 'FcmTokenService',
+      );
     }
   }
 }
@@ -113,7 +116,8 @@ class FcmTokenInitializer extends ConsumerStatefulWidget {
   const FcmTokenInitializer({super.key, required this.child});
 
   @override
-  ConsumerState<FcmTokenInitializer> createState() => _FcmTokenInitializerState();
+  ConsumerState<FcmTokenInitializer> createState() =>
+      _FcmTokenInitializerState();
 }
 
 class _FcmTokenInitializerState extends ConsumerState<FcmTokenInitializer> {
@@ -133,7 +137,10 @@ class _FcmTokenInitializerState extends ConsumerState<FcmTokenInitializer> {
       );
     } catch (e) {
       // Supabase or Firebase may not be initialized in tests/unconfigured builds.
-      developer.log('FCM token initializer skipped: $e', name: 'FcmTokenService');
+      developer.log(
+        'FCM token initializer skipped: $e',
+        name: 'FcmTokenService',
+      );
     }
   }
 

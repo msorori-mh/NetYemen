@@ -41,10 +41,7 @@ class _UsersBody extends StatelessWidget {
   final List<AdminUser> users;
   final Future<void> Function() onRefresh;
 
-  const _UsersBody({
-    required this.users,
-    required this.onRefresh,
-  });
+  const _UsersBody({required this.users, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -120,10 +117,12 @@ class _UserCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: user.roles
-                  .map((role) => AdminStatusChip(
-                        label: _roleLabel(role),
-                        color: _roleColor(role),
-                      ))
+                  .map(
+                    (role) => AdminStatusChip(
+                      label: _roleLabel(role),
+                      color: _roleColor(role),
+                    ),
+                  )
                   .toList(),
             ),
           ],

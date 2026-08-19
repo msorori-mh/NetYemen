@@ -23,15 +23,25 @@ abstract class FinanceRepository {
     String? currency,
     int? sortOrder,
   });
-  Future<Map<String, dynamic>> setPaymentDestinationActive(String id, bool active);
-  Future<Map<String, dynamic>> reorderPaymentDestinations(List<String> orderedIds);
+  Future<Map<String, dynamic>> setPaymentDestinationActive(
+    String id,
+    bool active,
+  );
+  Future<Map<String, dynamic>> reorderPaymentDestinations(
+    List<String> orderedIds,
+  );
   Future<Map<String, dynamic>> createSettlementBatch({
     required DateTime periodStart,
     required DateTime periodEnd,
     String? networkId,
   });
   Future<Map<String, dynamic>> approveSettlementBatch(String batchId);
-  Future<Map<String, dynamic>> markSettlementPaid(String batchId, {String? notes});
-  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(String? status);
+  Future<Map<String, dynamic>> markSettlementPaid(
+    String batchId, {
+    String? notes,
+  });
+  Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(
+    String? status,
+  );
   Future<List<Map<String, dynamic>>> getOwnerSettlements(String? networkId);
 }

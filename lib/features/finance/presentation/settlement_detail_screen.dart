@@ -11,10 +11,12 @@ class SettlementDetailScreen extends ConsumerStatefulWidget {
   const SettlementDetailScreen({super.key, required this.batch});
 
   @override
-  ConsumerState<SettlementDetailScreen> createState() => _SettlementDetailScreenState();
+  ConsumerState<SettlementDetailScreen> createState() =>
+      _SettlementDetailScreenState();
 }
 
-class _SettlementDetailScreenState extends ConsumerState<SettlementDetailScreen> {
+class _SettlementDetailScreenState
+    extends ConsumerState<SettlementDetailScreen> {
   bool _processing = false;
   final _notesController = TextEditingController();
 
@@ -29,12 +31,13 @@ class _SettlementDetailScreenState extends ConsumerState<SettlementDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final lines = (widget.batch['lines'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final lines =
+        (widget.batch['lines'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل دفعة التسوية'),
-      ),
+      appBar: AppBar(title: const Text('تفاصيل دفعة التسوية')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: ListView(
@@ -55,8 +58,7 @@ class _SettlementDetailScreenState extends ConsumerState<SettlementDetailScreen>
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            if (lines.isEmpty)
-              const Text('لا توجد بنود'),
+            if (lines.isEmpty) const Text('لا توجد بنود'),
             ...lines.map((line) => _LineCard(line: line)),
           ],
         ),
@@ -71,15 +73,15 @@ class _SettlementDetailScreenState extends ConsumerState<SettlementDetailScreen>
       await repo.approveSettlementBatch(_batchId);
       ref.invalidate(settlementBatchesProvider(null));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم اعتماد الدفعة')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم اعتماد الدفعة')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -98,15 +100,15 @@ class _SettlementDetailScreenState extends ConsumerState<SettlementDetailScreen>
       );
       ref.invalidate(settlementBatchesProvider(null));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم التسجيل كمدفوع')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم التسجيل كمدفوع')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -133,7 +135,10 @@ class _SummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _row('المالك', batch['owner_name'] as String? ?? '-'),
-            _row('الفترة', '${batch['period_start']} إلى ${batch['period_end']}'),
+            _row(
+              'الفترة',
+              '${batch['period_start']} إلى ${batch['period_end']}',
+            ),
             _row('الحالة', _statusLabel(batch['status'] as String? ?? 'draft')),
             const Divider(height: 24),
             _row('المبيعات', '${batch['gross_sales']}'),
@@ -215,12 +220,17 @@ class _ActionsSection extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: processing ? null : onApprove,
                 icon: const Icon(Icons.check),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                ),
                 label: processing
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('اعتماد الدفعة'),
               ),
@@ -241,7 +251,10 @@ class _ActionsSection extends StatelessWidget {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('تسجيل كمدفوع'),
               ),
@@ -280,7 +293,9 @@ class _LineCard extends StatelessWidget {
                     type == 'sale' ? 'بيع' : 'مرتجع',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text('الإجمالي: ${line['gross_amount']} | العمولة: ${line['commission_amount']} | الصافي: ${line['net_amount']}'),
+                  Text(
+                    'الإجمالي: ${line['gross_amount']} | العمولة: ${line['commission_amount']} | الصافي: ${line['net_amount']}',
+                  ),
                 ],
               ),
             ),

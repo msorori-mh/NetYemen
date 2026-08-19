@@ -7,11 +7,7 @@ class PackageFormScreen extends ConsumerStatefulWidget {
   final String networkId;
   final NetworkPackage? package;
 
-  const PackageFormScreen({
-    super.key,
-    required this.networkId,
-    this.package,
-  });
+  const PackageFormScreen({super.key, required this.networkId, this.package});
 
   @override
   ConsumerState<PackageFormScreen> createState() => _PackageFormScreenState();
@@ -35,7 +31,9 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
     super.initState();
     final package = widget.package;
     _nameController = TextEditingController(text: package?.name ?? '');
-    _descriptionController = TextEditingController(text: package?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: package?.description ?? '',
+    );
     _priceController = TextEditingController(
       text: package == null ? '' : (package.price / 100).toString(),
     );
@@ -64,9 +62,7 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'تعديل الباقة' : 'باقة جديدة'),
-      ),
+      appBar: AppBar(title: Text(_isEditing ? 'تعديل الباقة' : 'باقة جديدة')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -262,14 +258,16 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isEditing ? 'تم تحديث الباقة' : 'تم إنشاء الباقة')),
+          SnackBar(
+            content: Text(_isEditing ? 'تم تحديث الباقة' : 'تم إنشاء الباقة'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

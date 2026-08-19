@@ -51,10 +51,7 @@ class _RequestsBody extends ConsumerStatefulWidget {
   final List<AdminNetworkRequest> requests;
   final Future<void> Function() onRefresh;
 
-  const _RequestsBody({
-    required this.requests,
-    required this.onRefresh,
-  });
+  const _RequestsBody({required this.requests, required this.onRefresh});
 
   @override
   ConsumerState<_RequestsBody> createState() => _RequestsBodyState();
@@ -87,7 +84,9 @@ class _RequestsBodyState extends ConsumerState<_RequestsBody> {
                   onSelected: (_) {
                     setState(() => _selectedFilter = label);
                     final status = AdminRequestsScreen._filters[label];
-                    ref.read(adminRequestsProvider.notifier).setStatusFilter(status);
+                    ref
+                        .read(adminRequestsProvider.notifier)
+                        .setStatusFilter(status);
                   },
                 ),
               );
@@ -111,9 +110,8 @@ class _RequestsBodyState extends ConsumerState<_RequestsBody> {
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _filteredRequests.length,
-                    itemBuilder: (_, i) => _RequestCard(
-                      request: _filteredRequests[i],
-                    ),
+                    itemBuilder: (_, i) =>
+                        _RequestCard(request: _filteredRequests[i]),
                   ),
           ),
         ),

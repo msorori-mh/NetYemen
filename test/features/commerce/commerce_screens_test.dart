@@ -13,24 +13,24 @@ void main() {
   group('CommerceScreens', () {
     Widget buildScreen(Widget screen) {
       return ProviderScope(
-        overrides: [
-          appConfigProvider.overrideWithValue(AppConfig.demo),
-        ],
-        child: MaterialApp(
-          home: screen,
-        ),
+        overrides: [appConfigProvider.overrideWithValue(AppConfig.demo)],
+        child: MaterialApp(home: screen),
       );
     }
 
-    testWidgets('WalletScreen renders balance and deposit actions',
-        (tester) async {
+    testWidgets('WalletScreen renders balance and deposit actions', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildScreen(const WalletScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('المحفظة'), findsOneWidget);
       expect(find.text('رصيد المحفظة'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'طلب إيداع'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'سجل الإيداعات'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'سجل الإيداعات'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('DepositScreen renders deposit form', (tester) async {
@@ -39,7 +39,10 @@ void main() {
 
       expect(find.text('طلب إيداع'), findsOneWidget);
       expect(find.byType(TextField), findsNWidgets(2));
-      expect(find.widgetWithText(ElevatedButton, 'إرسال الطلب'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'إرسال الطلب'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('DepositHistoryScreen renders deposit list', (tester) async {
@@ -60,8 +63,9 @@ void main() {
       expect(find.text('لا توجد مشتريات'), findsOneWidget);
     });
 
-    testWidgets('DepositReviewQueueScreen renders finance queue',
-        (tester) async {
+    testWidgets('DepositReviewQueueScreen renders finance queue', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildScreen(const DepositReviewQueueScreen()));
       await tester.pumpAndSettle();
 

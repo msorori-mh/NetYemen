@@ -15,14 +15,7 @@ class DeepLinkTarget {
   const DeepLinkTarget(this.kind, {this.id});
 }
 
-enum DeepLinkKind {
-  network,
-  package,
-  request,
-  notifications,
-  profile,
-  unknown,
-}
+enum DeepLinkKind { network, package, request, notifications, profile, unknown }
 
 class DeepLinkParser {
   const DeepLinkParser();

@@ -46,8 +46,9 @@ void main() {
     expect(find.text('تم قبول طلب الشبكة'), findsOneWidget);
   });
 
-  testWidgets('preferences screen shows mandatory transactional lock',
-      (tester) async {
+  testWidgets('preferences screen shows mandatory transactional lock', (
+    tester,
+  ) async {
     final repo = FakeNotificationRepository();
 
     await tester.pumpWidget(

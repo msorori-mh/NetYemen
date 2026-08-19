@@ -177,10 +177,7 @@ class _NetworkInfoCard extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            AdminInfoRow(
-              label: 'الوصف',
-              value: network.description,
-            ),
+            AdminInfoRow(label: 'الوصف', value: network.description),
             AdminInfoRow(
               label: 'المالك',
               value: network.ownerNames.isEmpty
@@ -227,9 +224,7 @@ class _NetworkActions extends ConsumerWidget {
             onPressed: () => _approve(context, ref),
             icon: const Icon(Icons.check_circle_outline),
             label: const Text('الموافقة على الشبكة'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.success,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
           ),
         if (network.status != 'suspended') ...[
           const SizedBox(height: 8),
@@ -237,9 +232,7 @@ class _NetworkActions extends ConsumerWidget {
             onPressed: () => _suspend(context, ref),
             icon: const Icon(Icons.block),
             label: const Text('تعليق الشبكة'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
           ),
         ] else ...[
           const SizedBox(height: 8),
@@ -247,9 +240,7 @@ class _NetworkActions extends ConsumerWidget {
             onPressed: () => _approve(context, ref),
             icon: const Icon(Icons.check_circle_outline),
             label: const Text('إعادة تنشيط الشبكة'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.success,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
           ),
         ],
       ],
@@ -265,9 +256,7 @@ class _NetworkActions extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await ref
-          .read(adminNetworkDetailProvider(network.id).notifier)
-          .approve();
+      await ref.read(adminNetworkDetailProvider(network.id).notifier).approve();
       if (context.mounted) {
         ref.invalidate(adminNetworksProvider);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -276,9 +265,9 @@ class _NetworkActions extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشلت الموافقة: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشلت الموافقة: $e')));
       }
     }
   }
@@ -297,15 +286,15 @@ class _NetworkActions extends ConsumerWidget {
           .suspend(reason: reason);
       if (context.mounted) {
         ref.invalidate(adminNetworksProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تعليق الشبكة')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تعليق الشبكة')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل التعليق: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل التعليق: $e')));
       }
     }
   }
@@ -390,11 +379,13 @@ class _AliasesList extends StatelessWidget {
 
     return Column(
       children: aliases
-          .map((alias) => _AliasCard(
-                networkId: networkId,
-                alias: alias,
-                isAdmin: isAdmin,
-              ))
+          .map(
+            (alias) => _AliasCard(
+              networkId: networkId,
+              alias: alias,
+              isAdmin: isAdmin,
+            ),
+          )
           .toList(),
     );
   }
@@ -496,9 +487,9 @@ class _AliasCard extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل التوثيق: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل التوثيق: $e')));
       }
     }
   }
@@ -509,15 +500,15 @@ class _AliasCard extends ConsumerWidget {
           .read(adminNetworkAliasesProvider(networkId).notifier)
           .rejectAlias(alias.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم رفض الاسم اللاسلكي')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم رفض الاسم اللاسلكي')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل الرفض: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل الرفض: $e')));
       }
     }
   }

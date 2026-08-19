@@ -75,11 +75,11 @@ class FakeNotificationRepository implements NotificationRepository {
 
   @override
   Future<TransportStatus> transportStatus() async => const TransportStatus(
-        providerKey: 'unbound',
-        bindingStatus: 'unbound',
-        adapterInterface: 'NotificationTransportAdapter',
-        externalPushDispatchEnabled: false,
-      );
+    providerKey: 'unbound',
+    bindingStatus: 'unbound',
+    adapterInterface: 'NotificationTransportAdapter',
+    externalPushDispatchEnabled: false,
+  );
 
   @override
   Future<AdminComposeResult> adminCompose({
@@ -126,10 +126,7 @@ class FakeNotificationRepository implements NotificationRepository {
     return {
       'event_id': eventId,
       'total_deliveries': _inbox.where((e) => e.eventId == eventId).length,
-      'transport': {
-        'binding_status': 'unbound',
-        'provider_key': 'unbound',
-      },
+      'transport': {'binding_status': 'unbound', 'provider_key': 'unbound'},
     };
   }
 

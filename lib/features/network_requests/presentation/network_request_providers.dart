@@ -9,8 +9,9 @@ import '../../network_requests/data/network_request_repository.dart';
 import '../../network_requests/data/supabase_network_request_repository.dart';
 import '../../network_requests/domain/entities.dart';
 
-final networkRequestRepositoryProvider =
-    Provider<NetworkRequestRepository>((ref) {
+final networkRequestRepositoryProvider = Provider<NetworkRequestRepository>((
+  ref,
+) {
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return FakeNetworkRequestRepository();
@@ -20,8 +21,8 @@ final networkRequestRepositoryProvider =
 
 final myRequestsProvider =
     AsyncNotifierProvider<MyRequestsNotifier, List<NetworkAdditionRequest>>(
-  MyRequestsNotifier.new,
-);
+      MyRequestsNotifier.new,
+    );
 
 class MyRequestsNotifier extends AsyncNotifier<List<NetworkAdditionRequest>> {
   @override
@@ -58,8 +59,9 @@ class IdempotencySession {
   const IdempotencySession(this.key, this.payloadFingerprint);
 }
 
-final pendingIdempotencySessionProvider =
-    StateProvider<IdempotencySession?>((ref) => null);
+final pendingIdempotencySessionProvider = StateProvider<IdempotencySession?>(
+  (ref) => null,
+);
 
 final submitRequestNotifierProvider = Provider<SubmitRequestNotifier>((ref) {
   return SubmitRequestNotifier(ref);
@@ -115,16 +117,19 @@ class SubmitRequestNotifier {
         notes: notes,
       );
 
-      _ref.read(submitRequestStateProvider.notifier).state =
-          AsyncValue.data(result);
+      _ref.read(submitRequestStateProvider.notifier).state = AsyncValue.data(
+        result,
+      );
       _ref.read(pendingIdempotencySessionProvider.notifier).state = null;
 
       _ref.read(myRequestsProvider.notifier).refresh();
 
       return result;
     } catch (e, st) {
-      _ref.read(submitRequestStateProvider.notifier).state =
-          AsyncValue.error(e, st);
+      _ref.read(submitRequestStateProvider.notifier).state = AsyncValue.error(
+        e,
+        st,
+      );
       rethrow;
     }
   }

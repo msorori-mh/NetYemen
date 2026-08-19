@@ -13,9 +13,7 @@ class DepositReviewQueueScreen extends ConsumerWidget {
     final queueAsync = ref.watch(depositQueueProvider(null));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('قبول الإيداعات'),
-      ),
+      appBar: AppBar(title: const Text('قبول الإيداعات')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: queueAsync.when(
@@ -28,7 +26,10 @@ class DepositReviewQueueScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final deposit = deposits[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: ListTile(
                     title: Text('${deposit['amount']} ${deposit['currency']}'),
                     subtitle: Text(

@@ -23,9 +23,7 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الحساب'),
-      ),
+      appBar: AppBar(title: const Text('الحساب')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -82,8 +80,10 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Card(
             child: ListTile(
-              leading:
-                  const Icon(Icons.list_alt_outlined, color: AppTheme.primary),
+              leading: const Icon(
+                Icons.list_alt_outlined,
+                color: AppTheme.primary,
+              ),
               title: const Text('الطلبات'),
               subtitle: const Text('طلبات إضافة الشبكات وحالاتها'),
               trailing: const Icon(Icons.chevron_left),
@@ -95,8 +95,10 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.account_balance_outlined,
-                  color: AppTheme.primary),
+              leading: const Icon(
+                Icons.account_balance_outlined,
+                color: AppTheme.primary,
+              ),
               title: const Text('الإيداعات'),
               subtitle: const Text('طلبات الإيداع وحالة التحقق المحلي'),
               trailing: const Icon(Icons.chevron_left),
@@ -108,8 +110,10 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.support_agent_outlined,
-                  color: AppTheme.primary),
+              leading: const Icon(
+                Icons.support_agent_outlined,
+                color: AppTheme.primary,
+              ),
               title: const Text('الدعم والشكاوى'),
               subtitle: const Text('التذاكر والشكاوى والنزاعات'),
               trailing: const Icon(Icons.chevron_left),
@@ -121,8 +125,10 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.notifications_outlined,
-                  color: AppTheme.primary),
+              leading: const Icon(
+                Icons.notifications_outlined,
+                color: AppTheme.primary,
+              ),
               title: const Text('مركز الإشعارات'),
               subtitle: const Text('سجل الإشعارات والتنبيهات'),
               trailing: const Icon(Icons.chevron_left),
@@ -159,13 +165,17 @@ class ProfileScreen extends ConsumerWidget {
             child: ListTile(
               leading: Icon(Icons.info_outline, color: AppTheme.primary),
               title: Text('عن التطبيق'),
-              subtitle: Text('${AppConstants.appNameAr} — الإصدار ${AppConstants.appVersion}'),
+              subtitle: Text(
+                '${AppConstants.appNameAr} — الإصدار ${AppConstants.appVersion}',
+              ),
             ),
           ),
           const Card(
             child: ListTile(
-              leading:
-                  Icon(Icons.privacy_tip_outlined, color: AppTheme.primary),
+              leading: Icon(
+                Icons.privacy_tip_outlined,
+                color: AppTheme.primary,
+              ),
               title: Text('الخصوصية'),
               subtitle: Text(
                 'لا يتم رفع BSSID أو هوية الجهاز أو إحداثيات الموقع',
@@ -230,9 +240,9 @@ class _OwnerDashboardEntryCard extends ConsumerWidget {
         title: const Text('عمليات الشبكة'),
         subtitle: const Text('الشبكات المملوكة والباقات والمخزون والملخصات'),
         trailing: const Icon(Icons.chevron_left),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const OwnerDashboardScreen())),
       ),
     );
   }
@@ -252,7 +262,8 @@ class _AdminDashboardEntryCard extends ConsumerWidget {
     final config = ref.watch(appConfigProvider);
     final rolesAsync = ref.watch(currentUserRolesProvider);
 
-    final isVisible = config.isDemoMode ||
+    final isVisible =
+        config.isDemoMode ||
         rolesAsync.when(
           data: (roles) => roles.any(_adminRoles.contains),
           loading: () => false,
@@ -263,16 +274,16 @@ class _AdminDashboardEntryCard extends ConsumerWidget {
 
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.admin_panel_settings_outlined,
-            color: AppTheme.primary),
+        leading: const Icon(
+          Icons.admin_panel_settings_outlined,
+          color: AppTheme.primary,
+        ),
         title: const Text('لوحة الإدارة'),
         subtitle: const Text('إدارة الشبكات والطلبات والمستخدمين'),
         trailing: const Icon(Icons.chevron_left),
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminDashboardScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
           );
         },
       ),

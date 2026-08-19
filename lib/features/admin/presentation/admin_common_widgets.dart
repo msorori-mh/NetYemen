@@ -5,11 +5,7 @@ class AdminStatusChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const AdminStatusChip({
-    super.key,
-    required this.label,
-    required this.color,
-  });
+  const AdminStatusChip({super.key, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +31,7 @@ class AdminEmptyState extends StatelessWidget {
   final String title;
   final String? subtitle;
 
-  const AdminEmptyState({
-    super.key,
-    required this.title,
-    this.subtitle,
-  });
+  const AdminEmptyState({super.key, required this.title, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -101,11 +93,7 @@ class AdminInfoRow extends StatelessWidget {
   final String label;
   final String? value;
 
-  const AdminInfoRow({
-    super.key,
-    required this.label,
-    this.value,
-  });
+  const AdminInfoRow({super.key, required this.label, this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -120,16 +108,10 @@ class AdminInfoRow extends StatelessWidget {
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
           Expanded(
-            child: Text(
-              displayValue,
-              style: const TextStyle(fontSize: 13),
-            ),
+            child: Text(displayValue, style: const TextStyle(fontSize: 13)),
           ),
         ],
       ),
@@ -162,11 +144,7 @@ class AdminListCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
-  const AdminListCard({
-    super.key,
-    required this.child,
-    this.onTap,
-  });
+  const AdminListCard({super.key, required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -175,10 +153,7 @@ class AdminListCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: child,
-        ),
+        child: Padding(padding: const EdgeInsets.all(16), child: child),
       ),
     );
   }

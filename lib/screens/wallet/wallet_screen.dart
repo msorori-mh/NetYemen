@@ -14,9 +14,7 @@ class WalletScreen extends ConsumerWidget {
     final transactionsAsync = ref.watch(walletTransactionsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('محفظتي'),
-      ),
+      appBar: AppBar(title: const Text('محفظتي')),
       body: Column(
         children: [
           // Balance Card
@@ -57,7 +55,8 @@ class WalletScreen extends ConsumerWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const DepositScreen()),
+                          builder: (_) => const DepositScreen(),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.add),
@@ -77,9 +76,7 @@ class WalletScreen extends ConsumerWidget {
             child: transactionsAsync.when(
               data: (transactions) {
                 if (transactions.isEmpty) {
-                  return const Center(
-                    child: Text('لا توجد حركات حالياً'),
-                  );
+                  return const Center(child: Text('لا توجد حركات حالياً'));
                 }
 
                 return ListView.builder(

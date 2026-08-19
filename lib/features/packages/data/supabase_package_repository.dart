@@ -87,7 +87,10 @@ class SupabasePackageRepository implements PackageRepository {
         .limit(50);
 
     return (response as List)
-        .map((json) => PackageInventoryMovement.fromJson(json as Map<String, dynamic>))
+        .map(
+          (json) =>
+              PackageInventoryMovement.fromJson(json as Map<String, dynamic>),
+        )
         .toList();
   }
 

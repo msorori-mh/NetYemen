@@ -29,8 +29,7 @@ class AdminDashboardKpi {
       approvedRequests: (json['approved_requests'] as num?)?.toInt() ?? 0,
       rejectedRequests: (json['rejected_requests'] as num?)?.toInt() ?? 0,
       activePackages: (json['active_packages'] as num?)?.toInt() ?? 0,
-      outOfStockPackages:
-          (json['out_of_stock_packages'] as num?)?.toInt() ?? 0,
+      outOfStockPackages: (json['out_of_stock_packages'] as num?)?.toInt() ?? 0,
       networkOwners: (json['network_owners'] as num?)?.toInt() ?? 0,
       networkOperators: (json['network_operators'] as num?)?.toInt() ?? 0,
     );
@@ -118,7 +117,9 @@ class AdminNetworkRequest {
   }
 
   bool get isTerminal =>
-      status == 'approved' || status == 'rejected' || status == 'matched_existing';
+      status == 'approved' ||
+      status == 'rejected' ||
+      status == 'matched_existing';
 
   String get statusLabel => _networkRequestStatusLabel(status);
 }
@@ -193,7 +194,8 @@ class AdminNetwork {
 
   String get statusLabel => _networkStatusLabel(status);
 
-  String get verificationStatusLabel => _verificationStatusLabel(verificationStatus);
+  String get verificationStatusLabel =>
+      _verificationStatusLabel(verificationStatus);
 
   bool get isAdminActionable =>
       status == 'pending_approval' || status == 'suspended';
@@ -351,7 +353,8 @@ class AdminUser {
 
   factory AdminUser.fromJson(Map<String, dynamic> json) {
     final rolesJson = json['user_roles'] as List<dynamic>?;
-    final roles = rolesJson
+    final roles =
+        rolesJson
             ?.map((r) => (r as Map<String, dynamic>)['role'] as String?)
             .whereType<String>()
             .toList() ??
@@ -365,7 +368,8 @@ class AdminUser {
     );
   }
 
-  String get displayName => fullName?.isNotEmpty == true ? fullName! : 'مستخدم $id';
+  String get displayName =>
+      fullName?.isNotEmpty == true ? fullName! : 'مستخدم $id';
 }
 
 class AdminNetworkMembership {
@@ -404,8 +408,7 @@ class AdminNetworkMembership {
     );
   }
 
-  String get roleLabel =>
-      membershipRole == 'owner' ? 'مالك' : 'مشغّل';
+  String get roleLabel => membershipRole == 'owner' ? 'مالك' : 'مشغّل';
 }
 
 class AdminAuditEvent {

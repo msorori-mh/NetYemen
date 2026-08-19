@@ -19,10 +19,7 @@ class MainScreen extends ConsumerWidget {
   ];
 
   final List<BottomNavigationBarItem> _navItems = const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.wifi_rounded),
-      label: 'الشبكات',
-    ),
+    BottomNavigationBarItem(icon: Icon(Icons.wifi_rounded), label: 'الشبكات'),
     BottomNavigationBarItem(
       icon: Icon(Icons.account_balance_wallet_outlined),
       label: 'المحفظة',
@@ -31,10 +28,7 @@ class MainScreen extends ConsumerWidget {
       icon: Icon(Icons.receipt_long_outlined),
       label: 'المشتريات',
     ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.person_outline),
-      label: 'حسابي',
-    ),
+    BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'حسابي'),
   ];
 
   @override
@@ -42,10 +36,7 @@ class MainScreen extends ConsumerWidget {
     final selectedTab = ref.watch(selectedTabProvider);
 
     return Scaffold(
-      body: IndexedStack(
-        index: selectedTab,
-        children: _screens,
-      ),
+      body: IndexedStack(index: selectedTab, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedTab,
         onTap: (index) => ref.read(selectedTabProvider.notifier).state = index,

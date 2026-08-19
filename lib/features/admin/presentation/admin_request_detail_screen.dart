@@ -36,10 +36,8 @@ class AdminRequestDetailScreen extends ConsumerWidget {
         ],
       ),
       body: requestAsync.when(
-        data: (request) => _RequestDetailBody(
-          request: request,
-          canResolve: canResolve,
-        ),
+        data: (request) =>
+            _RequestDetailBody(request: request, canResolve: canResolve),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
           message: 'حدث خطأ في تحميل تفاصيل الطلب: $e',
@@ -54,10 +52,7 @@ class _RequestDetailBody extends ConsumerWidget {
   final AdminNetworkRequest request;
   final bool canResolve;
 
-  const _RequestDetailBody({
-    required this.request,
-    required this.canResolve,
-  });
+  const _RequestDetailBody({required this.request, required this.canResolve});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,22 +166,10 @@ class _InfoCard extends StatelessWidget {
               label: 'الاسم المقترح',
               value: request.proposedNetworkName,
             ),
-            AdminInfoRow(
-              label: 'المحافظة',
-              value: request.governorate,
-            ),
-            AdminInfoRow(
-              label: 'المدينة',
-              value: request.city,
-            ),
-            AdminInfoRow(
-              label: 'الحي',
-              value: request.district,
-            ),
-            AdminInfoRow(
-              label: 'ملاحظات',
-              value: request.notes,
-            ),
+            AdminInfoRow(label: 'المحافظة', value: request.governorate),
+            AdminInfoRow(label: 'المدينة', value: request.city),
+            AdminInfoRow(label: 'الحي', value: request.district),
+            AdminInfoRow(label: 'ملاحظات', value: request.notes),
             AdminInfoRow(
               label: 'تاريخ الإرسال',
               value: _formatDate(request.createdAt),
@@ -239,13 +222,15 @@ class _MatchedNetworkCard extends StatelessWidget {
               label: 'الحالة',
               value: request.matchedNetworkStatus != null
                   ? _networkStatusLabel(request.matchedNetworkStatus!)
-              : null,
+                  : null,
             ),
             AdminInfoRow(
               label: 'التوثيق',
               value: request.matchedNetworkVerificationStatus != null
-                  ? _verificationLabel(request.matchedNetworkVerificationStatus!)
-              : null,
+                  ? _verificationLabel(
+                      request.matchedNetworkVerificationStatus!,
+                    )
+                  : null,
             ),
           ],
         ),
@@ -309,9 +294,7 @@ class _ActionButtons extends ConsumerWidget {
             onPressed: () => _resolve(context, ref, 'approved'),
             icon: const Icon(Icons.check_circle_outline),
             label: const Text('الموافقة'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.success,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
           ),
         ],
         const SizedBox(height: 8),
@@ -319,18 +302,14 @@ class _ActionButtons extends ConsumerWidget {
           onPressed: () => _resolve(context, ref, 'rejected'),
           icon: const Icon(Icons.cancel_outlined),
           label: const Text('الرفض'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.error,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
         ),
         const SizedBox(height: 8),
         ElevatedButton.icon(
           onPressed: () => _matchExisting(context, ref),
           icon: const Icon(Icons.merge_type),
           label: const Text('مطابق مع شبكة موجودة'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.info,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.info),
         ),
       ],
     );
@@ -345,7 +324,9 @@ class _ActionButtons extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الإجراء'),
-        content: Text('هل تريد تغيير حالة الطلب إلى "${_statusLabel(newStatus)}"؟'),
+        content: Text(
+          'هل تريد تغيير حالة الطلب إلى "${_statusLabel(newStatus)}"؟',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -367,15 +348,15 @@ class _ActionButtons extends ConsumerWidget {
           .resolve(newStatus);
       if (context.mounted) {
         ref.invalidate(adminRequestsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تحديث حالة الطلب')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تحديث حالة الطلب')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل تحديث الطلب: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل تحديث الطلب: $e')));
       }
     }
   }
@@ -421,10 +402,7 @@ class _ActionButtons extends ConsumerWidget {
     try {
       await ref
           .read(adminRequestDetailProvider(request.id).notifier)
-          .resolve(
-            'matched_existing',
-            matchedNetworkId: selectedNetworkId,
-          );
+          .resolve('matched_existing', matchedNetworkId: selectedNetworkId);
       if (context.mounted) {
         ref.invalidate(adminRequestsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -433,9 +411,9 @@ class _ActionButtons extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشلت المطابقة: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشلت المطابقة: $e')));
       }
     }
   }

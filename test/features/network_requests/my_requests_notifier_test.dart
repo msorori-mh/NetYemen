@@ -19,24 +19,24 @@ void main() {
       );
     }
 
-    test('returns empty list when configured but no user is signed in', () async {
-      final container = createContainer(
-        config: const AppConfig(
-          supabaseUrl: 'http://127.0.0.1:54321',
-          supabasePublishableKey: 'test',
-        ),
-        user: null,
-      );
+    test(
+      'returns empty list when configured but no user is signed in',
+      () async {
+        final container = createContainer(
+          config: const AppConfig(
+            supabaseUrl: 'http://127.0.0.1:54321',
+            supabasePublishableKey: 'test',
+          ),
+          user: null,
+        );
 
-      final requests = await container.read(myRequestsProvider.future);
-      expect(requests, isEmpty);
-    });
+        final requests = await container.read(myRequestsProvider.future);
+        expect(requests, isEmpty);
+      },
+    );
 
     test('fetches requests in demo mode even without a user', () async {
-      final container = createContainer(
-        config: AppConfig.demo,
-        user: null,
-      );
+      final container = createContainer(config: AppConfig.demo, user: null);
 
       final requests = await container.read(myRequestsProvider.future);
       expect(requests, isEmpty);

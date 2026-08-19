@@ -19,9 +19,7 @@ class PurchaseResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('نتيجة الشراء'),
-      ),
+      appBar: AppBar(title: const Text('نتيجة الشراء')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -44,9 +42,11 @@ class PurchaseResultScreen extends StatelessWidget {
               Text('الباقة: $packageName'),
               if (success && purchaseResult != null) ...[
                 Text(
-                    'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER'),
+                  'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER',
+                ),
                 Text(
-                    'حالة التسليم: ${_fulfillmentText(purchaseResult!['status'] as String?)}'),
+                  'حالة التسليم: ${_fulfillmentText(purchaseResult!['status'] as String?)}',
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'التسليم الخارجي غير مربوط في النسخة التجريبية. لا توجد بيانات كرت سرية، ولن يظهر نجاح تسليم وهمي حتى اعتماد OD-CARD-01.',
@@ -54,8 +54,10 @@ class PurchaseResultScreen extends StatelessWidget {
                 ),
               ],
               if (!success && errorMessage != null)
-                Text('السبب: $errorMessage',
-                    style: const TextStyle(color: Colors.red)),
+                Text(
+                  'السبب: $errorMessage',
+                  style: const TextStyle(color: Colors.red),
+                ),
               const Spacer(),
               ElevatedButton(
                 onPressed: () =>

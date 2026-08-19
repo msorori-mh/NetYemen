@@ -56,15 +56,17 @@ class FakeWalletRepository implements WalletRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final id = 'fake-deposit-${_deposits.length + 1}';
-    _deposits.add(DepositRequest(
-      id: id,
-      amount: amount,
-      currency: 'YER',
-      status: 'submitted',
-      channelId: paymentDestinationId,
-      proofReference: proofReference,
-      createdAt: DateTime.now(),
-    ));
+    _deposits.add(
+      DepositRequest(
+        id: id,
+        amount: amount,
+        currency: 'YER',
+        status: 'submitted',
+        channelId: paymentDestinationId,
+        proofReference: proofReference,
+        createdAt: DateTime.now(),
+      ),
+    );
     return id;
   }
 }

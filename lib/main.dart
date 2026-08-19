@@ -17,9 +17,7 @@ void main() async {
 
   await Firebase.initializeApp();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final config = AppConfig.fromEnvironment();
   final environment = AppEnvironment.fromConfig(config);
@@ -45,9 +43,7 @@ void main() async {
               GlobalCupertinoLocalizations.delegate,
             ],
             localeResolutionCallback: _resolveLocale,
-            home: UnconfiguredScreen(
-              message: 'فشل تهيئة الاتصال: $e',
-            ),
+            home: UnconfiguredScreen(message: 'فشل تهيئة الاتصال: $e'),
           ),
         ),
       );
@@ -55,11 +51,7 @@ void main() async {
     }
   }
 
-  runApp(
-    ProviderScope(
-      child: WaselNetApp(environment: environment),
-    ),
-  );
+  runApp(ProviderScope(child: WaselNetApp(environment: environment)));
 }
 
 class WaselNetApp extends StatelessWidget {
@@ -83,10 +75,7 @@ class WaselNetApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       home: _buildHome(),
       builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
     );
   }
@@ -98,7 +87,8 @@ class WaselNetApp extends StatelessWidget {
         return const AppShell();
       case AppBootstrapState.unconfiguredRelease:
         return UnconfiguredScreen(
-          message: environment.errorMessage ??
+          message:
+              environment.errorMessage ??
               'التطبيق غير مُعدّ — يرجى إعادة التثبيت',
         );
       case AppBootstrapState.invalidUrl:
@@ -110,9 +100,7 @@ class WaselNetApp extends StatelessWidget {
           message: environment.errorMessage ?? 'حدث خطأ في بدء التطبيق',
         );
       case AppBootstrapState.configuring:
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
   }
 }

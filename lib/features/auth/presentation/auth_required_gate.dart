@@ -58,8 +58,8 @@ class AuthRequiredGate extends ConsumerWidget {
   }
 
   void _navigateToSignIn(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 }

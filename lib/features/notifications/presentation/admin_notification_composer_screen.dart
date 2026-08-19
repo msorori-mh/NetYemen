@@ -67,9 +67,9 @@ class _AdminNotificationComposerScreenState
     final title = _titleCtrl.text.trim();
     final body = _bodyCtrl.text.trim();
     if (title.isEmpty || body.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('العنوان والنص مطلوبان')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('العنوان والنص مطلوبان')));
       return;
     }
 
@@ -79,7 +79,9 @@ class _AdminNotificationComposerScreenState
     });
 
     try {
-      final result = await ref.read(notificationRepositoryProvider).adminCompose(
+      final result = await ref
+          .read(notificationRepositoryProvider)
+          .adminCompose(
             titleAr: title,
             bodyAr: body,
             audienceType: _audienceType,
@@ -98,9 +100,9 @@ class _AdminNotificationComposerScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل الإرسال: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل الإرسال: $e')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -112,9 +114,7 @@ class _AdminNotificationComposerScreenState
     final needsAudienceValue = _audienceType != 'all_active_customers';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('مؤلف الإعلانات'),
-      ),
+      appBar: AppBar(title: const Text('مؤلف الإعلانات')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -206,10 +206,10 @@ class _AdminNotificationComposerScreenState
                 labelText: _audienceType == 'governorate'
                     ? 'اسم المحافظة'
                     : _audienceType == 'city'
-                        ? 'اسم المدينة'
-                        : _audienceType == 'role_based'
-                            ? 'الدور'
-                            : 'المعرّف',
+                    ? 'اسم المدينة'
+                    : _audienceType == 'role_based'
+                    ? 'الدور'
+                    : 'المعرّف',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -224,7 +224,9 @@ class _AdminNotificationComposerScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send_outlined),
-            label: Text(_sending ? 'جاري الإنشاء...' : 'إنشاء وإرسال من الخادم'),
+            label: Text(
+              _sending ? 'جاري الإنشاء...' : 'إنشاء وإرسال من الخادم',
+            ),
           ),
           const SizedBox(height: 8),
           const Text(

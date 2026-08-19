@@ -74,9 +74,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     final destinationsAsync = ref.watch(activePaymentDestinationsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('طلب إيداع'),
-      ),
+      appBar: AppBar(title: const Text('طلب إيداع')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -114,10 +112,13 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                         items: destinations.map((destination) {
                           return DropdownMenuItem(
                             value: destination['id'] as String? ?? '',
-                            child: Text(destination['display_name'] as String? ?? 'وجهة'),
+                            child: Text(
+                              destination['display_name'] as String? ?? 'وجهة',
+                            ),
                           );
                         }).toList(),
-                        onChanged: (value) => setState(() => _selectedDestinationId = value),
+                        onChanged: (value) =>
+                            setState(() => _selectedDestinationId = value),
                       ),
                     ),
                   );
@@ -145,7 +146,9 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                 Text(
                   _message!,
                   style: TextStyle(
-                    color: _message!.startsWith('تم') ? Colors.green : Colors.red,
+                    color: _message!.startsWith('تم')
+                        ? Colors.green
+                        : Colors.red,
                   ),
                 ),
               ],

@@ -11,10 +11,7 @@ class _FakeRepository implements PackageRepository {
   final List<NetworkPackage> publicPackages;
   final Map<String, PackageInventoryBalance> balances;
 
-  _FakeRepository({
-    required this.publicPackages,
-    required this.balances,
-  });
+  _FakeRepository({required this.publicPackages, required this.balances});
 
   @override
   Future<List<NetworkPackage>> fetchPublicPackages(String networkId) async {
@@ -37,7 +34,9 @@ class _FakeRepository implements PackageRepository {
   }
 
   @override
-  Future<List<PackageInventoryMovement>> fetchNetworkMovements(String networkId) async => [];
+  Future<List<PackageInventoryMovement>> fetchNetworkMovements(
+    String networkId,
+  ) async => [];
 
   @override
   Future<NetworkPackage> createPackage({
@@ -50,8 +49,7 @@ class _FakeRepository implements PackageRepository {
     String? durationUnit,
     int? speedMbps,
     String packageType = 'time',
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<NetworkPackage> updatePackage(
@@ -65,8 +63,7 @@ class _FakeRepository implements PackageRepository {
     int? speedMbps,
     String? packageType,
     int? sortOrder,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<NetworkPackage> publishPackage(String packageId) async =>
@@ -86,8 +83,7 @@ class _FakeRepository implements PackageRepository {
     int quantityChange,
     String reason, {
     String? idempotencyKey,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 }
 
 void main() {
@@ -101,9 +97,7 @@ void main() {
             ),
           ],
           child: const MaterialApp(
-            home: Scaffold(
-              body: NetworkPackagesSection(networkId: 'net-1'),
-            ),
+            home: Scaffold(body: NetworkPackagesSection(networkId: 'net-1')),
           ),
         ),
       );
@@ -120,9 +114,7 @@ void main() {
             ),
           ],
           child: const MaterialApp(
-            home: Scaffold(
-              body: NetworkPackagesSection(networkId: 'net-1'),
-            ),
+            home: Scaffold(body: NetworkPackagesSection(networkId: 'net-1')),
           ),
         ),
       );
@@ -181,13 +173,9 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            packageRepositoryProvider.overrideWithValue(repository),
-          ],
+          overrides: [packageRepositoryProvider.overrideWithValue(repository)],
           child: const MaterialApp(
-            home: Scaffold(
-              body: NetworkPackagesSection(networkId: 'net-1'),
-            ),
+            home: Scaffold(body: NetworkPackagesSection(networkId: 'net-1')),
           ),
         ),
       );

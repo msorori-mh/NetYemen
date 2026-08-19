@@ -33,9 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => OTPScreen(phone: '+967$phone'),
-        ),
+        MaterialPageRoute(builder: (_) => OTPScreen(phone: '+967$phone')),
       );
     } catch (e) {
       _showError('فشل إرسال رمز التحقق: $e');
@@ -45,9 +43,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -70,15 +68,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 'تسجيل الدخول',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'أدخل رقم هاتفك لإرسال رمز التحقق',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 40),
               TextField(

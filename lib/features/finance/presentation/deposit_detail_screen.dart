@@ -10,7 +10,8 @@ class DepositDetailScreen extends ConsumerStatefulWidget {
   const DepositDetailScreen({super.key, required this.deposit});
 
   @override
-  ConsumerState<DepositDetailScreen> createState() => _DepositDetailScreenState();
+  ConsumerState<DepositDetailScreen> createState() =>
+      _DepositDetailScreenState();
 }
 
 class _DepositDetailScreenState extends ConsumerState<DepositDetailScreen> {
@@ -59,9 +60,7 @@ class _DepositDetailScreenState extends ConsumerState<DepositDetailScreen> {
     final status = widget.deposit['status'] as String;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل الإيداع'),
-      ),
+      appBar: AppBar(title: const Text('تفاصيل الإيداع')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -69,7 +68,9 @@ class _DepositDetailScreenState extends ConsumerState<DepositDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('المبلغ: ${widget.deposit['amount']} ${widget.deposit['currency']}'),
+              Text(
+                'المبلغ: ${widget.deposit['amount']} ${widget.deposit['currency']}',
+              ),
               Text('الحالة: $status'),
               Text('المرجع: ${widget.deposit['proof_reference'] ?? '-'}'),
               const SizedBox(height: 16),
@@ -85,7 +86,9 @@ class _DepositDetailScreenState extends ConsumerState<DepositDetailScreen> {
               if (status == 'submitted' || status == 'under_review') ...[
                 ElevatedButton(
                   onPressed: _processing ? null : () => _review('approve'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   child: const Text('قبول وشحن الرصيد'),
                 ),
                 const SizedBox(height: 8),
@@ -100,7 +103,9 @@ class _DepositDetailScreenState extends ConsumerState<DepositDetailScreen> {
                 Text(
                   _message!,
                   style: TextStyle(
-                    color: _message!.startsWith('تم') ? Colors.green : Colors.red,
+                    color: _message!.startsWith('تم')
+                        ? Colors.green
+                        : Colors.red,
                   ),
                 ),
               ],

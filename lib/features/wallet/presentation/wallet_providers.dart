@@ -21,12 +21,16 @@ final walletSummaryProvider = FutureProvider<WalletSummary>((ref) async {
   return await repo.getMyWalletSummary();
 });
 
-final depositHistoryProvider = FutureProvider<List<DepositRequest>>((ref) async {
+final depositHistoryProvider = FutureProvider<List<DepositRequest>>((
+  ref,
+) async {
   final repo = ref.watch(walletRepositoryProvider);
   return await repo.getMyDepositRequests();
 });
 
-final depositChannelsProvider = FutureProvider<List<DepositChannel>>((ref) async {
+final depositChannelsProvider = FutureProvider<List<DepositChannel>>((
+  ref,
+) async {
   final repo = ref.watch(walletRepositoryProvider);
   return await repo.getActiveDepositChannels();
 });

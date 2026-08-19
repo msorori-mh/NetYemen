@@ -45,7 +45,11 @@ class MyRequestsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppTheme.error,
+                ),
                 const SizedBox(height: 12),
                 const Text('حدث خطأ في تحميل الطلبات'),
                 const SizedBox(height: 16),
@@ -76,9 +80,9 @@ class MyRequestsScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل إلغاء الطلب: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل إلغاء الطلب: $e')));
       }
     }
   }
@@ -132,7 +136,9 @@ class _RequestCard extends StatelessWidget {
               Text(
                 'الاسم المقترح: ${request.proposedNetworkName}',
                 style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 13),
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                ),
               ),
             ],
             if (request.resolutionNote != null &&
@@ -156,10 +162,15 @@ class _RequestCard extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: onCancel,
-                  icon: const Icon(Icons.cancel_outlined,
-                      size: 16, color: AppTheme.error),
-                  label: const Text('إلغاء الطلب',
-                      style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                  icon: const Icon(
+                    Icons.cancel_outlined,
+                    size: 16,
+                    color: AppTheme.error,
+                  ),
+                  label: const Text(
+                    'إلغاء الطلب',
+                    style: TextStyle(color: AppTheme.error, fontSize: 13),
+                  ),
                 ),
               ),
             ],

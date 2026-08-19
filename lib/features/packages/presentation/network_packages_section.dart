@@ -41,10 +41,12 @@ class NetworkPackagesSection extends ConsumerWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
-        ...packages.map((pkg) => _PackageCard(
-              package: pkg,
-              networkCommercialName: networkCommercialName,
-            )),
+        ...packages.map(
+          (pkg) => _PackageCard(
+            package: pkg,
+            networkCommercialName: networkCommercialName,
+          ),
+        ),
       ],
     );
   }
@@ -79,7 +81,8 @@ class _PackageCard extends StatelessWidget {
                 _AvailabilityBadge(package: package),
               ],
             ),
-            if (package.description != null && package.description!.isNotEmpty) ...[
+            if (package.description != null &&
+                package.description!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 package.description!,
@@ -94,7 +97,9 @@ class _PackageCard extends StatelessWidget {
               children: [
                 _MetaChip(
                   icon: Icons.timer_outlined,
-                  label: package.durationText.isEmpty ? 'غير محدد' : package.durationText,
+                  label: package.durationText.isEmpty
+                      ? 'غير محدد'
+                      : package.durationText,
                 ),
                 if (package.speedMbps != null) ...[
                   const SizedBox(width: 8),
@@ -194,10 +199,7 @@ class _MetaChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppTheme.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -226,14 +228,15 @@ class _EmptyState extends StatelessWidget {
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(Icons.inventory_2_outlined, color: AppTheme.textSecondary, size: 40),
+            Icon(
+              Icons.inventory_2_outlined,
+              color: AppTheme.textSecondary,
+              size: 40,
+            ),
             SizedBox(height: 12),
             Text(
               'لا توجد باقات متاحة حالياً',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 15,
-              ),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
             ),
           ],
         ),

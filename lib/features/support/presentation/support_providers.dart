@@ -20,8 +20,8 @@ final supportCaseProvider = FutureProvider.family<SupportCase, String>(
 );
 final supportMessagesProvider =
     FutureProvider.family<List<SupportMessage>, String>(
-  (ref, id) => ref.watch(supportRepositoryProvider).fetchMessages(id),
-);
+      (ref, id) => ref.watch(supportRepositoryProvider).fetchMessages(id),
+    );
 final supportEventsProvider = FutureProvider.family<List<SupportEvent>, String>(
   (ref, id) => ref.watch(supportRepositoryProvider).fetchEvents(id),
 );
