@@ -212,6 +212,38 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<void> setUserPlatformRole({
+    required String userId,
+    required String role,
+    required bool enabled,
+  }) async {
+    await _client.rpc<Map<String, dynamic>>(
+      'admin_set_user_platform_role',
+      params: {
+        'p_user_id': userId,
+        'p_role': role,
+        'p_enabled': enabled,
+      },
+    );
+  }
+
+  @override
+  Future<void> setUserAccountStatus({
+    required String userId,
+    required String status,
+    String? reason,
+  }) async {
+    await _client.rpc<Map<String, dynamic>>(
+      'admin_set_user_account_status',
+      params: {
+        'p_user_id': userId,
+        'p_status': status,
+        'p_reason': reason,
+      },
+    );
+  }
+
+  @override
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
     String? networkId,
   }) async {
