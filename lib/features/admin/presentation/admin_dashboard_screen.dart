@@ -307,7 +307,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'طلبات الشبكات',
           subtitle: 'مراجعة ومعالجة الطلبات',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminRequestsScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.networkRequests},
+                child: AdminRequestsScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.networks))
@@ -316,7 +321,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'الشبكات',
           subtitle: 'الموافقة والتعليق وتوثيق SSID',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminNetworksScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.networks},
+                child: AdminNetworksScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.packages))
@@ -325,7 +335,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'الباقات والمخزون',
           subtitle: 'متابعة الباقات والأرصدة',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminPackagesScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.packages},
+                child: AdminPackagesScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.users))
