@@ -41,7 +41,7 @@ jobs:
       - name: Verify Formatting
         run: |
           dart format lib test
-          git diff --exit-code
+          git diff --exit-code -- lib test
 
       - name: Analyze Static Code
         run: flutter analyze
