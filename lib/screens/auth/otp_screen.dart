@@ -48,7 +48,9 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     } catch (e) {
       _showError('رمز التحقق غير صحيح');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
