@@ -323,4 +323,5 @@ class _UserCard extends ConsumerWidget {
         );
       }
     }
-  }}
+  }
+}
