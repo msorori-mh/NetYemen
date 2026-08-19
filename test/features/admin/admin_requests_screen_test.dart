@@ -198,5 +198,43 @@ void main() {
       expect(find.text('SSID-1'), findsNothing);
       expect(find.text('SSID-2'), findsOneWidget);
     });
+
+    testWidgets('searches requests by SSID', (tester) async {
+      final requests = [
+        AdminNetworkRequest(
+          id: 'r-1',
+          requesterUserId: 'u-1',
+          observedSsidDisplay: 'Marib-WiFi',
+          status: 'submitted',
+          createdAt: DateTime.now(),
+        ),
+        AdminNetworkRequest(
+          id: 'r-2',
+          requesterUserId: 'u-2',
+          observedSsidDisplay: 'Sanaa-Net',
+          status: 'submitted',
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appConfigProvider.overrideWithValue(AppConfig.demo),
+            adminRepositoryProvider.overrideWithValue(
+              _FakeAdminRepository(requests),
+            ),
+          ],
+          child: const MaterialApp(home: AdminRequestsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Marib');
+      await tester.pump();
+
+      expect(find.text('Marib-WiFi'), findsOneWidget);
+      expect(find.text('Sanaa-Net'), findsNothing);
+    });
   });
 }
