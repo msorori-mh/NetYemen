@@ -8,6 +8,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../providers/app_providers.dart';
 import '../data/notification_repository.dart';
 import 'notification_providers.dart';
 
@@ -26,6 +28,8 @@ class FcmTokenService {
   /// registers the current FCM token. Also starts listening for token refreshes.
   Future<void> initialize() async {
     try {
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = null;
       await _requestPermission();
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
@@ -41,6 +45,27 @@ class FcmTokenService {
     } catch (e) {
       // Firebase may not be initialized in unconfigured/demo builds.
       developer.log('FCM initialization skipped: $e', name: 'FcmTokenService');
+    }
+  }
+
+  /// Stops refresh handling and unlinks the current device token from the
+  /// signed-out account. The local Firebase token is intentionally retained so
+  /// it can be registered again after the next successful sign-in.
+  Future<void> stop({bool deactivateToken = false}) async {
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+
+    if (!deactivateToken) return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await _repository.deactivateDeviceToken(token);
+      }
+    } catch (e) {
+      developer.log(
+        'FCM token deactivation skipped: $e',
+        name: 'FcmTokenService',
+      );
     }
   }
 
@@ -93,21 +118,44 @@ class FcmTokenInitializer extends ConsumerStatefulWidget {
 
 class _FcmTokenInitializerState extends ConsumerState<FcmTokenInitializer> {
   FcmTokenService? _service;
+  ProviderSubscription<User?>? _authSubscription;
+  String? _activeUserId;
 
   @override
   void initState() {
     super.initState();
     try {
       _service = ref.read(fcmTokenServiceProvider);
-      _service?.initialize();
+      _authSubscription = ref.listenManual<User?>(
+        currentUserProvider,
+        (previous, next) => _syncWithAuthState(previous?.id, next?.id),
+        fireImmediately: true,
+      );
     } catch (e) {
       // Supabase or Firebase may not be initialized in tests/unconfigured builds.
       developer.log('FCM token initializer skipped: $e', name: 'FcmTokenService');
     }
   }
 
+  void _syncWithAuthState(String? previousUserId, String? userId) {
+    if (userId == _activeUserId) return;
+
+    _activeUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (userId == null) {
+        if (previousUserId != null) {
+          await _service?.stop(deactivateToken: true);
+        }
+        return;
+      }
+      await _service?.initialize();
+    });
+  }
+
   @override
   void dispose() {
+    _authSubscription?.close();
     _service?.dispose();
     super.dispose();
   }
