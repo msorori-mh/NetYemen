@@ -177,3 +177,94 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 REVOKE EXECUTE ON FUNCTION public.admin_set_user_account_status(UUID, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_set_user_account_status(UUID, TEXT, TEXT) TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.admin_replace_user_platform_roles(
+    p_user_id UUID,
+    p_roles TEXT[]
+)
+RETURNS JSONB AS $$
+DECLARE
+    v_actor_id UUID := auth.uid();
+    v_allowed_roles CONSTANT TEXT[] := ARRAY[
+        'finance_officer',
+        'support_agent',
+        'platform_admin',
+        'system_auditor'
+    ];
+    v_requested_roles TEXT[];
+    v_had_admin BOOLEAN;
+    v_will_have_admin BOOLEAN;
+BEGIN
+    PERFORM public.admin_require_role_and_profile(ARRAY['platform_admin']);
+
+    IF p_user_id IS NULL OR NOT EXISTS (
+        SELECT 1 FROM public.profiles WHERE id = p_user_id
+    ) THEN
+        RAISE EXCEPTION 'NOT_FOUND: User profile not found.'
+            USING ERRCODE = 'P0002';
+    END IF;
+
+    SELECT COALESCE(array_agg(DISTINCT role ORDER BY role), ARRAY[]::TEXT[])
+    INTO v_requested_roles
+    FROM unnest(COALESCE(p_roles, ARRAY[]::TEXT[])) AS requested(role);
+
+    IF EXISTS (
+        SELECT 1
+        FROM unnest(v_requested_roles) AS requested(role)
+        WHERE NOT (role = ANY(v_allowed_roles))
+    ) THEN
+        RAISE EXCEPTION 'INVALID_ROLE: One or more roles are not administratively assignable.'
+            USING ERRCODE = '22023';
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1 FROM public.user_roles
+        WHERE user_id = p_user_id AND role = 'platform_admin'
+    ) INTO v_had_admin;
+    v_will_have_admin := 'platform_admin' = ANY(v_requested_roles);
+
+    IF v_had_admin AND NOT v_will_have_admin THEN
+        IF p_user_id = v_actor_id THEN
+            RAISE EXCEPTION 'SELF_LOCKOUT_BLOCKED: An administrator cannot remove their own platform_admin role.'
+                USING ERRCODE = '42501';
+        END IF;
+
+        IF (
+            SELECT COUNT(*)
+            FROM public.user_roles ur
+            JOIN public.profiles p ON p.id = ur.user_id
+            WHERE ur.role = 'platform_admin'
+              AND p.account_status = 'active'
+        ) <= 1 THEN
+            RAISE EXCEPTION 'LAST_ADMIN_BLOCKED: The final active platform administrator cannot be removed.'
+                USING ERRCODE = '42501';
+        END IF;
+    END IF;
+
+    DELETE FROM public.user_roles
+    WHERE user_id = p_user_id
+      AND role = ANY(v_allowed_roles);
+
+    INSERT INTO public.user_roles (user_id, role, created_by)
+    SELECT p_user_id, requested.role, v_actor_id
+    FROM unnest(v_requested_roles) AS requested(role);
+
+    PERFORM public.record_audit_event(
+        'ADMIN_REPLACE_PLATFORM_ROLES',
+        'user',
+        p_user_id::TEXT,
+        'success',
+        'ADMIN_IDENTITY',
+        jsonb_build_object('roles', to_jsonb(v_requested_roles))
+    );
+
+    RETURN jsonb_build_object(
+        'user_id', p_user_id,
+        'roles', to_jsonb(v_requested_roles)
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+REVOKE EXECUTE ON FUNCTION public.admin_replace_user_platform_roles(UUID, TEXT[]) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_replace_user_platform_roles(UUID, TEXT[]) TO authenticated;
