@@ -42,6 +42,14 @@ abstract class AdminRepository {
   /// Fetch all users and their platform roles.
   Future<List<AdminUser>> fetchUsers();
 
+  /// Replace all administratively assignable roles in one atomic operation.
+  Future<void> replaceUserPlatformRoles({
+    required String userId,
+    required Set<String> roles,
+  }) {
+    throw UnsupportedError('Identity mutations are not supported');
+  }
+
   /// Grant or revoke an administratively assignable platform role.
   Future<void> setUserPlatformRole({
     required String userId,
