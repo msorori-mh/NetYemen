@@ -30,7 +30,7 @@ class AdminNetworksScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل الشبكات: $e',
+          message: 'تعذر تحميل الشبكات. أعد المحاولة.',
           onRetry: () => ref.read(adminNetworksProvider.notifier).refresh(),
         ),
       ),
@@ -51,6 +51,7 @@ class _NetworksBody extends ConsumerStatefulWidget {
 class _NetworksBodyState extends ConsumerState<_NetworksBody> {
   String? _statusFilter;
   String? _verificationFilter;
+  String _searchQuery = '';
 
   List<AdminNetwork> get _filteredNetworks {
     return widget.networks.where((n) {
@@ -59,7 +60,17 @@ class _NetworksBodyState extends ConsumerState<_NetworksBody> {
           n.verificationStatus != _verificationFilter) {
         return false;
       }
-      return true;
+      if (_searchQuery.isEmpty) return true;
+
+      final searchableText = [
+        n.commercialName,
+        n.governorate,
+        n.city,
+        n.district,
+        ...n.ownerNames,
+      ].whereType<String>().join(' ').toLowerCase();
+
+      return searchableText.contains(_searchQuery);
     }).toList();
   }
 
@@ -67,6 +78,10 @@ class _NetworksBodyState extends ConsumerState<_NetworksBody> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        AdminSearchField(
+          hintText: 'ابحث باسم الشبكة أو المالك أو الموقع',
+          onChanged: (value) => setState(() => _searchQuery = value),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
