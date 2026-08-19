@@ -66,6 +66,12 @@ class _SettlementDetailScreenState
   }
 
   Future<void> _approve() async {
+    final confirmed = await _confirmAction(
+      title: 'اعتماد دفعة التسوية',
+      message: 'سيتم تثبيت مبالغ الدفعة تمهيداً للدفع. هل تريد المتابعة؟',
+      confirmLabel: 'اعتماد',
+    );
+    if (!confirmed || !mounted) return;
     setState(() => _processing = true);
     try {
       final repo = ref.read(financeRepositoryProvider);
@@ -76,11 +82,13 @@ class _SettlementDetailScreenState
           context,
         ).showSnackBar(const SnackBar(content: Text('تم اعتماد الدفعة')));
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تنفيذ عملية التسوية. حاول مرة أخرى.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -88,6 +96,12 @@ class _SettlementDetailScreenState
   }
 
   Future<void> _markPaid() async {
+    final confirmed = await _confirmAction(
+      title: 'تسجيل الدفعة كمدفوعة',
+      message: 'هذا الإجراء مالي حساس. تأكد من إتمام التحويل قبل المتابعة.',
+      confirmLabel: 'تسجيل الدفع',
+    );
+    if (!confirmed || !mounted) return;
     setState(() => _processing = true);
     try {
       final repo = ref.read(financeRepositoryProvider);
@@ -103,15 +117,42 @@ class _SettlementDetailScreenState
           context,
         ).showSnackBar(const SnackBar(content: Text('تم التسجيل كمدفوع')));
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تنفيذ عملية التسوية. حاول مرة أخرى.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _processing = false);
     }
+  }
+
+  Future<bool> _confirmAction({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(confirmLabel),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }
 
@@ -236,6 +277,7 @@ class _ActionsSection extends StatelessWidget {
             if (status == 'approved') ...[
               TextField(
                 controller: notesController,
+                maxLength: 500,
                 decoration: const InputDecoration(
                   labelText: 'ملاحظات الدفع',
                   border: OutlineInputBorder(),
