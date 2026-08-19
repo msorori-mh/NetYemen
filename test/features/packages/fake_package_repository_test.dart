@@ -108,7 +108,8 @@ void main() {
     test('cross-network package update is isolated', () async {
       final networkAPackage = (await repository.fetchNetworkPackages(
         'demo-net-1',
-      )).first;
+      ))
+          .first;
       // Simulate an update attempt targeted at network B.
       final updated = await repository.updatePackage(
         networkAPackage.id,

@@ -274,12 +274,10 @@ class FakeAdminRepository implements AdminRepository {
       rejectedRequests: _requests.where((r) => r.status == 'rejected').length,
       activePackages: _packages.where((p) => p.status == 'active').length,
       outOfStockPackages: _packages.where((p) => p.availableUnits <= 0).length,
-      networkOwners: _users
-          .where((u) => u.roles.contains('network_owner'))
-          .length,
-      networkOperators: _users
-          .where((u) => u.roles.contains('network_operator'))
-          .length,
+      networkOwners:
+          _users.where((u) => u.roles.contains('network_owner')).length,
+      networkOperators:
+          _users.where((u) => u.roles.contains('network_operator')).length,
     );
   }
 

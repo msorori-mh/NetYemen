@@ -52,9 +52,8 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
           const SizedBox(height: 16),
           if (isCompleted)
             ElevatedButton.icon(
-              onPressed: _revealing
-                  ? null
-                  : () => _revealCard(context, purchase),
+              onPressed:
+                  _revealing ? null : () => _revealCard(context, purchase),
               icon: const Icon(Icons.visibility),
               label: _revealing
                   ? const SizedBox(

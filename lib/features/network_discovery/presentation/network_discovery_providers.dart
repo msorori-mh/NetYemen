@@ -37,8 +37,8 @@ final appConfigProvider = Provider<AppConfig>((ref) {
 
 final networkCatalogProvider =
     AsyncNotifierProvider<NetworkCatalogNotifier, List<NetworkEntity>>(
-      NetworkCatalogNotifier.new,
-    );
+  NetworkCatalogNotifier.new,
+);
 
 class NetworkCatalogNotifier extends AsyncNotifier<List<NetworkEntity>> {
   @override

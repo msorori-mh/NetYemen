@@ -47,16 +47,15 @@ class FakeSupportRepository implements SupportRepository {
   }
 
   @override
-  Future<void> addMessage(String id, String body) async => messages
-      .putIfAbsent(id, () => [])
-      .add(
-        SupportMessage(
-          id: 'm-${DateTime.now().microsecondsSinceEpoch}',
-          authorUserId: 'demo',
-          body: body,
-          createdAt: DateTime.now(),
-        ),
-      );
+  Future<void> addMessage(String id, String body) async =>
+      messages.putIfAbsent(id, () => []).add(
+            SupportMessage(
+              id: 'm-${DateTime.now().microsecondsSinceEpoch}',
+              authorUserId: 'demo',
+              body: body,
+              createdAt: DateTime.now(),
+            ),
+          );
   @override
   Future<void> claim(String id) async => _replace(id, status: 'assigned');
   @override

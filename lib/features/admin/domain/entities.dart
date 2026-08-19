@@ -353,8 +353,7 @@ class AdminUser {
 
   factory AdminUser.fromJson(Map<String, dynamic> json) {
     final rolesJson = json['user_roles'] as List<dynamic>?;
-    final roles =
-        rolesJson
+    final roles = rolesJson
             ?.map((r) => (r as Map<String, dynamic>)['role'] as String?)
             .whereType<String>()
             .toList() ??

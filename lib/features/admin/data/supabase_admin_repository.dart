@@ -19,9 +19,7 @@ class SupabaseAdminRepository implements AdminRepository {
   Future<List<AdminNetworkRequest>> fetchPendingRequests({
     String? status,
   }) async {
-    var query = _client
-        .from('network_addition_requests')
-        .select(
+    var query = _client.from('network_addition_requests').select(
           'id, requester_user_id, idempotency_key, proposed_network_name, '
           'observed_ssid_display, observed_ssid_normalized, governorate, city, '
           'district, notes, status, duplicate_of, matched_network_id, '
@@ -80,9 +78,7 @@ class SupabaseAdminRepository implements AdminRepository {
     String? status,
     String? verificationStatus,
   }) async {
-    var query = _client
-        .from('networks')
-        .select(
+    var query = _client.from('networks').select(
           'id, commercial_name, description, governorate, city, district, '
           'status, verification_status, created_by, approved_by, approved_at, '
           'created_at, updated_at, '
@@ -181,9 +177,7 @@ class SupabaseAdminRepository implements AdminRepository {
 
   @override
   Future<List<AdminPackageInventory>> fetchPackages({String? networkId}) async {
-    var query = _client
-        .from('network_packages')
-        .select(
+    var query = _client.from('network_packages').select(
           'id, network_id, name, description, price, currency, duration_value, '
           'duration_unit, speed_mbps, package_type, status, is_public, sort_order, '
           'created_by, created_at, updated_at, '
@@ -221,9 +215,7 @@ class SupabaseAdminRepository implements AdminRepository {
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
     String? networkId,
   }) async {
-    var query = _client
-        .from('network_memberships')
-        .select(
+    var query = _client.from('network_memberships').select(
           'network_id, user_id, membership_role, status, created_at, updated_at, '
           'created_by, profiles!user_id(full_name)',
         );

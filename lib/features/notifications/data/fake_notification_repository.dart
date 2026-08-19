@@ -75,11 +75,11 @@ class FakeNotificationRepository implements NotificationRepository {
 
   @override
   Future<TransportStatus> transportStatus() async => const TransportStatus(
-    providerKey: 'unbound',
-    bindingStatus: 'unbound',
-    adapterInterface: 'NotificationTransportAdapter',
-    externalPushDispatchEnabled: false,
-  );
+        providerKey: 'unbound',
+        bindingStatus: 'unbound',
+        adapterInterface: 'NotificationTransportAdapter',
+        externalPushDispatchEnabled: false,
+      );
 
   @override
   Future<AdminComposeResult> adminCompose({

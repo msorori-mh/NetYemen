@@ -61,8 +61,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final rolesAsync = ref.watch(currentUserRolesProvider);
     final roles = rolesAsync.value ?? [];
-    final isFinanceOrAdmin =
-        roles.contains('finance_officer') ||
+    final isFinanceOrAdmin = roles.contains('finance_officer') ||
         roles.contains('platform_admin') ||
         roles.contains('support_agent') ||
         roles.contains('system_auditor');

@@ -59,5 +59,5 @@ class CardRevealNotifier extends AsyncNotifier<CardRevealResult?> {
 
 final cardRevealNotifierProvider =
     AsyncNotifierProvider<CardRevealNotifier, CardRevealResult?>(
-      CardRevealNotifier.new,
-    );
+  CardRevealNotifier.new,
+);

@@ -27,9 +27,8 @@ class FakeFinanceRepository implements FinanceRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     final index = _deposits.indexWhere((d) => d['id'] == id);
     if (index >= 0) {
-      _deposits[index]['status'] = action == 'approve'
-          ? 'approved'
-          : 'rejected';
+      _deposits[index]['status'] =
+          action == 'approve' ? 'approved' : 'rejected';
       _deposits[index]['rejection_reason'] = notes;
     }
   }

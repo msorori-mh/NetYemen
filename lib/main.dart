@@ -87,8 +87,7 @@ class WaselNetApp extends StatelessWidget {
         return const AppShell();
       case AppBootstrapState.unconfiguredRelease:
         return UnconfiguredScreen(
-          message:
-              environment.errorMessage ??
+          message: environment.errorMessage ??
               'التطبيق غير مُعدّ — يرجى إعادة التثبيت',
         );
       case AppBootstrapState.invalidUrl:

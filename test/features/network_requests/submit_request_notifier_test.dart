@@ -58,9 +58,8 @@ void main() {
     test('submit uses the same idempotency key on retry', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo =
-          container.read(networkRequestRepositoryProvider)
-              as FakeNetworkRequestRepository;
+      final repo = container.read(networkRequestRepositoryProvider)
+          as FakeNetworkRequestRepository;
 
       // First attempt fails, so the session must be retained for a retry.
       repo.shouldThrow = true;
@@ -88,9 +87,8 @@ void main() {
     test('independent submissions receive distinct idempotency keys', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo =
-          container.read(networkRequestRepositoryProvider)
-              as FakeNetworkRequestRepository;
+      final repo = container.read(networkRequestRepositoryProvider)
+          as FakeNetworkRequestRepository;
 
       final capturedKeys = <String>{};
       for (var i = 0; i < 5; i++) {
@@ -106,9 +104,8 @@ void main() {
       () async {
         final container = createContainer();
         final notifier = container.read(submitRequestNotifierProvider);
-        final repo =
-            container.read(networkRequestRepositoryProvider)
-                as FakeNetworkRequestRepository;
+        final repo = container.read(networkRequestRepositoryProvider)
+            as FakeNetworkRequestRepository;
 
         repo.shouldThrow = true;
         await expectLater(
@@ -134,9 +131,8 @@ void main() {
     test('changed payload after failure mints a new idempotency key', () async {
       final container = createContainer();
       final notifier = container.read(submitRequestNotifierProvider);
-      final repo =
-          container.read(networkRequestRepositoryProvider)
-              as FakeNetworkRequestRepository;
+      final repo = container.read(networkRequestRepositoryProvider)
+          as FakeNetworkRequestRepository;
 
       repo.shouldThrow = true;
       await expectLater(

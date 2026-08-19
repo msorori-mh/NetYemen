@@ -26,7 +26,8 @@ class _FakeAdminRepository implements AdminRepository {
   @override
   Future<List<AdminNetworkRequest>> fetchPendingRequests({
     String? status,
-  }) async => [];
+  }) async =>
+      [];
 
   @override
   Future<AdminNetworkRequest> resolveRequest(
@@ -42,7 +43,8 @@ class _FakeAdminRepository implements AdminRepository {
   Future<List<AdminNetwork>> fetchNetworks({
     String? status,
     String? verificationStatus,
-  }) async => [];
+  }) async =>
+      [];
 
   @override
   Future<AdminNetwork> approveNetwork(String networkId, {String? note}) async {
@@ -74,7 +76,8 @@ class _FakeAdminRepository implements AdminRepository {
   @override
   Future<List<AdminPackageInventory>> fetchPackages({
     String? networkId,
-  }) async => [];
+  }) async =>
+      [];
 
   @override
   Future<List<AdminUser>> fetchUsers() async => [];
@@ -82,7 +85,8 @@ class _FakeAdminRepository implements AdminRepository {
   @override
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
     String? networkId,
-  }) async => [];
+  }) async =>
+      [];
 
   @override
   Future<List<AdminAuditEvent>> fetchAuditEvents() async => [];
@@ -93,7 +97,8 @@ class _FakeAdminRepository implements AdminRepository {
     required String packageId,
     required List<Map<String, dynamic>> cards,
     String keyVersion = 'v1-test',
-  }) async => {'batch_id': 'fake-batch', 'ingested_count': cards.length};
+  }) async =>
+      {'batch_id': 'fake-batch', 'ingested_count': cards.length};
 }
 
 void main() {

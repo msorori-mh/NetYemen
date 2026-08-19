@@ -16,9 +16,8 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
         .eq('verification_status', 'verified')
         .order('commercial_name');
 
-    final networks = (networkResponse as List)
-        .map((j) => _parseNetwork(j))
-        .toList();
+    final networks =
+        (networkResponse as List).map((j) => _parseNetwork(j)).toList();
 
     if (networks.isEmpty) return [];
 

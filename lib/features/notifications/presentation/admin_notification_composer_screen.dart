@@ -79,16 +79,15 @@ class _AdminNotificationComposerScreenState
     });
 
     try {
-      final result = await ref
-          .read(notificationRepositoryProvider)
-          .adminCompose(
-            titleAr: title,
-            bodyAr: body,
-            audienceType: _audienceType,
-            audiencePayload: _audiencePayload(),
-            channelClass: _channelClass,
-            deepLink: 'notifications',
-          );
+      final result =
+          await ref.read(notificationRepositoryProvider).adminCompose(
+                titleAr: title,
+                bodyAr: body,
+                audienceType: _audienceType,
+                audiencePayload: _audiencePayload(),
+                channelClass: _channelClass,
+                deepLink: 'notifications',
+              );
       final summary = await ref
           .read(notificationRepositoryProvider)
           .adminDeliverySummary(result.eventId);
@@ -206,10 +205,10 @@ class _AdminNotificationComposerScreenState
                 labelText: _audienceType == 'governorate'
                     ? 'اسم المحافظة'
                     : _audienceType == 'city'
-                    ? 'اسم المدينة'
-                    : _audienceType == 'role_based'
-                    ? 'الدور'
-                    : 'المعرّف',
+                        ? 'اسم المدينة'
+                        : _audienceType == 'role_based'
+                            ? 'الدور'
+                            : 'المعرّف',
                 border: const OutlineInputBorder(),
               ),
             ),

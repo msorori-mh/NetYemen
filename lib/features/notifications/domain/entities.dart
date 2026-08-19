@@ -31,13 +31,13 @@ class NotificationPreferences {
   });
 
   factory NotificationPreferences.defaults() => const NotificationPreferences(
-    transactionalEnabled: true,
-    networkAddedEnabled: true,
-    packageAddedEnabled: true,
-    stockRestoredEnabled: true,
-    platformUpdatesEnabled: true,
-    offersAnnouncementsEnabled: true,
-  );
+        transactionalEnabled: true,
+        networkAddedEnabled: true,
+        packageAddedEnabled: true,
+        stockRestoredEnabled: true,
+        platformUpdatesEnabled: true,
+        offersAnnouncementsEnabled: true,
+      );
 
   factory NotificationPreferences.fromJson(Map<String, dynamic> json) {
     return NotificationPreferences(
@@ -149,8 +149,7 @@ class TransportStatus {
     return TransportStatus(
       providerKey: json['provider_key'] as String? ?? 'unbound',
       bindingStatus: json['binding_status'] as String? ?? 'unbound',
-      adapterInterface:
-          json['adapter_interface'] as String? ??
+      adapterInterface: json['adapter_interface'] as String? ??
           'NotificationTransportAdapter',
       externalPushDispatchEnabled:
           json['external_push_dispatch_enabled'] as bool? ?? false,

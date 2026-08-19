@@ -111,16 +111,15 @@ class SupabaseService {
     required String idempotencyKey,
   }) async {
     return await _client.rpc(
-          'create_wallet_deposit_request',
-          params: {
-            'p_amount': amount,
-            'p_reference_number': proofReference ?? '',
-            'p_payment_destination_id': paymentDestinationId,
-            'p_proof_storage_path': proofReference,
-            'p_idempotency_key': idempotencyKey,
-          },
-        )
-        as Map<String, dynamic>;
+      'create_wallet_deposit_request',
+      params: {
+        'p_amount': amount,
+        'p_reference_number': proofReference ?? '',
+        'p_payment_destination_id': paymentDestinationId,
+        'p_proof_storage_path': proofReference,
+        'p_idempotency_key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
   }
 
   // ==================== PURCHASES (V1 commerce schema) ====================
@@ -130,13 +129,12 @@ class SupabaseService {
     required String idempotencyKey,
   }) async {
     return await _client.rpc(
-          'purchase_package',
-          params: {
-            'p_package_id': packageId,
-            'p_idempotency_key': idempotencyKey,
-          },
-        )
-        as Map<String, dynamic>;
+      'purchase_package',
+      params: {
+        'p_package_id': packageId,
+        'p_idempotency_key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
   }
 
   Future<List<dynamic>> getMyPurchaseOrders() async {

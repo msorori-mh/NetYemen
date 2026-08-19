@@ -262,8 +262,7 @@ class _AdminDashboardEntryCard extends ConsumerWidget {
     final config = ref.watch(appConfigProvider);
     final rolesAsync = ref.watch(currentUserRolesProvider);
 
-    final isVisible =
-        config.isDemoMode ||
+    final isVisible = config.isDemoMode ||
         rolesAsync.when(
           data: (roles) => roles.any(_adminRoles.contains),
           loading: () => false,

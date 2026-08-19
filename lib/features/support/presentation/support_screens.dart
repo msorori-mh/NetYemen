@@ -89,8 +89,8 @@ class SupportQueueScreen extends ConsumerWidget {
           final open = includeClosed
               ? all
               : all
-                    .where((e) => !{'resolved', 'closed'}.contains(e.status))
-                    .toList();
+                  .where((e) => !{'resolved', 'closed'}.contains(e.status))
+                  .toList();
           return open.isEmpty
               ? const _State(
                   icon: Icons.inbox_outlined,
@@ -113,21 +113,22 @@ class CaseTile extends StatelessWidget {
   const CaseTile({super.key, required this.item, this.agent = false});
   @override
   Widget build(BuildContext context) => Card(
-    child: ListTile(
-      leading: CircleAvatar(child: Text('#${item.number}')),
-      title: Text(item.subject),
-      subtitle: Text(
-        '${typeAr[item.type.name]} • ${statusAr[item.status]} • ${item.priority}${item.isOverdue ? ' • متأخرة عن SLA' : ''}',
-      ),
-      trailing: const Icon(Icons.chevron_left),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SupportCaseScreen(caseId: item.id, agentView: agent),
+        child: ListTile(
+          leading: CircleAvatar(child: Text('#${item.number}')),
+          title: Text(item.subject),
+          subtitle: Text(
+            '${typeAr[item.type.name]} • ${statusAr[item.status]} • ${item.priority}${item.isOverdue ? ' • متأخرة عن SLA' : ''}',
+          ),
+          trailing: const Icon(Icons.chevron_left),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  SupportCaseScreen(caseId: item.id, agentView: agent),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class NewSupportCaseScreen extends ConsumerStatefulWidget {
@@ -156,89 +157,92 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('تذكرة جديدة')),
-    body: Form(
-      key: form,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          DropdownButtonFormField(
-            initialValue: type,
-            decoration: const InputDecoration(labelText: 'النوع'),
-            items: SupportCaseType.values
-                .map(
-                  (v) =>
-                      DropdownMenuItem(value: v, child: Text(typeAr[v.name]!)),
-                )
-                .toList(),
-            onChanged: (v) => setState(() => type = v!),
+        appBar: AppBar(title: const Text('تذكرة جديدة')),
+        body: Form(
+          key: form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              DropdownButtonFormField(
+                initialValue: type,
+                decoration: const InputDecoration(labelText: 'النوع'),
+                items: SupportCaseType.values
+                    .map(
+                      (v) => DropdownMenuItem(
+                          value: v, child: Text(typeAr[v.name]!)),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => type = v!),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField(
+                initialValue: category,
+                decoration: const InputDecoration(labelText: 'التصنيف'),
+                items: [
+                  'network',
+                  'package',
+                  'service',
+                  'account',
+                  'request',
+                  'other',
+                ]
+                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                    .toList(),
+                onChanged: (v) => setState(() => category = v!),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField(
+                initialValue: priority,
+                decoration: const InputDecoration(labelText: 'الأولوية'),
+                items: [
+                  'low',
+                  'normal',
+                  'high',
+                  'urgent',
+                ]
+                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                    .toList(),
+                onChanged: (v) => setState(() => priority = v!),
+              ),
+              const SizedBox(height: 12),
+              _field(subject, 'الموضوع', 3),
+              const SizedBox(height: 12),
+              _field(description, 'التفاصيل', 3, lines: 5),
+              const SizedBox(height: 12),
+              _field(network, 'معرّف الشبكة (اختياري)', 0, optional: true),
+              const SizedBox(height: 12),
+              _field(package, 'معرّف الباقة (اختياري)', 0, optional: true),
+              const SizedBox(height: 12),
+              _field(request, 'معرّف الطلب (اختياري)', 0, optional: true),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: busy ? null : _submit,
+                child: Text(busy ? 'جارٍ الإرسال...' : 'إنشاء التذكرة'),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField(
-            initialValue: category,
-            decoration: const InputDecoration(labelText: 'التصنيف'),
-            items: [
-              'network',
-              'package',
-              'service',
-              'account',
-              'request',
-              'other',
-            ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-            onChanged: (v) => setState(() => category = v!),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField(
-            initialValue: priority,
-            decoration: const InputDecoration(labelText: 'الأولوية'),
-            items: [
-              'low',
-              'normal',
-              'high',
-              'urgent',
-            ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-            onChanged: (v) => setState(() => priority = v!),
-          ),
-          const SizedBox(height: 12),
-          _field(subject, 'الموضوع', 3),
-          const SizedBox(height: 12),
-          _field(description, 'التفاصيل', 3, lines: 5),
-          const SizedBox(height: 12),
-          _field(network, 'معرّف الشبكة (اختياري)', 0, optional: true),
-          const SizedBox(height: 12),
-          _field(package, 'معرّف الباقة (اختياري)', 0, optional: true),
-          const SizedBox(height: 12),
-          _field(request, 'معرّف الطلب (اختياري)', 0, optional: true),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: busy ? null : _submit,
-            child: Text(busy ? 'جارٍ الإرسال...' : 'إنشاء التذكرة'),
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
   Widget _field(
     TextEditingController c,
     String label,
     int min, {
     int lines = 1,
     bool optional = false,
-  }) => TextFormField(
-    controller: c,
-    maxLines: lines,
-    decoration: InputDecoration(labelText: label),
-    validator: (v) => optional || ((v?.trim().length ?? 0) >= min)
-        ? null
-        : 'يرجى إدخال $label',
-  );
+  }) =>
+      TextFormField(
+        controller: c,
+        maxLines: lines,
+        decoration: InputDecoration(labelText: label),
+        validator: (v) => optional || ((v?.trim().length ?? 0) >= min)
+            ? null
+            : 'يرجى إدخال $label',
+      );
   Future<void> _submit() async {
     if (!form.currentState!.validate()) return;
     setState(() => busy = true);
     try {
-      final id = await ref
-          .read(supportRepositoryProvider)
-          .createCase(
+      final id = await ref.read(supportRepositoryProvider).createCase(
             type: type,
             category: category,
             priority: priority,
@@ -489,21 +493,20 @@ class SupportCaseScreen extends ConsumerWidget {
             children: [
               DropdownButtonFormField(
                 initialValue: status,
-                items:
-                    [
-                          'assigned',
-                          'in_progress',
-                          'waiting_customer',
-                          'resolved',
-                          'closed',
-                        ]
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text(statusAr[v]!),
-                          ),
-                        )
-                        .toList(),
+                items: [
+                  'assigned',
+                  'in_progress',
+                  'waiting_customer',
+                  'resolved',
+                  'closed',
+                ]
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(statusAr[v]!),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (v) => set(() => status = v!),
               ),
               const SizedBox(height: 12),
@@ -517,18 +520,17 @@ class SupportCaseScreen extends ConsumerWidget {
                 DropdownButtonFormField<String>(
                   initialValue: outcome,
                   decoration: const InputDecoration(labelText: 'النتيجة'),
-                  items:
-                      [
-                            'answered',
-                            'fixed',
-                            'not_reproducible',
-                            'not_supported',
-                            'refund_recommended',
-                          ]
-                          .map(
-                            (v) => DropdownMenuItem(value: v, child: Text(v)),
-                          )
-                          .toList(),
+                  items: [
+                    'answered',
+                    'fixed',
+                    'not_reproducible',
+                    'not_supported',
+                    'refund_recommended',
+                  ]
+                      .map(
+                        (v) => DropdownMenuItem(value: v, child: Text(v)),
+                      )
+                      .toList(),
                   onChanged: (v) => set(() => outcome = v),
                 ),
             ],
@@ -554,9 +556,7 @@ class SupportCaseScreen extends ConsumerWidget {
       await _act(
         context,
         ref,
-        () => ref
-            .read(supportRepositoryProvider)
-            .updateStatus(
+        () => ref.read(supportRepositoryProvider).updateStatus(
               caseId,
               status,
               resolution: resolution.text,
@@ -574,11 +574,11 @@ class _State extends StatelessWidget {
   const _State({required this.icon, required this.text});
   @override
   Widget build(BuildContext context) => ListView(
-    children: [
-      const SizedBox(height: 160),
-      Icon(icon, size: 64, color: AppTheme.textMuted),
-      const SizedBox(height: 12),
-      Text(text, textAlign: TextAlign.center),
-    ],
-  );
+        children: [
+          const SizedBox(height: 160),
+          Icon(icon, size: 64, color: AppTheme.textMuted),
+          const SizedBox(height: 12),
+          Text(text, textAlign: TextAlign.center),
+        ],
+      );
 }

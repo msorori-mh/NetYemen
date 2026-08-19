@@ -146,9 +146,8 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                 Text(
                   _message!,
                   style: TextStyle(
-                    color: _message!.startsWith('تم')
-                        ? Colors.green
-                        : Colors.red,
+                    color:
+                        _message!.startsWith('تم') ? Colors.green : Colors.red,
                   ),
                 ),
               ],

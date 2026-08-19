@@ -114,9 +114,8 @@ class _InventoryAdjustmentScreenState
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: _isLoading
-                  ? null
-                  : () => _quickAdjust(-1, 'تصحيح بسيط'),
+              onPressed:
+                  _isLoading ? null : () => _quickAdjust(-1, 'تصحيح بسيط'),
               child: const Text('خصم وحدة واحدة (تصحيح)'),
             ),
           ],

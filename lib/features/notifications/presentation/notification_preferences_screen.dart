@@ -25,9 +25,8 @@ class _NotificationPreferencesScreenState
   }
 
   Future<void> _loadPermission() async {
-    final state = await ref
-        .read(notificationPermissionServiceProvider)
-        .currentState();
+    final state =
+        await ref.read(notificationPermissionServiceProvider).currentState();
     if (mounted) setState(() => _permission = state);
   }
 

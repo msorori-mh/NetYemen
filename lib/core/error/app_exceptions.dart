@@ -14,7 +14,7 @@ class NetworkException extends AppException {
 
 class AuthRequiredException extends AppException {
   const AuthRequiredException()
-    : super('تسجيل الدخول مطلوب', code: 'AUTH_REQUIRED');
+      : super('تسجيل الدخول مطلوب', code: 'AUTH_REQUIRED');
 }
 
 class ScanException extends AppException {
@@ -23,20 +23,20 @@ class ScanException extends AppException {
 
 class ScanPermissionDeniedException extends ScanException {
   const ScanPermissionDeniedException()
-    : super('تم رفض إذن المسح', code: 'SCAN_PERMISSION_DENIED');
+      : super('تم رفض إذن المسح', code: 'SCAN_PERMISSION_DENIED');
 }
 
 class ScanUnsupportedException extends ScanException {
   const ScanUnsupportedException()
-    : super('المسح غير مدعوم على هذا الجهاز', code: 'SCAN_UNSUPPORTED');
+      : super('المسح غير مدعوم على هذا الجهاز', code: 'SCAN_UNSUPPORTED');
 }
 
 class ScanThrottledException extends ScanException {
   const ScanThrottledException()
-    : super('تم تقييد المسح — حاول لاحقاً', code: 'SCAN_THROTTLED');
+      : super('تم تقييد المسح — حاول لاحقاً', code: 'SCAN_THROTTLED');
 }
 
 class WifiDisabledException extends ScanException {
   const WifiDisabledException()
-    : super('الواي فاي غير مُفعّل', code: 'WIFI_DISABLED');
+      : super('الواي فاي غير مُفعّل', code: 'WIFI_DISABLED');
 }

@@ -37,11 +37,9 @@ class NetworksListScreen extends ConsumerWidget {
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () =>
-                            ref
-                                    .read(networkSearchQueryProvider.notifier)
-                                    .state =
-                                '',
+                        onPressed: () => ref
+                            .read(networkSearchQueryProvider.notifier)
+                            .state = '',
                       )
                     : null,
               ),

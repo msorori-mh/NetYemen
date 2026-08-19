@@ -76,9 +76,8 @@ class _PackageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      color: package.isOutOfStock
-          ? AppTheme.error.withValues(alpha: 0.05)
-          : null,
+      color:
+          package.isOutOfStock ? AppTheme.error.withValues(alpha: 0.05) : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -110,9 +109,8 @@ class _PackageCard extends StatelessWidget {
                 ),
                 AdminStatusChip(
                   label: package.isOutOfStock ? 'غير متوفر' : 'متوفر',
-                  color: package.isOutOfStock
-                      ? AppTheme.error
-                      : AppTheme.success,
+                  color:
+                      package.isOutOfStock ? AppTheme.error : AppTheme.success,
                 ),
               ],
             ),
@@ -139,9 +137,8 @@ class _PackageCard extends StatelessWidget {
                 _MetricChip(
                   label: 'المتوفر',
                   value: package.availableUnits.toString(),
-                  color: package.isOutOfStock
-                      ? AppTheme.error
-                      : AppTheme.success,
+                  color:
+                      package.isOutOfStock ? AppTheme.error : AppTheme.success,
                 ),
                 if (package.durationText.isNotEmpty)
                   _MetricChip(label: 'المدة', value: package.durationText),

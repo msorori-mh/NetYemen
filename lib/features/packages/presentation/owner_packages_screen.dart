@@ -99,9 +99,8 @@ class _OwnerPackageCard extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _InfoRow(
                   label: 'المدة',
-                  value: package.durationText.isEmpty
-                      ? '—'
-                      : package.durationText,
+                  value:
+                      package.durationText.isEmpty ? '—' : package.durationText,
                 ),
                 _InfoRow(
                   label: 'السرعة',

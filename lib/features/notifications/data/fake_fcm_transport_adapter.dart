@@ -27,8 +27,7 @@ class FakeFcmTransportAdapter implements NotificationTransportAdapter {
     return const TransportDispatchResult(
       accepted: false,
       status: 'credential_required',
-      error:
-          'FCM server credentials are not configured in this environment. '
+      error: 'FCM server credentials are not configured in this environment. '
           'Use the Supabase Edge Function for physical pilot builds.',
     );
   }

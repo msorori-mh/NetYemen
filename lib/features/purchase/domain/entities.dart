@@ -36,19 +36,16 @@ class PurchaseOrder {
   });
 
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
-    final gross =
-        (json['gross_amount'] as num?)?.toInt() ??
+    final gross = (json['gross_amount'] as num?)?.toInt() ??
         (json['total_price'] as num?)?.toInt() ??
         (json['amount_paid'] as num?)?.toInt() ??
         0;
     final commissionRate =
         (json['commission_rate_snapshot'] as num?)?.toDouble() ??
-        ((json['commission_rate'] as num?)?.toDouble() ?? 0.03);
-    final commission =
-        (json['commission_amount'] as num?)?.toInt() ??
+            ((json['commission_rate'] as num?)?.toDouble() ?? 0.03);
+    final commission = (json['commission_amount'] as num?)?.toInt() ??
         (gross * commissionRate).floor();
-    final net =
-        (json['owner_net_amount'] as num?)?.toInt() ??
+    final net = (json['owner_net_amount'] as num?)?.toInt() ??
         (json['net_to_owner'] as num?)?.toInt() ??
         (gross - commission);
 
@@ -56,22 +53,17 @@ class PurchaseOrder {
       id: json['id'] as String? ?? '',
       packageId: json['package_id'] as String? ?? '',
       networkId: json['network_id'] as String? ?? '',
-      networkName:
-          json['network_name'] as String? ??
+      networkName: json['network_name'] as String? ??
           json['networks']?['name'] as String?,
-      packageName:
-          json['package_name'] as String? ??
+      packageName: json['package_name'] as String? ??
           json['network_packages']?['name'] as String?,
-      quantity:
-          (json['quantity'] as num?)?.toInt() ??
+      quantity: (json['quantity'] as num?)?.toInt() ??
           (json['units_purchased'] as num?)?.toInt() ??
           1,
-      unitPrice:
-          (json['unit_price'] as num?)?.toInt() ??
+      unitPrice: (json['unit_price'] as num?)?.toInt() ??
           (json['amount_paid'] as num?)?.toInt() ??
           0,
-      totalPrice:
-          (json['total_price'] as num?)?.toInt() ??
+      totalPrice: (json['total_price'] as num?)?.toInt() ??
           (json['amount_paid'] as num?)?.toInt() ??
           0,
       currency: json['currency'] as String? ?? 'YER',

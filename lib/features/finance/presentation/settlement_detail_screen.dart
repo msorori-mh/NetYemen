@@ -31,8 +31,7 @@ class _SettlementDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final lines =
-        (widget.batch['lines'] as List<dynamic>?)
+    final lines = (widget.batch['lines'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         [];
 

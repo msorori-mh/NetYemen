@@ -23,8 +23,8 @@ final adminDashboardKpiProvider = FutureProvider<AdminDashboardKpi>((
 
 final adminRequestsProvider =
     AsyncNotifierProvider<AdminRequestsNotifier, List<AdminNetworkRequest>>(
-      AdminRequestsNotifier.new,
-    );
+  AdminRequestsNotifier.new,
+);
 
 class AdminRequestsNotifier extends AsyncNotifier<List<AdminNetworkRequest>> {
   String? _statusFilter;
@@ -51,12 +51,10 @@ class AdminRequestsNotifier extends AsyncNotifier<List<AdminNetworkRequest>> {
   }
 }
 
-final adminRequestDetailProvider =
-    AsyncNotifierProvider.family<
-      AdminRequestDetailNotifier,
-      AdminNetworkRequest,
-      String
-    >(AdminRequestDetailNotifier.new);
+final adminRequestDetailProvider = AsyncNotifierProvider.family<
+    AdminRequestDetailNotifier,
+    AdminNetworkRequest,
+    String>(AdminRequestDetailNotifier.new);
 
 class AdminRequestDetailNotifier
     extends FamilyAsyncNotifier<AdminNetworkRequest, String> {
@@ -86,8 +84,8 @@ class AdminRequestDetailNotifier
 
 final adminNetworksProvider =
     AsyncNotifierProvider<AdminNetworksNotifier, List<AdminNetwork>>(
-      AdminNetworksNotifier.new,
-    );
+  AdminNetworksNotifier.new,
+);
 
 class AdminNetworksNotifier extends AsyncNotifier<List<AdminNetwork>> {
   String? _statusFilter;
@@ -125,12 +123,10 @@ class AdminNetworksNotifier extends AsyncNotifier<List<AdminNetwork>> {
   }
 }
 
-final adminNetworkDetailProvider =
-    AsyncNotifierProvider.family<
-      AdminNetworkDetailNotifier,
-      AdminNetwork,
-      String
-    >(AdminNetworkDetailNotifier.new);
+final adminNetworkDetailProvider = AsyncNotifierProvider.family<
+    AdminNetworkDetailNotifier,
+    AdminNetwork,
+    String>(AdminNetworkDetailNotifier.new);
 
 class AdminNetworkDetailNotifier
     extends FamilyAsyncNotifier<AdminNetwork, String> {
@@ -156,12 +152,10 @@ class AdminNetworkDetailNotifier
   }
 }
 
-final adminNetworkAliasesProvider =
-    AsyncNotifierProvider.family<
-      AdminNetworkAliasesNotifier,
-      List<AdminSsidAlias>,
-      String
-    >(AdminNetworkAliasesNotifier.new);
+final adminNetworkAliasesProvider = AsyncNotifierProvider.family<
+    AdminNetworkAliasesNotifier,
+    List<AdminSsidAlias>,
+    String>(AdminNetworkAliasesNotifier.new);
 
 class AdminNetworkAliasesNotifier
     extends FamilyAsyncNotifier<List<AdminSsidAlias>, String> {
@@ -197,8 +191,8 @@ class AdminNetworkAliasesNotifier
 
 final adminPackagesProvider =
     AsyncNotifierProvider<AdminPackagesNotifier, List<AdminPackageInventory>>(
-      AdminPackagesNotifier.new,
-    );
+  AdminPackagesNotifier.new,
+);
 
 class AdminPackagesNotifier extends AsyncNotifier<List<AdminPackageInventory>> {
   String? _networkIdFilter;
@@ -227,8 +221,8 @@ class AdminPackagesNotifier extends AsyncNotifier<List<AdminPackageInventory>> {
 
 final adminUsersProvider =
     AsyncNotifierProvider<AdminUsersNotifier, List<AdminUser>>(
-      AdminUsersNotifier.new,
-    );
+  AdminUsersNotifier.new,
+);
 
 class AdminUsersNotifier extends AsyncNotifier<List<AdminUser>> {
   @override
@@ -245,11 +239,8 @@ class AdminUsersNotifier extends AsyncNotifier<List<AdminUser>> {
   }
 }
 
-final adminMembershipsProvider =
-    AsyncNotifierProvider<
-      AdminMembershipsNotifier,
-      List<AdminNetworkMembership>
-    >(AdminMembershipsNotifier.new);
+final adminMembershipsProvider = AsyncNotifierProvider<AdminMembershipsNotifier,
+    List<AdminNetworkMembership>>(AdminMembershipsNotifier.new);
 
 class AdminMembershipsNotifier
     extends AsyncNotifier<List<AdminNetworkMembership>> {
@@ -279,8 +270,8 @@ class AdminMembershipsNotifier
 
 final adminAuditEventsProvider =
     AsyncNotifierProvider<AdminAuditEventsNotifier, List<AdminAuditEvent>>(
-      AdminAuditEventsNotifier.new,
-    );
+  AdminAuditEventsNotifier.new,
+);
 
 class AdminAuditEventsNotifier extends AsyncNotifier<List<AdminAuditEvent>> {
   @override

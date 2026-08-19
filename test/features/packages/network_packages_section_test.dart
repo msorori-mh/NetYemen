@@ -36,7 +36,8 @@ class _FakeRepository implements PackageRepository {
   @override
   Future<List<PackageInventoryMovement>> fetchNetworkMovements(
     String networkId,
-  ) async => [];
+  ) async =>
+      [];
 
   @override
   Future<NetworkPackage> createPackage({
@@ -49,7 +50,8 @@ class _FakeRepository implements PackageRepository {
     String? durationUnit,
     int? speedMbps,
     String packageType = 'time',
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 
   @override
   Future<NetworkPackage> updatePackage(
@@ -63,7 +65,8 @@ class _FakeRepository implements PackageRepository {
     int? speedMbps,
     String? packageType,
     int? sortOrder,
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 
   @override
   Future<NetworkPackage> publishPackage(String packageId) async =>
@@ -83,7 +86,8 @@ class _FakeRepository implements PackageRepository {
     int quantityChange,
     String reason, {
     String? idempotencyKey,
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 }
 
 void main() {

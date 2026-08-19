@@ -21,8 +21,8 @@ final networkRequestRepositoryProvider = Provider<NetworkRequestRepository>((
 
 final myRequestsProvider =
     AsyncNotifierProvider<MyRequestsNotifier, List<NetworkAdditionRequest>>(
-      MyRequestsNotifier.new,
-    );
+  MyRequestsNotifier.new,
+);
 
 class MyRequestsNotifier extends AsyncNotifier<List<NetworkAdditionRequest>> {
   @override

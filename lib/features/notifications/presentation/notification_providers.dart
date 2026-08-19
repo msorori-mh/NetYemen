@@ -11,8 +11,8 @@ import 'notification_permission_service.dart';
 
 final notificationTransportAdapterProvider =
     Provider<NotificationTransportAdapter>((ref) {
-      return const UnboundNotificationTransportAdapter();
-    });
+  return const UnboundNotificationTransportAdapter();
+});
 
 final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
   return const DeepLinkParser();
@@ -20,8 +20,8 @@ final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
 
 final notificationPermissionServiceProvider =
     Provider<NotificationPermissionService>((ref) {
-      return const NotificationPermissionService();
-    });
+  return const NotificationPermissionService();
+});
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   final config = ref.watch(appConfigProvider);
