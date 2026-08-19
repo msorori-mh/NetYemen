@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../domain/entities.dart';
+import '../domain/support_operation_policy.dart';
 import 'support_providers.dart';
 
 const statusAr = {
@@ -50,8 +51,10 @@ class MySupportScreen extends ConsumerWidget {
         onRefresh: () async => ref.invalidate(supportCasesProvider),
         child: items.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) =>
-              _State(icon: Icons.error_outline, text: 'تعذر تحميل التذاكر\n$e'),
+          error: (_, __) => const _State(
+            icon: Icons.error_outline,
+            text: 'تعذر تحميل التذاكر. حاول مرة أخرى.',
+          ),
           data: (list) => list.isEmpty
               ? const _State(
                   icon: Icons.support_outlined,
@@ -83,8 +86,10 @@ class SupportQueueScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(title)),
       body: items.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) =>
-            _State(icon: Icons.error_outline, text: 'تعذر تحميل القائمة\n$e'),
+        error: (_, __) => const _State(
+          icon: Icons.error_outline,
+          text: 'تعذر تحميل قائمة الدعم. حاول مرة أخرى.',
+        ),
         data: (all) {
           final open = includeClosed
               ? all
@@ -258,11 +263,11 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
         context,
         MaterialPageRoute(builder: (_) => SupportCaseScreen(caseId: id)),
       );
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('تعذر الإنشاء: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر إنشاء التذكرة. حاول مرة أخرى.')),
+        );
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -291,8 +296,10 @@ class SupportCaseScreen extends ConsumerWidget {
       ),
       body: item.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) =>
-            _State(icon: Icons.error_outline, text: 'تعذر تحميل الحالة\n$e'),
+        error: (_, __) => const _State(
+          icon: Icons.error_outline,
+          text: 'تعذر تحميل حالة الدعم. حاول مرة أخرى.',
+        ),
         data: (c) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -370,7 +377,7 @@ class SupportCaseScreen extends ConsumerWidget {
             Text('الرسائل', style: Theme.of(context).textTheme.titleMedium),
             messages.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('تعذر تحميل الرسائل: $e'),
+              error: (_, __) => const Text('تعذر تحميل الرسائل.'),
               data: (m) => Column(
                 children: m
                     .map(
@@ -399,7 +406,7 @@ class SupportCaseScreen extends ConsumerWidget {
             Text('السجل', style: Theme.of(context).textTheme.titleMedium),
             events.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('تعذر تحميل السجل: $e'),
+              error: (_, __) => const Text('تعذر تحميل سجل الحالة.'),
               data: (ev) => Column(
                 children: ev
                     .map(
@@ -428,11 +435,11 @@ class SupportCaseScreen extends ConsumerWidget {
     try {
       await fn();
       refreshSupport(ref, caseId);
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('تعذر تنفيذ العملية: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تنفيذ العملية. حاول مرة أخرى.')),
+        );
       }
     }
   }
@@ -451,6 +458,7 @@ class SupportCaseScreen extends ConsumerWidget {
         content: TextField(
           controller: c,
           maxLines: 4,
+          maxLength: SupportOperationPolicy.maximumActionTextLength,
           decoration: InputDecoration(labelText: label),
         ),
         actions: [
@@ -553,16 +561,28 @@ class SupportCaseScreen extends ConsumerWidget {
       return;
     }
     if (ok == true) {
-      await _act(
-        context,
-        ref,
-        () => ref.read(supportRepositoryProvider).updateStatus(
-              caseId,
-              status,
-              resolution: resolution.text,
-              outcome: outcome,
-            ),
+      final validationMessage = SupportOperationPolicy.validateResolution(
+        status,
+        resolution.text,
       );
+      if (validationMessage != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(validationMessage)));
+      } else {
+        await _act(
+          context,
+          ref,
+          () => ref.read(supportRepositoryProvider).updateStatus(
+                caseId,
+                status,
+                resolution: SupportOperationPolicy.normalizeActionText(
+                  resolution.text,
+                ),
+                outcome: outcome,
+              ),
+        );
+      }
     }
     resolution.dispose();
   }
