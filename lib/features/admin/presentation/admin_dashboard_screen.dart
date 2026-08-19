@@ -31,7 +31,9 @@ class _AdminDashboardContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final capabilities = ref.watch(adminCapabilitiesProvider);
-    final canViewOverview = capabilities.contains(AdminCapability.overview);
+    final canViewOverview = capabilities.contains(
+      AdminCapability.overview,
+    );
 
     return Scaffold(
       appBar: AppBar(
