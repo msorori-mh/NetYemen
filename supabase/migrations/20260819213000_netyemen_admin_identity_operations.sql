@@ -17,6 +17,7 @@ DECLARE
         'system_auditor'
     ];
     v_changed BOOLEAN := FALSE;
+    v_row_count INTEGER := 0;
 BEGIN
     PERFORM public.admin_require_role_and_profile(ARRAY['platform_admin']);
 
@@ -54,11 +55,13 @@ BEGIN
         INSERT INTO public.user_roles (user_id, role, created_by)
         VALUES (p_user_id, p_role, v_actor_id)
         ON CONFLICT (user_id, role) DO NOTHING;
-        GET DIAGNOSTICS v_changed = ROW_COUNT;
+        GET DIAGNOSTICS v_row_count = ROW_COUNT;
+        v_changed := v_row_count > 0;
     ELSE
         DELETE FROM public.user_roles
         WHERE user_id = p_user_id AND role = p_role;
-        GET DIAGNOSTICS v_changed = ROW_COUNT;
+        GET DIAGNOSTICS v_row_count = ROW_COUNT;
+        v_changed := v_row_count > 0;
     END IF;
 
     PERFORM public.record_audit_event(
@@ -96,6 +99,7 @@ DECLARE
     v_actor_id UUID := auth.uid();
     v_previous_status TEXT;
     v_changed BOOLEAN := FALSE;
+    v_row_count INTEGER := 0;
 BEGIN
     PERFORM public.admin_require_role_and_profile(ARRAY['platform_admin']);
 
@@ -145,7 +149,8 @@ BEGIN
     SET account_status = p_status
     WHERE id = p_user_id
       AND account_status IS DISTINCT FROM p_status;
-    GET DIAGNOSTICS v_changed = ROW_COUNT;
+    GET DIAGNOSTICS v_row_count = ROW_COUNT;
+        v_changed := v_row_count > 0;
 
     PERFORM public.record_audit_event(
         'ADMIN_SET_ACCOUNT_STATUS',
