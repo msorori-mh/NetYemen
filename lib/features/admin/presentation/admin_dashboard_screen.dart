@@ -37,7 +37,7 @@ class _AdminDashboardContent extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة إدارة واصل نت'),
+        title: const Text('لوحة الإدارة'),
         actions: [
           if (canViewOverview)
             IconButton(
