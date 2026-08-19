@@ -29,7 +29,7 @@ class AdminPackagesScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل الباقات: $e',
+          message: 'تعذر تحميل الباقات والمخزون. أعد المحاولة.',
           onRetry: () => ref.read(adminPackagesProvider.notifier).refresh(),
         ),
       ),
@@ -37,32 +37,80 @@ class AdminPackagesScreen extends ConsumerWidget {
   }
 }
 
-class _PackagesBody extends StatelessWidget {
+class _PackagesBody extends StatefulWidget {
   final List<AdminPackageInventory> packages;
   final Future<void> Function() onRefresh;
 
   const _PackagesBody({required this.packages, required this.onRefresh});
 
   @override
+  State<_PackagesBody> createState() => _PackagesBodyState();
+}
+
+class _PackagesBodyState extends State<_PackagesBody> {
+  String _searchQuery = '';
+  bool _outOfStockOnly = false;
+
+  List<AdminPackageInventory> get _filteredPackages {
+    return widget.packages.where((package) {
+      if (_outOfStockOnly && !package.isOutOfStock) return false;
+      if (_searchQuery.isEmpty) return true;
+
+      final searchableText = [
+        package.name,
+        package.description,
+        package.packageType,
+        package.status,
+        package.networkId,
+      ].whereType<String>().join(' ').toLowerCase();
+
+      return searchableText.contains(_searchQuery);
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: packages.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 120),
-                AdminEmptyState(
-                  title: 'لا توجد باقات',
-                  subtitle: 'لم يتم تسجيل أي باقات في النظام',
-                ),
-              ],
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: packages.length,
-              itemBuilder: (_, i) => _PackageCard(package: packages[i]),
+    final packages = _filteredPackages;
+
+    return Column(
+      children: [
+        AdminSearchField(
+          hintText: 'ابحث باسم الباقة أو النوع أو معرف الشبكة',
+          onChanged: (value) => setState(() => _searchQuery = value),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FilterChip(
+              label: const Text('النافد فقط'),
+              selected: _outOfStockOnly,
+              onSelected: (value) => setState(() => _outOfStockOnly = value),
             ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: widget.onRefresh,
+            child: packages.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 120),
+                      AdminEmptyState(
+                        title: 'لا توجد باقات',
+                        subtitle: 'لا توجد نتائج تطابق البحث أو الفلتر',
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: packages.length,
+                    itemBuilder: (_, i) => _PackageCard(package: packages[i]),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }
