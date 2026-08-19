@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../domain/finance_operation_policy.dart';
 import 'finance_providers.dart';
 
 class SettlementDetailScreen extends ConsumerStatefulWidget {
@@ -107,9 +108,9 @@ class _SettlementDetailScreenState
       final repo = ref.read(financeRepositoryProvider);
       await repo.markSettlementPaid(
         _batchId,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
+        notes: FinanceOperationPolicy.normalizePaymentNotes(
+          _notesController.text,
+        ),
       );
       ref.invalidate(settlementBatchesProvider(null));
       if (mounted) {
@@ -277,7 +278,7 @@ class _ActionsSection extends StatelessWidget {
             if (status == 'approved') ...[
               TextField(
                 controller: notesController,
-                maxLength: 500,
+                maxLength: FinanceOperationPolicy.maximumPaymentNotesLength,
                 decoration: const InputDecoration(
                   labelText: 'ملاحظات الدفع',
                   border: OutlineInputBorder(),
