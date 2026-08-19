@@ -237,6 +237,38 @@ class AdminUsersNotifier extends AsyncNotifier<List<AdminUser>> {
       return repo.fetchUsers();
     });
   }
+
+  Future<void> setPlatformRole({
+    required String userId,
+    required String role,
+    required bool enabled,
+  }) async {
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.setUserPlatformRole(
+        userId: userId,
+        role: role,
+        enabled: enabled,
+      );
+      return repo.fetchUsers();
+    });
+  }
+
+  Future<void> setAccountStatus({
+    required String userId,
+    required String status,
+    String? reason,
+  }) async {
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.setUserAccountStatus(
+        userId: userId,
+        status: status,
+        reason: reason,
+      );
+      return repo.fetchUsers();
+    });
+  }
 }
 
 final adminMembershipsProvider = AsyncNotifierProvider<AdminMembershipsNotifier,
