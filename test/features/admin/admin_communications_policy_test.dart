@@ -69,7 +69,8 @@ void main() {
     });
 
     test('normalizes optional workflow text', () {
-      expect(SupportOperationPolicy.normalizeActionText('  تم الحل  '), 'تم الحل');
+      expect(
+          SupportOperationPolicy.normalizeActionText('  تم الحل  '), 'تم الحل');
       expect(SupportOperationPolicy.normalizeActionText('   '), isNull);
     });
   });
