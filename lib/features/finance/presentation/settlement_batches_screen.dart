@@ -46,7 +46,9 @@ class _SettlementBatchesScreenState
                 data: (batches) =>
                     _BatchList(batches: batches, statusFilter: _statusFilter),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('خطأ: $e')),
+                error: (_, __) => const Center(
+                  child: Text('تعذر تحميل دفعات التسوية. حاول مرة أخرى.'),
+                ),
               ),
             ),
           ],
@@ -230,6 +232,13 @@ class _CreateBatchDialogState extends ConsumerState<_CreateBatchDialog> {
   }
 
   Future<void> _create() async {
+    if (_periodStart.isAfter(_periodEnd)) {
+      setState(() {
+        _message = 'يجب أن تكون بداية الفترة قبل نهايتها أو مساوية لها.';
+      });
+      return;
+    }
+
     setState(() {
       _creating = true;
       _message = null;
@@ -243,9 +252,11 @@ class _CreateBatchDialogState extends ConsumerState<_CreateBatchDialog> {
       );
       ref.invalidate(settlementBatchesProvider(null));
       if (mounted) Navigator.of(context).pop();
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() => _message = 'فشل الإنشاء: $e');
+        setState(() {
+          _message = 'تعذر إنشاء دفعة التسوية. تحقق من الفترة وحاول مجدداً.';
+        });
       }
     } finally {
       if (mounted) {
