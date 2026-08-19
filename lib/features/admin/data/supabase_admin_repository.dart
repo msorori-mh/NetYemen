@@ -212,6 +212,17 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<void> replaceUserPlatformRoles({
+    required String userId,
+    required Set<String> roles,
+  }) async {
+    await _client.rpc<Map<String, dynamic>>(
+      'admin_replace_user_platform_roles',
+      params: {'p_user_id': userId, 'p_roles': roles.toList()},
+    );
+  }
+
+  @override
   Future<void> setUserPlatformRole({
     required String userId,
     required String role,
