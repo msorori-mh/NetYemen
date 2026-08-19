@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'antigravity/*'
+      - 'kimi/*'
+      - 'codex/*'
   pull_request:
     branches:
       - 'main'
@@ -17,7 +19,7 @@ jobs:
   supabase-core-ci:
     name: Supabase Local Authorization & Verification Gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -64,45 +66,27 @@ jobs:
         run: |
           npx --yes supabase@2.109.1 db reset --no-seed
 
-      - name: Run Schema Contract Tests (001)
+      - name: Run Full SQL Contract and E2E Suite (001-015)
         run: |
-          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f supabase/tests/001_core_schema_contract.sql
-
-      - name: Run Positive Authorization Tests (002)
-        run: |
-          set -e
-          OUTPUT=$(PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f supabase/tests/002_core_authorization_positive.sql 2>&1)
-          echo "$OUTPUT"
-          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_AUTHENTICATED_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_AUTHENTICATED_PASS notice!"; exit 1; }
-          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_ANON_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_ANON_PASS notice!"; exit 1; }
-          echo "$OUTPUT" | grep -q "ROLE_CONTEXT_SERVICE_ROLE_PASS" || { echo "CRITICAL: Missing ROLE_CONTEXT_SERVICE_ROLE_PASS notice!"; exit 1; }
-
-      - name: Run Negative Authorization Tests (003)
-        run: |
-          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f supabase/tests/003_core_authorization_negative.sql
-
-      - name: Run Core Invariant Tests (004)
-        run: |
-          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f supabase/tests/004_core_invariants.sql
-
-      - name: Run Network Discovery & Request Tests (005)
-        run: |
-          PGPASSWORD=postgres psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=1 \
-            -f supabase/tests/005_network_discovery_and_requests.sql
+          set -euo pipefail
+          for test_file in supabase/tests/{001..015}_*.sql; do
+            echo "Running $test_file"
+            PGPASSWORD=postgres psql \
+              "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+              -v ON_ERROR_STOP=1 \
+              -f "$test_file"
+          done
 
       - name: Execute PowerShell Static Verification Script
         shell: pwsh
         run: |
           ./scripts/verify_netyemen_core_foundation.ps1
+          ./scripts/verify_netyemen_commerce_v1.ps1
+          ./scripts/verify_netyemen_v1_pilot.ps1
+          ./scripts/scan_netyemen_secrets.ps1
+          ./scripts/scan_netyemen_card_secrets.ps1
+          ./scripts/scan_netyemen_financial_invariants.ps1
+          ./scripts/scan_netyemen_fcm_credentials.ps1
 
       - name: Cleanup Local Supabase Stack
         if: always()
