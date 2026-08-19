@@ -47,14 +47,18 @@ abstract class AdminRepository {
     required String userId,
     required String role,
     required bool enabled,
-  });
+  }) {
+    throw UnsupportedError('Identity mutations are not supported');
+  }
 
   /// Change a user account lifecycle status through the guarded admin RPC.
   Future<void> setUserAccountStatus({
     required String userId,
     required String status,
     String? reason,
-  });
+  }) {
+    throw UnsupportedError('Identity mutations are not supported');
+  }
 
   /// Fetch network memberships, optionally filtered by network.
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
