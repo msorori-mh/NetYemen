@@ -264,18 +264,10 @@ class _UserCard extends ConsumerWidget {
     if (result == null || !context.mounted) return;
 
     try {
-      final notifier = ref.read(adminUsersProvider.notifier);
-      for (final role in roleLabels.keys) {
-        final current = user.roles.contains(role);
-        final requested = result.contains(role);
-        if (current != requested) {
-          await notifier.setPlatformRole(
+      await ref.read(adminUsersProvider.notifier).replacePlatformRoles(
             userId: user.id,
-            role: role,
-            enabled: requested,
+            roles: result,
           );
-        }
-      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم تحديث الأدوار الإدارية')),
