@@ -42,6 +42,20 @@ abstract class AdminRepository {
   /// Fetch all users and their platform roles.
   Future<List<AdminUser>> fetchUsers();
 
+  /// Grant or revoke an administratively assignable platform role.
+  Future<void> setUserPlatformRole({
+    required String userId,
+    required String role,
+    required bool enabled,
+  });
+
+  /// Change a user account lifecycle status through the guarded admin RPC.
+  Future<void> setUserAccountStatus({
+    required String userId,
+    required String status,
+    String? reason,
+  });
+
   /// Fetch network memberships, optionally filtered by network.
   Future<List<AdminNetworkMembership>> fetchNetworkMemberships({
     String? networkId,
