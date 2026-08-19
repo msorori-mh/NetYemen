@@ -67,13 +67,13 @@ class _UsersBody extends StatelessWidget {
   }
 }
 
-class _UserCard extends StatelessWidget {
+class _UserCard extends ConsumerWidget {
   final AdminUser user;
 
   const _UserCard({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -109,6 +109,30 @@ class _UserCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'إدارة المستخدم',
+                  onSelected: (action) {
+                    if (action == 'roles') {
+                      _manageRoles(context, ref);
+                    } else if (action == 'status') {
+                      _changeStatus(context, ref);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'roles',
+                      child: Text('إدارة الأدوار الإدارية'),
+                    ),
+                    PopupMenuItem(
+                      value: 'status',
+                      child: Text(
+                        user.accountStatus == 'active'
+                            ? 'تعليق الحساب'
+                            : 'تنشيط الحساب',
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -185,4 +209,128 @@ class _UserCard extends StatelessWidget {
         return AppTheme.textSecondary;
     }
   }
+
+  Future<void> _manageRoles(BuildContext context, WidgetRef ref) async {
+    const roleLabels = <String, String>{
+      'platform_admin': 'مدير المنصة',
+      'finance_officer': 'مسؤول مالي',
+      'support_agent': 'وكيل دعم',
+      'system_auditor': 'مدقق نظام',
+    };
+    final selected = <String>{
+      for (final role in user.roles)
+        if (roleLabels.containsKey(role)) role,
+    };
+
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('الأدوار الإدارية — ${user.displayName}'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final entry in roleLabels.entries)
+                  CheckboxListTile(
+                    value: selected.contains(entry.key),
+                    title: Text(entry.value),
+                    onChanged: (enabled) => setState(() {
+                      if (enabled == true) {
+                        selected.add(entry.key);
+                      } else {
+                        selected.remove(entry.key);
+                      }
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(Set.of(selected)),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !context.mounted) return;
+
+    try {
+      final notifier = ref.read(adminUsersProvider.notifier);
+      for (final role in roleLabels.keys) {
+        final current = user.roles.contains(role);
+        final requested = result.contains(role);
+        if (current != requested) {
+          await notifier.setPlatformRole(
+            userId: user.id,
+            role: role,
+            enabled: requested,
+          );
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحديث الأدوار الإدارية')),
+        );
+      }
+    } catch (_) {
+      await ref.read(adminUsersProvider.notifier).refresh();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تحديث الأدوار. حاول مرة أخرى.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeStatus(BuildContext context, WidgetRef ref) async {
+    final nextStatus = user.accountStatus == 'active' ? 'suspended' : 'active';
+    final actionLabel = nextStatus == 'active' ? 'تنشيط' : 'تعليق';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('$actionLabel الحساب'),
+        content: Text('هل تريد $actionLabel حساب “${user.displayName}”؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(adminUsersProvider.notifier).setAccountStatus(
+            userId: user.id,
+            status: nextStatus,
+            reason: 'Admin console account lifecycle update',
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم $actionLabel الحساب')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر $actionLabel الحساب. حاول مرة أخرى.')),
+        );
+      }
+    }
+  }
+
 }
