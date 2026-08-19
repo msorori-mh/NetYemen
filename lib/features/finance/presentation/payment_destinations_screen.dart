@@ -316,7 +316,8 @@ class _DestinationEditorState extends ConsumerState<_DestinationEditor> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تعذر حفظ وجهة الدفع. تحقق من البيانات وحاول مجدداً.'),
+            content:
+                Text('تعذر حفظ وجهة الدفع. تحقق من البيانات وحاول مجدداً.'),
           ),
         );
       }
