@@ -29,7 +29,7 @@ class AdminUsersScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل المستخدمين: $e',
+          message: 'تعذر تحميل المستخدمين. حاول مرة أخرى.',
           onRetry: () => ref.read(adminUsersProvider.notifier).refresh(),
         ),
       ),
