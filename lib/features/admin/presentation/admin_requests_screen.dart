@@ -39,7 +39,7 @@ class AdminRequestsScreen extends ConsumerWidget {
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
-          message: 'حدث خطأ في تحميل الطلبات: $e',
+          message: 'تعذر تحميل طلبات الشبكات. أعد المحاولة.',
           onRetry: () => ref.read(adminRequestsProvider.notifier).refresh(),
         ),
       ),
@@ -59,17 +59,35 @@ class _RequestsBody extends ConsumerStatefulWidget {
 
 class _RequestsBodyState extends ConsumerState<_RequestsBody> {
   String _selectedFilter = 'الكل';
+  String _searchQuery = '';
 
   List<AdminNetworkRequest> get _filteredRequests {
     final status = AdminRequestsScreen._filters[_selectedFilter];
-    if (status == null) return widget.requests;
-    return widget.requests.where((r) => r.status == status).toList();
+    return widget.requests.where((request) {
+      if (status != null && request.status != status) return false;
+      if (_searchQuery.isEmpty) return true;
+
+      final searchableText = [
+        request.observedSsidDisplay,
+        request.proposedNetworkName,
+        request.requesterName,
+        request.governorate,
+        request.city,
+        request.district,
+      ].whereType<String>().join(' ').toLowerCase();
+
+      return searchableText.contains(_searchQuery);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        AdminSearchField(
+          hintText: 'ابحث بالاسم أو SSID أو مقدم الطلب أو المدينة',
+          onChanged: (value) => setState(() => _searchQuery = value),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
