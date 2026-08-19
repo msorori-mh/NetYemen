@@ -3,13 +3,13 @@ import 'package:netyemen/features/admin/presentation/admin_access.dart';
 
 void main() {
   group('AdminAccessPolicy', () {
-    test('platform admin receives the complete console capability set', () {
+    test('platform admin receives all capabilities', () {
       final capabilities = AdminAccessPolicy.resolve(const ['platform_admin']);
 
       expect(capabilities, AdminAccessPolicy.allCapabilities);
     });
 
-    test('finance officer is isolated to payment and settlement operations', () {
+    test('finance role is limited to money operations', () {
       final capabilities = AdminAccessPolicy.resolve(const ['finance_officer']);
 
       expect(
@@ -23,7 +23,7 @@ void main() {
       expect(capabilities.contains(AdminCapability.cardVault), isFalse);
     });
 
-    test('support agent cannot reach finance or catalog administration', () {
+    test('support role cannot reach finance or catalog', () {
       final capabilities = AdminAccessPolicy.resolve(const ['support_agent']);
 
       expect(
@@ -37,7 +37,7 @@ void main() {
       expect(capabilities.contains(AdminCapability.networks), isFalse);
     });
 
-    test('system auditor receives read-only overview and audit capabilities', () {
+    test('auditor receives overview and audit', () {
       final capabilities = AdminAccessPolicy.resolve(const ['system_auditor']);
 
       expect(
@@ -49,13 +49,13 @@ void main() {
       );
     });
 
-    test('customer and owner roles receive no admin capabilities', () {
+    test('customer and owner have no admin capabilities', () {
       expect(AdminAccessPolicy.resolve(const ['customer']), isEmpty);
       expect(AdminAccessPolicy.resolve(const ['network_owner']), isEmpty);
       expect(AdminAccessPolicy.resolve(const ['network_operator']), isEmpty);
     });
 
-    test('multiple roles produce the union of their capabilities', () {
+    test('multiple roles combine capabilities', () {
       final capabilities = AdminAccessPolicy.resolve(
         const ['support_agent', 'finance_officer'],
       );
