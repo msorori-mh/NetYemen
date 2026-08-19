@@ -36,8 +36,8 @@ dependencies:
   permission_handler: ^11.3.1
 
   # Push notifications (FCM token registration only; no server secrets)
-  firebase_core: ^2.24.0
-  firebase_messaging: ^14.7.0
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 dev_dependencies:
   flutter_test:
