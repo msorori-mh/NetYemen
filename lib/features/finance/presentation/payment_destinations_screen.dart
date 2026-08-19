@@ -27,7 +27,9 @@ class PaymentDestinationsScreen extends ConsumerWidget {
         child: destinationsAsync.when(
           data: (destinations) => _DestinationList(destinations: destinations),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('خطأ: $e')),
+          error: (_, __) => const Center(
+            child: Text('تعذر تحميل وجهات الدفع. حاول مرة أخرى.'),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -95,13 +97,13 @@ class _DestinationList extends ConsumerWidget {
                   icon: const Icon(Icons.arrow_upward),
                   onPressed: index == 0
                       ? null
-                      : () => _move(ref, sorted, index, index - 1),
+                      : () => _move(context, ref, sorted, index, index - 1),
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_downward),
                   onPressed: index == sorted.length - 1
                       ? null
-                      : () => _move(ref, sorted, index, index + 1),
+                      : () => _move(context, ref, sorted, index, index + 1),
                 ),
                 Switch(
                   value: isActive,
@@ -134,6 +136,7 @@ class _DestinationList extends ConsumerWidget {
   }
 
   Future<void> _move(
+    BuildContext context,
     WidgetRef ref,
     List<Map<String, dynamic>> sorted,
     int fromIndex,
@@ -143,9 +146,19 @@ class _DestinationList extends ConsumerWidget {
     final item = reordered.removeAt(fromIndex);
     reordered.insert(toIndex, item);
     final orderedIds = reordered.map((d) => d['id'] as String).toList();
-    final repo = ref.read(financeRepositoryProvider);
-    await repo.reorderPaymentDestinations(orderedIds);
-    ref.invalidate(paymentDestinationsProvider);
+    try {
+      final repo = ref.read(financeRepositoryProvider);
+      await repo.reorderPaymentDestinations(orderedIds);
+      ref.invalidate(paymentDestinationsProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر إعادة ترتيب وجهات الدفع. حاول مرة أخرى.'),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _toggleActive(
@@ -154,15 +167,40 @@ class _DestinationList extends ConsumerWidget {
     String id,
     bool active,
   ) async {
+    if (!active) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('تعطيل وجهة الدفع'),
+          content: const Text(
+            'لن تظهر هذه الوجهة للعملاء بعد التعطيل. هل تريد المتابعة؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('تعطيل'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
+
     try {
       final repo = ref.read(financeRepositoryProvider);
       await repo.setPaymentDestinationActive(id, active);
       ref.invalidate(paymentDestinationsProvider);
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحديث وجهة الدفع. حاول مرة أخرى.'),
+          ),
+        );
       }
     }
   }
@@ -274,11 +312,13 @@ class _DestinationEditorState extends ConsumerState<_DestinationEditor> {
       }
       widget.onSaved();
       if (mounted) Navigator.of(context).pop();
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر حفظ وجهة الدفع. تحقق من البيانات وحاول مجدداً.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
