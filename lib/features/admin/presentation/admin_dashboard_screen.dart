@@ -294,9 +294,12 @@ class _NavigationSection extends StatelessWidget {
           subtitle: 'متابعة الحالات ومؤشرات SLA',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const SupportQueueScreen(
-                includeClosed: true,
-                title: 'الإشراف على الدعم',
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.support},
+                child: SupportQueueScreen(
+                  includeClosed: true,
+                  title: 'الإشراف على الدعم',
+                ),
               ),
             ),
           ),
@@ -349,7 +352,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'المستخدمون والعضويات',
           subtitle: 'الأدوار وعضويات الشبكات',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminUsersScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.users},
+                child: AdminUsersScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.audit))
@@ -358,7 +366,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'سجل التدقيق',
           subtitle: 'الأحداث والعمليات الإدارية',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminAuditScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.audit},
+                child: AdminAuditScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.notifications))
@@ -368,7 +381,10 @@ class _NavigationSection extends StatelessWidget {
           subtitle: 'إنشاء الإعلانات ومراجعة التسليم',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const AdminNotificationComposerScreen(),
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.notifications},
+                child: AdminNotificationComposerScreen(),
+              ),
             ),
           ),
         ),
@@ -379,7 +395,10 @@ class _NavigationSection extends StatelessWidget {
           subtitle: 'إدارة قنوات الإيداع والدفع',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const PaymentDestinationsScreen(),
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.payments},
+                child: PaymentDestinationsScreen(),
+              ),
             ),
           ),
         ),
@@ -389,7 +408,12 @@ class _NavigationSection extends StatelessWidget {
           title: 'دفعات التسوية',
           subtitle: 'الإنشاء والاعتماد وتسجيل الدفع',
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SettlementBatchesScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.settlements},
+                child: SettlementBatchesScreen(),
+              ),
+            ),
           ),
         ),
       if (capabilities.contains(AdminCapability.cardVault))
@@ -399,7 +423,10 @@ class _NavigationSection extends StatelessWidget {
           subtitle: 'استيراد دفعات مشفرة دون عرض الأسرار',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const AdminCardVaultIngestScreen(),
+              builder: (_) => const AdminAccessGate(
+                anyOf: {AdminCapability.cardVault},
+                child: AdminCardVaultIngestScreen(),
+              ),
             ),
           ),
         ),
