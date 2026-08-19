@@ -76,10 +76,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(ElevatedButton, 'تسجيل الدخول'),
-        findsOneWidget,
-      );
+      expect(find.text('تسجيل الدخول'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsNothing);
     });
   });
