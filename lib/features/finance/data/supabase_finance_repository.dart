@@ -40,6 +40,14 @@ class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getPaymentDestinations() async {
+    final result = await _client.rpc('admin_get_payment_destinations');
+    return (result as List<dynamic>)
+        .map((row) => row as Map<String, dynamic>)
+        .toList();
+  }
+
+  @override
   Future<Map<String, dynamic>> createPaymentDestination({
     required String providerType,
     required String displayName,
