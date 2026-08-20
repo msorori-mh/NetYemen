@@ -53,11 +53,26 @@ fail-closed: missing secrets stop the job before any database or build action.
 
 Configure these secrets in the protected `admin-production` GitHub environment:
 
-- `SUPABASE_ACCESS_TOKEN`
-- `SUPABASE_PROJECT_REF`
-- `SUPABASE_DB_PASSWORD`
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
+1. Open `Repository > Settings > Environments` and create
+   `admin-production`.
+2. Add required reviewers and disable self-approval when the repository plan
+   supports deployment protection rules.
+3. Add the following environment secrets. Never add their values to workflow
+   YAML, repository variables, issues, PR comments, or build artifacts.
+
+| Secret | Authoritative source |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | Supabase account settings > Access Tokens |
+| `SUPABASE_PROJECT_REF` | Project dashboard URL; expected WASEL NET ref: `pgiidgoafajfpcnlmzde` |
+| `SUPABASE_DB_PASSWORD` | Supabase project > Database settings |
+| `SUPABASE_URL` | Supabase project > API settings |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase project > API keys; publishable key only |
+
+The workflow file must exist on the repository default branch before GitHub
+enables its manual `Run workflow` control. While PR #15 remains a draft, the
+source and ordinary CI gates can be reviewed, but the protected remote preflight
+remains `HOLD`. Do not merge merely to expose the button; merge only after the
+PR release decision is independently approved.
 
 The workflow links the project, compares migration history, runs linked database
 lint, and performs `db push --dry-run`. It never applies migrations. It then
