@@ -45,6 +45,25 @@ without production credentials as a structural build gate and uploads the
 The Flutter capability gate controls navigation only. PostgreSQL RLS and guarded
 RPC functions remain authoritative.
 
+## Manual release preflight
+
+The `.github/workflows/admin-release-gate.yml` workflow is the only approved CI
+entry point for producing an administration release candidate. It is manual and
+fail-closed: missing secrets stop the job before any database or build action.
+
+Configure these secrets in the protected `admin-production` GitHub environment:
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+The workflow links the project, compares migration history, runs linked database
+lint, and performs `db push --dry-run`. It never applies migrations. It then
+builds the release web console and uploads both the release candidate and the
+preflight evidence. It does not build an Android APK.
+
 ## Release gate
 
 Before hosting the console:
