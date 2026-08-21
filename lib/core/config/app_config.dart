@@ -48,9 +48,10 @@ class AppConfig {
   String? get adminPasswordRecoveryCallbackUrl {
     final uri = adminPasswordRecoveryRedirectUri;
     if (uri == null) return null;
-    return uri
-        .replace(queryParameters: {...uri.queryParameters, 'mode': 'recovery'})
-        .toString();
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'mode': 'recovery'
+    }).toString();
   }
 
   bool get hasValidAdminPasswordRecoveryRedirectUrl {

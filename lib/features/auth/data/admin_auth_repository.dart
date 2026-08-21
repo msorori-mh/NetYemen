@@ -66,7 +66,8 @@ class DisabledAdminAuthRepository implements AdminAuthRepository {
   Future<void> requestPasswordRecovery({
     required String email,
     required String redirectUrl,
-  }) => Future.error(_unavailable());
+  }) =>
+      Future.error(_unavailable());
 
   @override
   Future<void> updatePassword(String password) => Future.error(_unavailable());

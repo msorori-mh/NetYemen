@@ -158,12 +158,12 @@ void main() {
 }
 
 User testUser() => User(
-  id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
-  appMetadata: const {},
-  userMetadata: const {},
-  aud: 'authenticated',
-  createdAt: DateTime.now().toIso8601String(),
-);
+      id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
+      appMetadata: const {},
+      userMetadata: const {},
+      aud: 'authenticated',
+      createdAt: DateTime.now().toIso8601String(),
+    );
 
 class FakeAdminAuthRepository implements AdminAuthRepository {
   String? signInEmail;

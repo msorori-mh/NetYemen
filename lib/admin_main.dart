@@ -73,8 +73,7 @@ class AdminConsoleApp extends StatelessWidget {
     }
 
     return UnconfiguredScreen(
-      message:
-          environment?.errorMessage ??
+      message: environment?.errorMessage ??
           'لوحة الإدارة غير معدّة. يلزم إعداد اتصال Supabase.',
     );
   }

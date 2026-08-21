@@ -28,21 +28,18 @@ class _AdminAuthCoordinatorState extends ConsumerState<AdminAuthCoordinator> {
     super.initState();
     final config = ref.read(appConfigProvider);
     if (config.isConfigured) {
-      _authSubscription = ref
-          .read(adminAuthRepositoryProvider)
-          .events
-          .listen(
-            (event) {
-              if (event == AdminAuthEvent.passwordRecovery && mounted) {
-                setState(() => _isPasswordRecovery = true);
-              }
-            },
-            onError: (Object _, StackTrace __) {
-              debugPrint(
-                'Admin auth event stream unavailable; using URL fallback.',
-              );
-            },
+      _authSubscription = ref.read(adminAuthRepositoryProvider).events.listen(
+        (event) {
+          if (event == AdminAuthEvent.passwordRecovery && mounted) {
+            setState(() => _isPasswordRecovery = true);
+          }
+        },
+        onError: (Object _, StackTrace __) {
+          debugPrint(
+            'Admin auth event stream unavailable; using URL fallback.',
           );
+        },
+      );
     }
   }
 
@@ -190,9 +187,7 @@ class _AdminEmailSignInScreenState
     });
 
     try {
-      await ref
-          .read(adminAuthRepositoryProvider)
-          .signIn(
+      await ref.read(adminAuthRepositoryProvider).signIn(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
@@ -286,10 +281,10 @@ class _AdminEmailSignInScreenState
               onPressed: _isLoading
                   ? null
                   : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AdminForgotPasswordScreen(),
+                        MaterialPageRoute(
+                          builder: (_) => const AdminForgotPasswordScreen(),
+                        ),
                       ),
-                    ),
               child: const Text('نسيت كلمة المرور؟'),
             ),
           ],
@@ -338,9 +333,7 @@ class _AdminForgotPasswordScreenState
 
     try {
       final callbackUrl = config.adminPasswordRecoveryCallbackUrl!;
-      await ref
-          .read(adminAuthRepositoryProvider)
-          .requestPasswordRecovery(
+      await ref.read(adminAuthRepositoryProvider).requestPasswordRecovery(
             email: _emailController.text.trim(),
             redirectUrl: callbackUrl,
           );

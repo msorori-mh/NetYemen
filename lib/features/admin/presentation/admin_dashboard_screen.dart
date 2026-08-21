@@ -86,8 +86,7 @@ class _ConsoleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFinanceOnly =
-        capabilities.contains(AdminCapability.payments) &&
+    final isFinanceOnly = capabilities.contains(AdminCapability.payments) &&
         !capabilities.contains(AdminCapability.overview);
 
     return Card(
@@ -217,8 +216,8 @@ class _KpiGrid extends StatelessWidget {
         final columns = constraints.maxWidth >= 1100
             ? 4
             : constraints.maxWidth >= 700
-            ? 3
-            : 2;
+                ? 3
+                : 2;
         const spacing = 12.0;
         final width =
             (constraints.maxWidth - (columns - 1) * spacing) / columns;
@@ -458,8 +457,8 @@ class _NavigationSection extends StatelessWidget {
             final columns = constraints.maxWidth >= 1050
                 ? 3
                 : constraints.maxWidth >= 650
-                ? 2
-                : 1;
+                    ? 2
+                    : 1;
             const spacing = 12.0;
             final width =
                 (constraints.maxWidth - (columns - 1) * spacing) / columns;
