@@ -136,6 +136,28 @@ void main() {
       expect(admin.roles, contains('platform_admin'));
     });
 
+    test('test onboarding approval activates owner atomically', () async {
+      final applications =
+          await repository.fetchPendingTestOnboardingApplications();
+      final ownerApplication = applications.firstWhere(
+        (application) => application.requestedAccountType == 'network_owner',
+      );
+
+      await repository.reviewTestOnboardingApplication(
+        applicationId: ownerApplication.id,
+        decision: 'approve',
+        reason: 'TEST_ONLY identity matched',
+      );
+
+      expect(
+          await repository.fetchPendingTestOnboardingApplications(), isEmpty);
+      final owner = (await repository.fetchUsers()).firstWhere(
+        (user) => user.id == ownerApplication.userId,
+      );
+      expect(owner.accountStatus, 'active');
+      expect(owner.roles, contains('network_owner'));
+    });
+
     test('fetchNetworkMemberships returns memberships', () async {
       final memberships = await repository.fetchNetworkMemberships();
       expect(memberships, isNotEmpty);

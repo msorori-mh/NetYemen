@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:netyemen/app/app_shell.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/auth/domain/customer_auth.dart';
 import 'package:netyemen/providers/app_providers.dart';
@@ -45,7 +44,8 @@ void main() {
     expect(find.textContaining('سيُنشأ الحساب كزبون أولاً'), findsOneWidget);
   });
 
-  testWidgets('submits the complete customer signup journey and enters app', (
+  testWidgets('submits the complete customer signup form and confirms pending',
+      (
     tester,
   ) async {
     final service = FakeSupabaseService();
@@ -106,10 +106,6 @@ void main() {
     expect(registration.password, 'Pilot1234');
     expect(registration.inviteCode, 'TEST-INVITE-1234');
     expect(find.text('تم إنشاء الحساب الاختباري'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(FilledButton, 'متابعة'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AppShell), findsOneWidget);
   });
 
   testWidgets('offline picker records a private approximate location', (

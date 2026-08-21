@@ -69,7 +69,7 @@ void main() {
     expect(find.text('تم تعليق الحساب'), findsNothing);
   });
 
-  testWidgets('admin approves owner tester through dedicated review path', (
+  testWidgets('admin sees dedicated owner review boundary before approval', (
     tester,
   ) async {
     final repository = FakeAdminRepository();
@@ -98,19 +98,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('ليس تحققاً برسالة هاتف'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const Key('test-onboarding-review-reason')),
-      'تمت مطابقة هوية المختبر',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'اعتماد'));
+    expect(find.widgetWithText(FilledButton, 'اعتماد'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'إلغاء'));
     await tester.pumpAndSettle();
 
-    expect(find.text('تم اعتماد الحساب التجريبي'), findsOneWidget);
-    expect(await repository.fetchPendingTestOnboardingApplications(), isEmpty);
+    expect(
+      await repository.fetchPendingTestOnboardingApplications(),
+      isNotEmpty,
+    );
     final owner = (await repository.fetchUsers()).firstWhere(
       (user) => user.id == 'user-test-owner-1',
     );
-    expect(owner.accountStatus, 'active');
-    expect(owner.roles, contains('network_owner'));
+    expect(owner.accountStatus, 'pending_verification');
+    expect(owner.roles, isNot(contains('network_owner')));
   });
 }
