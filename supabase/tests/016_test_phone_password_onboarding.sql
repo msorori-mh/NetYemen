@@ -91,6 +91,8 @@ BEGIN
         RAISE EXCEPTION 'ONBOARD-04 FAIL: unexpected application state %', v_result;
     END IF;
 
+    -- Inspect privileged role/audit tables as the test harness, not service_role.
+    EXECUTE 'SET LOCAL ROLE postgres';
     SELECT count(*) INTO v_count
     FROM public.user_roles
     WHERE user_id = v_test_user AND role = 'network_owner';
