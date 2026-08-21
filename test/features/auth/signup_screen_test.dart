@@ -100,7 +100,8 @@ void main() {
       scrollable: scrollable,
     );
     await tester.tap(find.byKey(const Key('signup-submit')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     final registration = service.registration;
     expect(registration, isNotNull);
