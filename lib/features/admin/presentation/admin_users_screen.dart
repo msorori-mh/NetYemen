@@ -207,7 +207,7 @@ class _TestOnboardingCard extends ConsumerWidget {
     WidgetRef ref, {
     required bool approve,
   }) async {
-    final reasonController = TextEditingController();
+    var reason = '';
     final decision = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -224,8 +224,8 @@ class _TestOnboardingCard extends ConsumerWidget {
             const SizedBox(height: 12),
             TextField(
               key: const Key('test-onboarding-review-reason'),
-              controller: reasonController,
               maxLength: 500,
+              onChanged: (value) => reason = value,
               decoration: InputDecoration(
                 labelText: approve ? 'ملاحظة اختيارية' : 'سبب الرفض',
               ),
@@ -239,7 +239,7 @@ class _TestOnboardingCard extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () {
-              if (!approve && reasonController.text.trim().isEmpty) return;
+              if (!approve && reason.trim().isEmpty) return;
               Navigator.of(dialogContext).pop(true);
             },
             child: Text(approve ? 'اعتماد' : 'رفض الطلب'),
@@ -247,15 +247,14 @@ class _TestOnboardingCard extends ConsumerWidget {
         ],
       ),
     );
-    final reason = reasonController.text.trim();
-    reasonController.dispose();
     if (decision != true || !context.mounted) return;
+    final trimmedReason = reason.trim();
 
     try {
       await ref.read(adminTestOnboardingProvider.notifier).review(
             applicationId: application.id,
             decision: approve ? 'approve' : 'reject',
-            reason: reason.isEmpty ? null : reason,
+            reason: trimmedReason.isEmpty ? null : trimmedReason,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

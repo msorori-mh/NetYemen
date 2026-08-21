@@ -75,6 +75,11 @@ void main() {
       scrollable: scrollable,
     );
     await tester.tap(find.byKey(const Key('offline-location-picker')));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('signup-location-consent')),
+      200,
+      scrollable: scrollable,
+    );
     await tester.tap(find.byKey(const Key('signup-location-consent')));
 
     await tester.scrollUntilVisible(
