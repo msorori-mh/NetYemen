@@ -14,11 +14,11 @@ if (-not $status.DB_URL -or $status.DB_URL -notmatch '127\.0\.0\.1|localhost') {
     throw 'LOCAL_ONLY guard failed: refusing to run without loopback Supabase.'
 }
 
-$expectedTests = 1..16 | ForEach-Object { '{0:D3}' -f $_ }
+$expectedTests = 1..17 | ForEach-Object { '{0:D3}' -f $_ }
 $tests = Get-ChildItem 'supabase/tests/*.sql' | Sort-Object Name
 $actualTests = $tests | ForEach-Object { $_.BaseName.Substring(0,3) }
 if (Compare-Object $expectedTests $actualTests) {
-    throw "SQL suite numbering must be unique and contiguous 001..016: $($actualTests -join ', ')"
+    throw "SQL suite numbering must be unique and contiguous 001..017: $($actualTests -join ', ')"
 }
 
 npx supabase db reset --no-seed 2>&1 | Out-Null
