@@ -1,4 +1,5 @@
 import 'package:netyemen/models/user_model.dart';
+import 'package:netyemen/features/auth/domain/customer_auth.dart';
 import 'package:netyemen/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,6 +12,15 @@ class FakeSupabaseService extends SupabaseService {
   User? verifyResult;
   Exception? verifyException;
 
+  String? passwordPhone;
+  String? passwordValue;
+  User? passwordResult;
+  Exception? passwordException;
+
+  TestAccountRegistration? registration;
+  User? registrationResult;
+  Exception? registrationException;
+
   bool signOutCalled = false;
   AppUser? profileToReturn;
 
@@ -22,6 +32,26 @@ class FakeSupabaseService extends SupabaseService {
       throw verifyException!;
     }
     return AuthResponse(user: verifyResult, session: null);
+  }
+
+  @override
+  Future<AuthResponse> signInWithPhonePassword({
+    required String phone,
+    required String password,
+  }) async {
+    passwordPhone = phone;
+    passwordValue = password;
+    if (passwordException != null) throw passwordException!;
+    return AuthResponse(user: passwordResult, session: null);
+  }
+
+  @override
+  Future<AuthResponse> registerTestAccount(
+    TestAccountRegistration value,
+  ) async {
+    registration = value;
+    if (registrationException != null) throw registrationException!;
+    return AuthResponse(user: registrationResult, session: null);
   }
 
   @override

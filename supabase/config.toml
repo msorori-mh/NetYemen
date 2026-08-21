@@ -61,3 +61,8 @@ enabled = true
 account_sid = "TEST_ONLY_ACCOUNT_SID"
 message_service_sid = "TEST_ONLY_MESSAGE_SERVICE_SID"
 auth_token = "TEST_ONLY_AUTH_TOKEN"
+
+# The function is intentionally callable before login. Its own expiring invite,
+# optional phone allowlist, and disabled-by-default server switch are mandatory.
+[functions.test-onboarding]
+verify_jwt = false
