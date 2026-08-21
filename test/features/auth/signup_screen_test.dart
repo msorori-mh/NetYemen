@@ -37,7 +37,7 @@ void main() {
   ) async {
     await tester.pumpWidget(buildScreen());
     final picker = find.byKey(const Key('offline-location-picker'));
-    await tester.scrollUntilVisible(picker, 350);
+    await tester.ensureVisible(picker);
     await tester.tapAt(tester.getCenter(picker));
     await tester.pump();
 
