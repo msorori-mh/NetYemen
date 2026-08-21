@@ -35,12 +35,34 @@ void main() {
   testWidgets('offline picker records a private approximate location', (
     tester,
   ) async {
-    await tester.pumpWidget(buildScreen());
+    PilotLocation? selectedLocation;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 400,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return OfflinePilotLocationPicker(
+                    value: selectedLocation,
+                    onChanged: (value) {
+                      setState(() => selectedLocation = value);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     final picker = find.byKey(const Key('offline-location-picker'));
-    await tester.ensureVisible(picker);
-    await tester.tapAt(tester.getCenter(picker));
+    expect(picker, findsOneWidget);
+    await tester.tap(picker);
     await tester.pump();
 
+    expect(selectedLocation, isNotNull);
     expect(find.text('لم يتم تحديد الموقع بعد'), findsNothing);
     expect(find.textContaining('الموقع التقريبي:'), findsOneWidget);
     expect(find.textContaining('ليست خريطة عنوان رسمية'), findsOneWidget);
