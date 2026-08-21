@@ -10,8 +10,9 @@ Write-Host "================================================================" -F
 
 $violations = @()
 
-$searchRoot = "C:/projects/NetYemen-kimi-commerce"
-$commerceMigrations = Get-ChildItem -Path "$searchRoot/supabase/migrations" -Filter *commerce*.sql -ErrorAction SilentlyContinue
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$migrationsRoot = Join-Path $repoRoot "supabase/migrations"
+$commerceMigrations = Get-ChildItem -Path $migrationsRoot -Filter *commerce*.sql -ErrorAction SilentlyContinue
 $allSql = ($commerceMigrations | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 
 # Required tables
