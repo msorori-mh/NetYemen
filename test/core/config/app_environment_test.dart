@@ -45,5 +45,37 @@ void main() {
       const config = AppConfig(supabaseUrl: '', supabasePublishableKey: '');
       expect(config.isDemoMode || config.isReleaseUnconfigured, isTrue);
     });
+
+    test(
+      'admin recovery redirect requires HTTPS outside local development',
+      () {
+        const secureConfig = AppConfig(
+          supabaseUrl: 'https://example.supabase.co',
+          supabasePublishableKey: 'anon-key',
+          adminPasswordRecoveryRedirectUrl: 'https://admin.example.com',
+        );
+        const localConfig = AppConfig(
+          supabaseUrl: 'https://example.supabase.co',
+          supabasePublishableKey: 'anon-key',
+          adminPasswordRecoveryRedirectUrl: 'http://localhost:7357',
+        );
+        const insecureConfig = AppConfig(
+          supabaseUrl: 'https://example.supabase.co',
+          supabasePublishableKey: 'anon-key',
+          adminPasswordRecoveryRedirectUrl: 'http://admin.example.com',
+        );
+
+        expect(secureConfig.hasValidAdminPasswordRecoveryRedirectUrl, isTrue);
+        expect(
+          secureConfig.adminPasswordRecoveryCallbackUrl,
+          'https://admin.example.com?mode=recovery',
+        );
+        expect(localConfig.hasValidAdminPasswordRecoveryRedirectUrl, isTrue);
+        expect(
+          insecureConfig.hasValidAdminPasswordRecoveryRedirectUrl,
+          isFalse,
+        );
+      },
+    );
   });
 }

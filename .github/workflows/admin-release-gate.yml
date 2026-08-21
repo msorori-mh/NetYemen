@@ -23,12 +23,13 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      ADMIN_PASSWORD_RECOVERY_REDIRECT_URL: ${{ vars.ADMIN_PASSWORD_RECOVERY_REDIRECT_URL }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify Required Release Secrets
+      - name: Verify Required Release Configuration
         shell: bash
         run: |
           set -euo pipefail
@@ -37,9 +38,10 @@ jobs:
             SUPABASE_PROJECT_REF \
             SUPABASE_DB_PASSWORD \
             SUPABASE_URL \
-            SUPABASE_PUBLISHABLE_KEY; do
+            SUPABASE_PUBLISHABLE_KEY \
+            ADMIN_PASSWORD_RECOVERY_REDIRECT_URL; do
             if [ -z "${!name:-}" ]; then
-              echo "::error::Required admin release secret is missing: $name"
+              echo "::error::Required admin release configuration is missing: $name"
               exit 1
             fi
           done
@@ -105,7 +107,8 @@ jobs:
         run: |
           flutter build web --release --target lib/admin_main.dart \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL="$ADMIN_PASSWORD_RECOVERY_REDIRECT_URL"
 
       - name: Upload Admin Release Candidate
         uses: actions/upload-artifact@v4

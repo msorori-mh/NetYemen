@@ -20,7 +20,8 @@ Dart define, browser build, repository file, or CI artifact.
 ```powershell
 flutter run -d chrome --target lib/admin_main.dart `
   --dart-define=SUPABASE_URL=<project-url> `
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key>
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key> `
+  --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL=<admin-origin>
 ```
 
 ## Production build
@@ -28,7 +29,8 @@ flutter run -d chrome --target lib/admin_main.dart `
 ```powershell
 flutter build web --release --target lib/admin_main.dart `
   --dart-define=SUPABASE_URL=<project-url> `
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key>
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key> `
+  --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL=<admin-origin>
 ```
 
 The output is written to `build/web`. GitHub Actions also compiles the console
@@ -67,6 +69,35 @@ Configure these secrets in the protected `admin-production` GitHub environment:
 | `SUPABASE_DB_PASSWORD` | Supabase project > Database settings |
 | `SUPABASE_URL` | Supabase project > API settings |
 | `SUPABASE_PUBLISHABLE_KEY` | Supabase project > API keys; publishable key only |
+
+Create the public protected-environment variable
+`ADMIN_PASSWORD_RECOVERY_REDIRECT_URL` with the exact HTTPS origin of the
+hosted administration console. For local testing only, `http://localhost` or
+`http://127.0.0.1` is accepted. The release build fails closed when the value is
+missing. The console adds `mode=recovery` to the callback query automatically.
+
+## Administration authentication and password recovery
+
+The administration entry point uses email and password authentication. The
+customer Android entry point remains phone OTP only; the two user experiences
+must not share a login screen.
+
+Before testing password recovery:
+
+1. Add the exact generated callback URL, for example
+   `https://admin.example.com?mode=recovery`, to
+   `Authentication > URL Configuration` in the Supabase dashboard.
+2. Set the same origin in the protected environment variable
+   `ADMIN_PASSWORD_RECOVERY_REDIRECT_URL`.
+3. Request password recovery from the administration console itself. The
+   dashboard-level `Send password recovery` button uses the project Site URL and
+   must not be used as evidence for this console unless that Site URL is the
+   administration origin.
+4. Open the email link in the same browser, set a new password, and sign in
+   again. The console signs the recovery session out after the password update.
+
+Never place a password, service-role key, recovery token, or email-link URL in
+the repository, CI logs, issues, or PR comments.
 
 The workflow file must exist on the repository default branch before GitHub
 enables its manual `Run workflow` control. While PR #15 remains a draft, the
