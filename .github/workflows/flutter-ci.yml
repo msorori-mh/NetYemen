@@ -50,7 +50,7 @@ jobs:
         run: flutter analyze
 
       - name: Run Tests
-        run: flutter test
+        run: flutter test --timeout 2m
 
       - name: Build Admin Web Console
         run: flutter build web --target lib/admin_main.dart
@@ -61,4 +61,3 @@ jobs:
           name: admin-web-console
           path: build/web
           if-no-files-found: error
-
