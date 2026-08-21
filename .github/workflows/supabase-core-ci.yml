@@ -66,10 +66,10 @@ jobs:
         run: |
           npx --yes supabase@2.109.1 db reset --no-seed
 
-      - name: Run Full SQL Contract and E2E Suite (001-016)
+      - name: Run Full SQL Contract and E2E Suite (001-017)
         run: |
           set -euo pipefail
-          for test_file in supabase/tests/{001..016}_*.sql; do
+          for test_file in supabase/tests/{001..017}_*.sql; do
             echo "Running $test_file"
             PGPASSWORD=postgres psql \
               "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \

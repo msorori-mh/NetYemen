@@ -8,6 +8,7 @@ class FakeAdminRepository implements AdminRepository {
   final List<AdminSsidAlias> _aliases = [];
   final List<AdminPackageInventory> _packages = [];
   final List<AdminUser> _users = [];
+  final List<AdminTestOnboardingApplication> _testOnboardingApplications = [];
   final List<AdminNetworkMembership> _memberships = [];
   final List<AdminAuditEvent> _auditEvents = [];
 
@@ -203,7 +204,28 @@ class FakeAdminRepository implements AdminRepository {
         accountStatus: 'active',
         roles: ['customer', 'network_operator'],
       ),
+      const AdminUser(
+        id: 'user-test-owner-1',
+        fullName: 'مختبر صاحب شبكة',
+        accountStatus: 'pending_verification',
+        roles: ['customer'],
+      ),
     ]);
+
+    _testOnboardingApplications.add(
+      AdminTestOnboardingApplication(
+        id: 'test-onboarding-owner-1',
+        userId: 'user-test-owner-1',
+        requestedAccountType: 'network_owner',
+        verificationState: 'test_only_pending',
+        ownerReviewStatus: 'pending',
+        governorate: 'مأرب',
+        city: 'مدينة مأرب',
+        createdAt: now.subtract(const Duration(hours: 2)),
+        applicantName: 'مختبر صاحب شبكة',
+        accountStatus: 'pending_verification',
+      ),
+    );
 
     _memberships.addAll([
       AdminNetworkMembership(
@@ -507,6 +529,55 @@ class FakeAdminRepository implements AdminRepository {
   Future<List<AdminUser>> fetchUsers() async {
     await Future.delayed(const Duration(milliseconds: 200));
     return List.of(_users);
+  }
+
+  @override
+  Future<List<AdminTestOnboardingApplication>>
+      fetchPendingTestOnboardingApplications() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return List.of(_testOnboardingApplications);
+  }
+
+  @override
+  Future<void> reviewTestOnboardingApplication({
+    required String applicationId,
+    required String decision,
+    String? reason,
+  }) async {
+    final applicationIndex = _testOnboardingApplications.indexWhere(
+      (application) => application.id == applicationId,
+    );
+    if (applicationIndex == -1) throw StateError('طلب التسجيل غير موجود');
+    if (decision != 'approve' && decision != 'reject') {
+      throw ArgumentError.value(decision, 'decision');
+    }
+    if (decision == 'reject' && (reason ?? '').trim().isEmpty) {
+      throw ArgumentError('سبب الرفض مطلوب');
+    }
+
+    final application = _testOnboardingApplications[applicationIndex];
+    final userIndex =
+        _users.indexWhere((user) => user.id == application.userId);
+    if (userIndex == -1) throw StateError('المستخدم غير موجود');
+    final user = _users[userIndex];
+    final roles = List<String>.of(user.roles);
+    if (decision == 'approve' &&
+        application.requestedAccountType == 'network_owner' &&
+        !roles.contains('network_owner')) {
+      roles.add('network_owner');
+    }
+    _users[userIndex] = AdminUser(
+      id: user.id,
+      fullName: user.fullName,
+      accountStatus: decision == 'approve' ? 'active' : 'suspended',
+      roles: roles,
+    );
+    _testOnboardingApplications.removeAt(applicationIndex);
+    _recordAudit(
+      'ADMIN_REVIEW_TEST_ONBOARDING',
+      'test_onboarding_application',
+      applicationId,
+    );
   }
 
   @override

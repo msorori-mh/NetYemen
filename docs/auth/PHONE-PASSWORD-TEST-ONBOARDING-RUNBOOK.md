@@ -17,11 +17,18 @@ phone-verification design.
 4. The auth trigger creates the profile atomically as
    `pending_verification`, and the service-only RPC stores the private location
    and requested account type.
-5. Flutter signs in with phone and password.
+5. Flutter signs in with phone and password, but guarded operations remain
+   blocked while the profile is pending.
+6. A platform administrator reviews the dedicated tester application. An
+   approval activates the profile as `test_admin_approved`; a rejection
+   suspends it. This state is explicitly not phone verification.
 
 Selecting `network_owner` creates `owner_review_status=pending`. It never adds
-the `network_owner` role. Every new identity receives only the baseline
-`customer` role.
+the `network_owner` role during signup. Every new identity receives only the
+baseline `customer` role. The role is granted atomically only when a platform
+administrator approves that dedicated owner application. The owner must then
+create a network draft through the normal flow; approval does not create a
+network or membership automatically.
 
 ## Fail-closed controls
 
@@ -45,17 +52,24 @@ the `network_owner` role. Every new identity receives only the baseline
 
 Each item requires a separate release authorization and evidence:
 
-1. Apply `20260821090000_netyemen_test_phone_password_onboarding.sql`.
-2. Run SQL contract `016_test_phone_password_onboarding.sql` and database lint.
+1. Apply `20260821090000_netyemen_test_phone_password_onboarding.sql` and then
+   `20260821120000_netyemen_admin_test_onboarding_review.sql`.
+2. Run SQL contracts `016_test_phone_password_onboarding.sql` and
+   `017_admin_test_onboarding_review.sql`, then database lint.
 3. Deploy `test-onboarding` with JWT verification disabled only for this
    invite-protected endpoint.
 4. Set the server secrets and a short expiry. Prefer a phone allowlist.
-5. Smoke-test one customer and one owner-request identity.
-6. Verify both profiles remain pending, no owner role was granted, and the
-   audit event exists.
+5. Smoke-test one customer and one owner-request identity; verify both remain
+   pending before review and neither receives an owner role during signup.
+6. Review the customer through the dedicated admin action and verify its
+   profile becomes active with `test_admin_approved`.
+7. Review the owner request and verify the role is granted only with the
+   atomic approval audit event; then create a normal network draft.
+8. Reject a disposable test identity and verify its profile is suspended and
+   a second decision is blocked.
 
 Do not enable the Flutter signup entry point against production until steps
-1–6 pass.
+1–8 pass.
 
 ## Password recovery during the outage
 

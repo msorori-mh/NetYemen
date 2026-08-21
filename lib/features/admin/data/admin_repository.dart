@@ -42,6 +42,21 @@ abstract class AdminRepository {
   /// Fetch all users and their platform roles.
   Future<List<AdminUser>> fetchUsers();
 
+  /// Fetch controlled test-onboarding applications awaiting admin review.
+  Future<List<AdminTestOnboardingApplication>>
+      fetchPendingTestOnboardingApplications() async {
+    return const [];
+  }
+
+  /// Review a controlled tester atomically; owner role is only granted here.
+  Future<void> reviewTestOnboardingApplication({
+    required String applicationId,
+    required String decision,
+    String? reason,
+  }) {
+    throw UnsupportedError('Test onboarding review is not supported');
+  }
+
   /// Replace all administratively assignable roles in one atomic operation.
   Future<void> replaceUserPlatformRoles({
     required String userId,

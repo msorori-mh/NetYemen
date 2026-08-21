@@ -68,4 +68,49 @@ void main() {
 
     expect(find.text('تم تعليق الحساب'), findsNothing);
   });
+
+  testWidgets('admin approves owner tester through dedicated review path', (
+    tester,
+  ) async {
+    final repository = FakeAdminRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          adminRepositoryProvider.overrideWithValue(repository),
+          currentUserRolesProvider.overrideWith(
+            (_) => const ['platform_admin'],
+          ),
+        ],
+        child: const MaterialApp(home: AdminUsersScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 طلب بانتظار قرار المدير'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('test-onboarding-section')));
+    await tester.pumpAndSettle();
+    final approve = find.byKey(
+      const Key('approve-test-onboarding-test-onboarding-owner-1'),
+    );
+    await tester.ensureVisible(approve);
+    await tester.tap(approve);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ليس تحققاً برسالة هاتف'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('test-onboarding-review-reason')),
+      'تمت مطابقة هوية المختبر',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'اعتماد'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('تم اعتماد الحساب التجريبي'), findsOneWidget);
+    expect(await repository.fetchPendingTestOnboardingApplications(), isEmpty);
+    final owner = (await repository.fetchUsers()).firstWhere(
+      (user) => user.id == 'user-test-owner-1',
+    );
+    expect(owner.accountStatus, 'active');
+    expect(owner.roles, contains('network_owner'));
+  });
 }

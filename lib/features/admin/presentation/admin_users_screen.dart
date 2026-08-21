@@ -11,6 +11,14 @@ class AdminUsersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(adminUsersProvider);
+    final onboardingAsync = ref.watch(adminTestOnboardingProvider);
+
+    Future<void> refreshAll() async {
+      await Future.wait([
+        ref.read(adminUsersProvider.notifier).refresh(),
+        ref.read(adminTestOnboardingProvider.notifier).refresh(),
+      ]);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -18,14 +26,15 @@ class AdminUsersScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(adminUsersProvider.notifier).refresh(),
+            onPressed: refreshAll,
           ),
         ],
       ),
       body: usersAsync.when(
         data: (users) => _UsersBody(
           users: users,
-          onRefresh: () => ref.read(adminUsersProvider.notifier).refresh(),
+          onboardingAsync: onboardingAsync,
+          onRefresh: refreshAll,
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => AdminErrorState(
@@ -39,31 +48,233 @@ class AdminUsersScreen extends ConsumerWidget {
 
 class _UsersBody extends StatelessWidget {
   final List<AdminUser> users;
+  final AsyncValue<List<AdminTestOnboardingApplication>> onboardingAsync;
   final Future<void> Function() onRefresh;
 
-  const _UsersBody({required this.users, required this.onRefresh});
+  const _UsersBody({
+    required this.users,
+    required this.onboardingAsync,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: users.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 120),
-                AdminEmptyState(
-                  title: 'لا يوجد مستخدمين',
-                  subtitle: 'لم يتم العثور على مستخدمين في النظام',
-                ),
-              ],
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          _TestOnboardingSection(applicationsAsync: onboardingAsync),
+          const SizedBox(height: 12),
+          if (users.isEmpty)
+            const AdminEmptyState(
+              title: 'لا يوجد مستخدمين',
+              subtitle: 'لم يتم العثور على مستخدمين في النظام',
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: users.length,
-              itemBuilder: (_, i) => _UserCard(user: users[i]),
-            ),
+          else
+            ...users.map((user) => _UserCard(user: user)),
+        ],
+      ),
     );
+  }
+}
+
+class _TestOnboardingSection extends ConsumerWidget {
+  final AsyncValue<List<AdminTestOnboardingApplication>> applicationsAsync;
+
+  const _TestOnboardingSection({required this.applicationsAsync});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return applicationsAsync.when(
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: LinearProgressIndicator(),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: ListTile(
+          leading: const Icon(Icons.error_outline, color: AppTheme.error),
+          title: const Text('تعذر تحميل طلبات التسجيل التجريبي'),
+          trailing: IconButton(
+            tooltip: 'إعادة المحاولة',
+            onPressed: () =>
+                ref.read(adminTestOnboardingProvider.notifier).refresh(),
+            icon: const Icon(Icons.refresh),
+          ),
+        ),
+      ),
+      data: (applications) => Card(
+        child: ExpansionTile(
+          key: const Key('test-onboarding-section'),
+          initiallyExpanded: false,
+          leading: const Icon(Icons.fact_check_outlined),
+          title: const Text('طلبات التسجيل التجريبي'),
+          subtitle: Text(
+            applications.isEmpty
+                ? 'لا توجد طلبات معلّقة'
+                : '${applications.length} طلب بانتظار قرار المدير',
+          ),
+          children: applications.isEmpty
+              ? const [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Text('جميع طلبات المختبرين تمت مراجعتها.'),
+                  ),
+                ]
+              : applications
+                  .map(
+                    (application) => _TestOnboardingCard(
+                      application: application,
+                    ),
+                  )
+                  .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _TestOnboardingCard extends ConsumerWidget {
+  final AdminTestOnboardingApplication application;
+
+  const _TestOnboardingCard({required this.application});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.border),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                application.displayName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'النوع المطلوب: ${application.requestedAccountTypeLabel}',
+              ),
+              Text(
+                  'الموقع المعلن: ${application.governorate} — ${application.city}'),
+              if (application.requestedAccountType == 'network_owner')
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text(
+                    'الموافقة تفعّل الحساب وتمنح دور صاحب الشبكة، لكنها لا تنشئ شبكة تلقائياً.',
+                    style: TextStyle(
+                      color: AppTheme.warning,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [
+                  FilledButton.icon(
+                    key: Key('approve-test-onboarding-${application.id}'),
+                    onPressed: () => _review(context, ref, approve: true),
+                    icon: const Icon(Icons.check),
+                    label: const Text('موافقة'),
+                  ),
+                  OutlinedButton.icon(
+                    key: Key('reject-test-onboarding-${application.id}'),
+                    onPressed: () => _review(context, ref, approve: false),
+                    icon: const Icon(Icons.close),
+                    label: const Text('رفض'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _review(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool approve,
+  }) async {
+    final reasonController = TextEditingController();
+    final decision = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(approve ? 'اعتماد الحساب التجريبي' : 'رفض الحساب التجريبي'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              approve
+                  ? 'سيتم تفعيل حساب ${application.displayName}. هذا اعتماد اختباري إداري وليس تحققاً برسالة هاتف.'
+                  : 'سيتم رفض الطلب وتعليق الحساب. اكتب سبباً واضحاً للمراجعة.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('test-onboarding-review-reason'),
+              controller: reasonController,
+              maxLength: 500,
+              decoration: InputDecoration(
+                labelText: approve ? 'ملاحظة اختيارية' : 'سبب الرفض',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (!approve && reasonController.text.trim().isEmpty) return;
+              Navigator.of(dialogContext).pop(true);
+            },
+            child: Text(approve ? 'اعتماد' : 'رفض الطلب'),
+          ),
+        ],
+      ),
+    );
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+    if (decision != true || !context.mounted) return;
+
+    try {
+      await ref.read(adminTestOnboardingProvider.notifier).review(
+            applicationId: application.id,
+            decision: approve ? 'approve' : 'reject',
+            reason: reason.isEmpty ? null : reason,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              approve ? 'تم اعتماد الحساب التجريبي' : 'تم رفض الحساب التجريبي',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      await ref.read(adminTestOnboardingProvider.notifier).refresh();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تعذر حفظ قرار المراجعة. حاول مرة أخرى.')),
+        );
+      }
+    }
   }
 }
 

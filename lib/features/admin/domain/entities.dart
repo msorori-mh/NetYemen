@@ -371,6 +371,59 @@ class AdminUser {
       fullName?.isNotEmpty == true ? fullName! : 'مستخدم $id';
 }
 
+class AdminTestOnboardingApplication {
+  final String id;
+  final String userId;
+  final String requestedAccountType;
+  final String verificationState;
+  final String ownerReviewStatus;
+  final String governorate;
+  final String city;
+  final DateTime createdAt;
+  final String? applicantName;
+  final String? accountStatus;
+
+  const AdminTestOnboardingApplication({
+    required this.id,
+    required this.userId,
+    required this.requestedAccountType,
+    required this.verificationState,
+    required this.ownerReviewStatus,
+    required this.governorate,
+    required this.city,
+    required this.createdAt,
+    this.applicantName,
+    this.accountStatus,
+  });
+
+  factory AdminTestOnboardingApplication.fromJson(
+    Map<String, dynamic> json, {
+    Map<String, dynamic>? profile,
+  }) {
+    return AdminTestOnboardingApplication(
+      id: json['id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      requestedAccountType:
+          json['requested_account_type'] as String? ?? 'customer',
+      verificationState:
+          json['verification_state'] as String? ?? 'test_only_pending',
+      ownerReviewStatus:
+          json['owner_review_status'] as String? ?? 'not_requested',
+      governorate: json['governorate'] as String? ?? '',
+      city: json['city'] as String? ?? '',
+      createdAt: _parseDateTime(json['created_at']),
+      applicantName: profile?['full_name'] as String?,
+      accountStatus: profile?['account_status'] as String?,
+    );
+  }
+
+  String get displayName =>
+      applicantName?.isNotEmpty == true ? applicantName! : 'مستخدم $userId';
+
+  String get requestedAccountTypeLabel =>
+      requestedAccountType == 'network_owner' ? 'صاحب شبكة' : 'زبون';
+}
+
 class AdminNetworkMembership {
   final String networkId;
   final String userId;

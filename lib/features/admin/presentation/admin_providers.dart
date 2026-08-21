@@ -224,6 +224,49 @@ final adminUsersProvider =
   AdminUsersNotifier.new,
 );
 
+final adminTestOnboardingProvider = AsyncNotifierProvider<
+    AdminTestOnboardingNotifier,
+    List<AdminTestOnboardingApplication>>(AdminTestOnboardingNotifier.new);
+
+class AdminTestOnboardingNotifier
+    extends AsyncNotifier<List<AdminTestOnboardingApplication>> {
+  @override
+  Future<List<AdminTestOnboardingApplication>> build() async {
+    return ref
+        .read(adminRepositoryProvider)
+        .fetchPendingTestOnboardingApplications();
+  }
+
+  Future<void> refresh() async {
+    state = await AsyncValue.guard(
+      () => ref
+          .read(adminRepositoryProvider)
+          .fetchPendingTestOnboardingApplications(),
+    );
+  }
+
+  Future<void> review({
+    required String applicationId,
+    required String decision,
+    String? reason,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.reviewTestOnboardingApplication(
+        applicationId: applicationId,
+        decision: decision,
+        reason: reason,
+      );
+      ref.invalidate(adminUsersProvider);
+      state = AsyncData(await repo.fetchPendingTestOnboardingApplications());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+}
+
 class AdminUsersNotifier extends AsyncNotifier<List<AdminUser>> {
   @override
   Future<List<AdminUser>> build() async {

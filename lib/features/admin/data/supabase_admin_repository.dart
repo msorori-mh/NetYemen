@@ -212,6 +212,58 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<List<AdminTestOnboardingApplication>>
+      fetchPendingTestOnboardingApplications() async {
+    final response = await _client
+        .from('test_onboarding_applications')
+        .select(
+          'id, user_id, requested_account_type, verification_state, '
+          'owner_review_status, governorate, city, created_at',
+        )
+        .eq('verification_state', 'test_only_pending')
+        .order('created_at', ascending: true);
+
+    final rows =
+        (response as List).map((item) => item as Map<String, dynamic>).toList();
+    if (rows.isEmpty) return const [];
+
+    final userIds = rows.map((row) => row['user_id'] as String).toList();
+    final profilesResponse = await _client
+        .from('profiles')
+        .select('id, full_name, account_status')
+        .inFilter('id', userIds);
+    final profiles = <String, Map<String, dynamic>>{
+      for (final item in profilesResponse as List)
+        (item as Map<String, dynamic>)['id'] as String: item,
+    };
+
+    return rows
+        .map(
+          (row) => AdminTestOnboardingApplication.fromJson(
+            row,
+            profile: profiles[row['user_id']],
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<void> reviewTestOnboardingApplication({
+    required String applicationId,
+    required String decision,
+    String? reason,
+  }) async {
+    await _client.rpc<Map<String, dynamic>>(
+      'admin_review_test_onboarding',
+      params: {
+        'p_application_id': applicationId,
+        'p_decision': decision,
+        'p_reason': reason,
+      },
+    );
+  }
+
+  @override
   Future<void> replaceUserPlatformRoles({
     required String userId,
     required Set<String> roles,
