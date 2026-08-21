@@ -249,6 +249,7 @@ class _TestOnboardingCard extends ConsumerWidget {
     );
     if (decision != true || !context.mounted) return;
     final trimmedReason = reason.trim();
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await ref.read(adminTestOnboardingProvider.notifier).review(
@@ -256,8 +257,8 @@ class _TestOnboardingCard extends ConsumerWidget {
             decision: approve ? 'approve' : 'reject',
             reason: trimmedReason.isEmpty ? null : trimmedReason,
           );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (messenger.mounted) {
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               approve ? 'تم اعتماد الحساب التجريبي' : 'تم رفض الحساب التجريبي',
@@ -267,8 +268,8 @@ class _TestOnboardingCard extends ConsumerWidget {
       }
     } catch (_) {
       await ref.read(adminTestOnboardingProvider.notifier).refresh();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (messenger.mounted) {
+        messenger.showSnackBar(
           const SnackBar(
               content: Text('تعذر حفظ قرار المراجعة. حاول مرة أخرى.')),
         );
