@@ -102,14 +102,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'إلغاء'));
     await tester.pumpAndSettle();
 
-    expect(
-      await repository.fetchPendingTestOnboardingApplications(),
-      isNotEmpty,
-    );
-    final owner = (await repository.fetchUsers()).firstWhere(
-      (user) => user.id == 'user-test-owner-1',
-    );
-    expect(owner.accountStatus, 'pending_verification');
-    expect(owner.roles, isNot(contains('network_owner')));
+    expect(find.text('اعتماد الحساب التجريبي'), findsNothing);
+    expect(find.text('1 طلب بانتظار قرار المدير'), findsOneWidget);
   });
 }
