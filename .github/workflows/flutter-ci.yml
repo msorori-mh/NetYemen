@@ -50,7 +50,7 @@ jobs:
         run: flutter analyze
 
       - name: Run Tests
-        run: flutter test --timeout 2m
+        run: timeout 4m flutter test --timeout 2m --reporter expanded
 
       - name: Build Admin Web Console
         run: flutter build web --target lib/admin_main.dart
