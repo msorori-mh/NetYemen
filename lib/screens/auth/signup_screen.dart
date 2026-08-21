@@ -54,9 +54,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await ref
-          .read(supabaseServiceProvider)
-          .registerTestAccount(
+      await ref.read(supabaseServiceProvider).registerTestAccount(
             TestAccountRegistration(
               fullName: _fullNameController.text,
               phone: _phoneController.text,
@@ -206,7 +204,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 onChanged: _isLoading
                     ? null
                     : (value) =>
-                          setState(() => _accountType = value ?? _accountType),
+                        setState(() => _accountType = value ?? _accountType),
               ),
               if (_accountType == RequestedAccountType.networkOwner)
                 const Padding(
@@ -296,7 +294,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 onChanged: _isLoading
                     ? null
                     : (value) =>
-                          setState(() => _locationConsent = value ?? false),
+                        setState(() => _locationConsent = value ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
@@ -389,11 +387,9 @@ class OfflinePilotLocationPicker extends StatelessWidget {
                       .toDouble();
                   onChanged(
                     PilotLocation(
-                      latitude:
-                          _maximumLatitude -
+                      latitude: _maximumLatitude -
                           y * (_maximumLatitude - _minimumLatitude),
-                      longitude:
-                          _minimumLongitude +
+                      longitude: _minimumLongitude +
                           x * (_maximumLongitude - _minimumLongitude),
                     ),
                   );
@@ -416,11 +412,9 @@ class OfflinePilotLocationPicker extends StatelessWidget {
                       ),
                       if (value != null)
                         Positioned(
-                          left:
-                              _xFor(value!.longitude) * constraints.maxWidth -
+                          left: _xFor(value!.longitude) * constraints.maxWidth -
                               18,
-                          top:
-                              _yFor(value!.latitude) * constraints.maxHeight -
+                          top: _yFor(value!.latitude) * constraints.maxHeight -
                               36,
                           child: const Icon(
                             Icons.location_pin,
@@ -455,11 +449,10 @@ class OfflinePilotLocationPicker extends StatelessWidget {
     );
   }
 
-  double _xFor(double longitude) =>
-      ((longitude - _minimumLongitude) /
-              (_maximumLongitude - _minimumLongitude))
-          .clamp(0.0, 1.0)
-          .toDouble();
+  double _xFor(double longitude) => ((longitude - _minimumLongitude) /
+          (_maximumLongitude - _minimumLongitude))
+      .clamp(0.0, 1.0)
+      .toDouble();
 
   double _yFor(double latitude) =>
       ((_maximumLatitude - latitude) / (_maximumLatitude - _minimumLatitude))

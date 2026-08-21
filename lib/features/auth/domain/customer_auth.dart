@@ -2,14 +2,14 @@ enum RequestedAccountType { customer, networkOwner }
 
 extension RequestedAccountTypeWire on RequestedAccountType {
   String get wireValue => switch (this) {
-    RequestedAccountType.customer => 'customer',
-    RequestedAccountType.networkOwner => 'network_owner',
-  };
+        RequestedAccountType.customer => 'customer',
+        RequestedAccountType.networkOwner => 'network_owner',
+      };
 
   String get arabicLabel => switch (this) {
-    RequestedAccountType.customer => 'زبون',
-    RequestedAccountType.networkOwner => 'صاحب شبكة',
-  };
+        RequestedAccountType.customer => 'زبون',
+        RequestedAccountType.networkOwner => 'صاحب شبكة',
+      };
 }
 
 class TestAccountRegistration {
@@ -38,17 +38,17 @@ class TestAccountRegistration {
   });
 
   Map<String, Object?> toFunctionBody() => {
-    'full_name': fullName.trim(),
-    'phone': normalizeYemeniPhone(phone),
-    'password': password,
-    'requested_account_type': requestedAccountType.wireValue,
-    'governorate': governorate.trim(),
-    'city': city.trim(),
-    'latitude': latitude,
-    'longitude': longitude,
-    'location_accuracy_m': locationAccuracyMeters,
-    'invite_code': inviteCode.trim(),
-  };
+        'full_name': fullName.trim(),
+        'phone': normalizeYemeniPhone(phone),
+        'password': password,
+        'requested_account_type': requestedAccountType.wireValue,
+        'governorate': governorate.trim(),
+        'city': city.trim(),
+        'latitude': latitude,
+        'longitude': longitude,
+        'location_accuracy_m': locationAccuracyMeters,
+        'invite_code': inviteCode.trim(),
+      };
 }
 
 String normalizeYemeniPhone(String input) {

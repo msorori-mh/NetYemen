@@ -35,9 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final phone = normalizeYemeniPhone(_phoneController.text);
-      await ref
-          .read(supabaseServiceProvider)
-          .signInWithPhonePassword(
+      await ref.read(supabaseServiceProvider).signInWithPhonePassword(
             phone: phone,
             password: _passwordController.text,
           );
@@ -107,7 +105,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 20),
                     Text(
                       'تسجيل الدخول',
-                      style: Theme.of(context).textTheme.headlineMedium
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -185,10 +185,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _isLoading
                           ? null
                           : () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SignupScreen(),
+                                MaterialPageRoute(
+                                  builder: (_) => const SignupScreen(),
+                                ),
                               ),
-                            ),
                       child: const Text('إنشاء حساب للمختبرين'),
                     ),
                     const SizedBox(height: 8),
