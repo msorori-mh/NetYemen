@@ -178,6 +178,31 @@ void main() {
     expect(find.textContaining('أعضاء المؤسسة'), findsOneWidget);
   });
 
+  testWidgets('unknown recovery failure exposes safe debug code and status', (
+    tester,
+  ) async {
+    final repository = FakeAdminAuthRepository(
+      recoveryError: const AuthException(
+        'Unexpected recovery failure',
+        statusCode: '500',
+        code: 'unexpected_failure',
+      ),
+    );
+    await tester.pumpWidget(
+      buildScreen(const AdminForgotPasswordScreen(), repository: repository),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('admin-recovery-email-field')),
+      'admin@example.com',
+    );
+    await tester.tap(find.byKey(const Key('admin-send-recovery-button')));
+    await tester.pump();
+
+    expect(find.textContaining('code=unexpected_failure'), findsOneWidget);
+    expect(find.textContaining('status=500'), findsOneWidget);
+  });
+
   testWidgets('recovery redirect rejection identifies configuration gate', (
     tester,
   ) async {
