@@ -102,6 +102,47 @@ void main() {
     );
   });
 
+  testWidgets('recovery rate limit shows an actionable safe message', (
+    tester,
+  ) async {
+    final repository = FakeAdminAuthRepository(
+      recoveryError: const AuthException('Email rate limit exceeded'),
+    );
+    await tester.pumpWidget(
+      buildScreen(const AdminForgotPasswordScreen(), repository: repository),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('admin-recovery-email-field')),
+      'admin@example.com',
+    );
+    await tester.tap(find.byKey(const Key('admin-send-recovery-button')));
+    await tester.pump();
+
+    expect(find.textContaining('انتظر ساعة'), findsOneWidget);
+    expect(find.textContaining('admin@example.com'), findsNothing);
+  });
+
+  testWidgets('recovery redirect rejection identifies configuration gate', (
+    tester,
+  ) async {
+    final repository = FakeAdminAuthRepository(
+      recoveryError: const AuthException('Redirect URL is not allowed'),
+    );
+    await tester.pumpWidget(
+      buildScreen(const AdminForgotPasswordScreen(), repository: repository),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('admin-recovery-email-field')),
+      'admin@example.com',
+    );
+    await tester.tap(find.byKey(const Key('admin-send-recovery-button')));
+    await tester.pump();
+
+    expect(find.textContaining('Redirect URLs'), findsOneWidget);
+  });
+
   testWidgets('new password must match before update', (tester) async {
     final repository = FakeAdminAuthRepository();
     await tester.pumpWidget(
@@ -166,12 +207,15 @@ User testUser() => User(
     );
 
 class FakeAdminAuthRepository implements AdminAuthRepository {
+  final Object? recoveryError;
   String? signInEmail;
   String? signInPassword;
   String? recoveryEmail;
   String? recoveryRedirectUrl;
   String? updatedPassword;
   bool didSignOut = false;
+
+  FakeAdminAuthRepository({this.recoveryError});
 
   @override
   Stream<AdminAuthEvent> get events => const Stream.empty();
@@ -189,6 +233,7 @@ class FakeAdminAuthRepository implements AdminAuthRepository {
   }) async {
     recoveryEmail = email;
     recoveryRedirectUrl = redirectUrl;
+    if (recoveryError != null) throw recoveryError!;
   }
 
   @override
