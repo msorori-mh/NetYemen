@@ -11,11 +11,25 @@ $supabaseUrl = "https://$projectRef.supabase.co"
 $recoveryRedirectUrl = "http://localhost:$Port"
 $publishableKey = $env:WASELNET_SUPABASE_PUBLISHABLE_KEY
 
+if (-not [string]::IsNullOrWhiteSpace($publishableKey)) {
+    $publishableKey = $publishableKey.Trim()
+}
+
 if ([string]::IsNullOrWhiteSpace($publishableKey)) {
     throw @'
 HOLD: WASELNET_SUPABASE_PUBLISHABLE_KEY is not set.
 Set it only in this PowerShell session, then rerun this script.
 Do not paste the key into source code, GitHub, screenshots, or chat.
+'@
+}
+
+$isPublishableKey = $publishableKey.StartsWith('sb_publishable_')
+$isLegacyAnonJwt = $publishableKey.StartsWith('eyJ')
+if (-not ($isPublishableKey -or $isLegacyAnonJwt)) {
+    throw @'
+HOLD: WASELNET_SUPABASE_PUBLISHABLE_KEY is not a Supabase client key.
+Copy the Publishable key (or legacy anon key) from Project Settings > API Keys.
+Do not enter an account password, service-role key, or secret key.
 '@
 }
 
