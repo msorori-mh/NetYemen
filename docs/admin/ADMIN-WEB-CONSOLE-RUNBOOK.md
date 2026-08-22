@@ -96,6 +96,13 @@ Before testing password recovery:
 4. Open the email link in the same browser, set a new password, and sign in
    again. The console signs the recovery session out after the password update.
 
+The Supabase built-in SMTP service is a development fallback: it only delivers
+to addresses belonging to members of the Supabase organization and is limited
+to two project-wide auth emails per hour. A production administration console
+must use a custom SMTP provider. If the console reports the email-send limit,
+stop retrying until one hour has passed; repeated requests extend the incident
+and do not prove that the callback is valid.
+
 Never place a password, service-role key, recovery token, or email-link URL in
 the repository, CI logs, issues, or PR comments.
 
