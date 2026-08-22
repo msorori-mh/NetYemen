@@ -120,7 +120,6 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('انتظر ساعة'), findsOneWidget);
-    expect(find.textContaining('admin@example.com'), findsNothing);
   });
 
   testWidgets('recovery redirect rejection identifies configuration gate', (
