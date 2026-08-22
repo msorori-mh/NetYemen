@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -345,9 +346,15 @@ class _AdminForgotPasswordScreenState
           );
       if (mounted) setState(() => _emailSent = true);
     } on AuthException catch (error) {
+      debugPrint(
+        'ADMIN_AUTH_RECOVERY_FAILURE '
+        'code=${error.code ?? 'none'} '
+        'status=${error.statusCode ?? 'none'} '
+        'message=${error.message}',
+      );
       if (mounted) {
         setState(() {
-          _errorMessage = _adminRecoveryErrorMessage(error);
+          _errorMessage = _adminRecoveryDisplayMessage(error);
         });
       }
     } catch (_) {
@@ -635,6 +642,20 @@ String? _validateEmail(String? value) {
     return 'أدخل بريدًا إلكترونيًا صحيحًا';
   }
   return null;
+}
+
+String _adminRecoveryDisplayMessage(AuthException error) {
+  final friendlyMessage = _adminRecoveryErrorMessage(error);
+  if (!kDebugMode ||
+      !friendlyMessage.startsWith(
+        'تعذر إرسال رابط الاستعادة. تحقق من إعدادات Auth',
+      )) {
+    return friendlyMessage;
+  }
+
+  return '$friendlyMessage\n'
+      '[Auth code=${error.code ?? 'none'}, '
+      'status=${error.statusCode ?? 'none'}]';
 }
 
 String _adminRecoveryErrorMessage(AuthException error) {
