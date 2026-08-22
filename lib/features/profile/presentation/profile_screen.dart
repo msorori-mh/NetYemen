@@ -198,7 +198,8 @@ class ProfileScreen extends ConsumerWidget {
                   color: AppTheme.error,
                 ),
                 title: const Text('حذف الحساب'),
-                subtitle: const Text('إغلاق الحساب وطلب إزالة البيانات الشخصية'),
+                subtitle:
+                    const Text('إغلاق الحساب وطلب إزالة البيانات الشخصية'),
                 trailing: const Icon(Icons.chevron_left),
                 onTap: config.isConfigured
                     ? () => Navigator.of(context).push(

@@ -93,8 +93,7 @@ class AccountDeletionScreen extends ConsumerStatefulWidget {
       _AccountDeletionScreenState();
 }
 
-class _AccountDeletionScreenState
-    extends ConsumerState<AccountDeletionScreen> {
+class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
   static const confirmationPhrase = 'حذف حسابي';
 
   final _reasonController = TextEditingController();
@@ -154,9 +153,7 @@ class _AccountDeletionScreenState
                 : _reasonController.text.trim(),
           );
       try {
-        await ref
-            .read(fcmTokenServiceProvider)
-            .stop(deactivateToken: true);
+        await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
       } finally {
         await ref.read(supabaseServiceProvider).signOut();
       }
@@ -188,7 +185,8 @@ class _AccountDeletionScreenState
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Icon(Icons.person_remove_outlined, size: 56, color: AppTheme.error),
+          const Icon(Icons.person_remove_outlined,
+              size: 56, color: AppTheme.error),
           const SizedBox(height: 16),
           const Text(
             'قبل حذف الحساب',
