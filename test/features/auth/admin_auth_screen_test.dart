@@ -151,7 +151,7 @@ void main() {
     await tester.tap(find.byKey(const Key('admin-send-recovery-button')));
     await tester.pump();
 
-    expect(find.textContaining('انتظر ساعة'), findsOneWidget);
+    expect(find.textContaining('مرور ساعة'), findsOneWidget);
   });
 
   testWidgets('default SMTP restriction shows the exact recovery action', (
