@@ -17,6 +17,20 @@ they have separate bootstrap paths.
 Use publishable client configuration only. Never place a service-role key in a
 Dart define, browser build, repository file, or CI artifact.
 
+For the WASEL NET production pilot, use the fail-closed launcher. It verifies the
+exact branch is synchronized with its remote head, pins project
+`pgiidgoafajfpcnlmzde`, and pins the local recovery origin to port `7357`
+without printing or storing the publishable key.
+
+```powershell
+$env:WASELNET_SUPABASE_PUBLISHABLE_KEY = '<publishable-key>'
+.\scripts\run_waselnet_admin_local.ps1
+```
+
+Set the environment value only in the local PowerShell session. Clear it when the
+test is complete. Do not send it in chat or place it in command history on a
+shared workstation.
+
 ```powershell
 flutter run -d chrome --target lib/admin_main.dart `
   --dart-define=SUPABASE_URL=<project-url> `
