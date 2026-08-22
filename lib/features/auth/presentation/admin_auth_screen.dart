@@ -192,11 +192,16 @@ class _AdminEmailSignInScreenState
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
+    } on AuthException catch (error) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = _adminSignInErrorMessage(error);
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _errorMessage =
-              'تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور وحالة الحساب.';
+          _errorMessage = 'تعذر الاتصال بخدمة تسجيل الدخول. أعد المحاولة.';
         });
       }
     } finally {
@@ -633,13 +638,30 @@ String? _validateEmail(String? value) {
 }
 
 String _adminRecoveryErrorMessage(AuthException error) {
+  final code = error.code?.toLowerCase();
   final message = error.message.toLowerCase();
 
-  if (message.contains('rate limit') ||
+  if (code == 'over_email_send_rate_limit' ||
+      code == 'over_request_rate_limit' ||
+      error.statusCode == '429' ||
+      message.contains('rate limit') ||
       message.contains('too many requests') ||
-      message.contains('429')) {
+      message.contains('429') ||
+      message.contains('can only request this after') ||
+      message.contains('for security purposes')) {
     return 'تم بلوغ حد إرسال رسائل الاستعادة. '
-        'انتظر ساعة من آخر محاولة ثم أعد الطلب مرة واحدة.';
+        'انتظر حتى مرور ساعة من آخر المحاولات ثم أعد الطلب مرة واحدة.';
+  }
+
+  if (code == 'email_address_not_authorized' ||
+      message.contains('email address not authorized') ||
+      message.contains('email address is not authorized')) {
+    return 'البريد غير مصرح له عبر خدمة البريد الافتراضية في Supabase. '
+        'أضف البريد إلى أعضاء المؤسسة أو فعّل SMTP مخصصًا.';
+  }
+
+  if (code == 'email_provider_disabled') {
+    return 'تسجيل الدخول بالبريد معطل في Supabase Auth. فعّل Email provider.';
   }
 
   if (message.contains('redirect') &&
@@ -657,4 +679,30 @@ String _adminRecoveryErrorMessage(AuthException error) {
 
   return 'تعذر إرسال رابط الاستعادة. '
       'تحقق من إعدادات Auth ثم أعد المحاولة.';
+}
+
+String _adminSignInErrorMessage(AuthException error) {
+  final code = error.code?.toLowerCase();
+  final message = error.message.toLowerCase();
+
+  if (code == 'email_not_confirmed' || message.contains('not confirmed')) {
+    return 'البريد الإداري غير مؤكد. أكّد البريد في Supabase Auth ثم أعد الدخول.';
+  }
+
+  if (code == 'user_banned' || message.contains('banned')) {
+    return 'الحساب الإداري موقوف. راجع حالة المستخدم في Supabase Auth.';
+  }
+
+  if (code == 'over_request_rate_limit' ||
+      error.statusCode == '429' ||
+      message.contains('too many requests')) {
+    return 'تم بلوغ حد محاولات الدخول. انتظر عدة دقائق ثم حاول مرة واحدة.';
+  }
+
+  if (code == 'invalid_credentials' ||
+      message.contains('invalid login credentials')) {
+    return 'البريد أو كلمة المرور غير صحيحة.';
+  }
+
+  return 'تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور وحالة الحساب.';
 }
