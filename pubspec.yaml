@@ -35,6 +35,9 @@ dependencies:
   # Android notification permission UX (no push-provider SDK / secrets)
   permission_handler: ^11.3.1
 
+  # Public privacy and account-deletion links required by store policy
+  url_launcher: ^6.3.2
+
   # Push notifications (FCM token registration only; no server secrets)
   firebase_core: ^4.13.0
   firebase_messaging: ^16.5.0

@@ -66,3 +66,6 @@ auth_token = "TEST_ONLY_AUTH_TOKEN"
 # optional phone allowlist, and disabled-by-default server switch are mandatory.
 [functions.test-onboarding]
 verify_jwt = false
+
+[functions.public-legal]
+verify_jwt = false

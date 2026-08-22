@@ -13,6 +13,7 @@ import '../../network_requests/presentation/my_requests_screen.dart';
 import '../../packages/presentation/owner_dashboard_screen.dart';
 import '../../support/presentation/support_screens.dart';
 import '../../wallet/presentation/deposit_history_screen.dart';
+import 'legal_and_deletion_screens.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -170,18 +171,44 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const Card(
+          Card(
             child: ListTile(
-              leading: Icon(
+              leading: const Icon(
                 Icons.privacy_tip_outlined,
                 color: AppTheme.primary,
               ),
-              title: Text('الخصوصية'),
-              subtitle: Text(
+              title: const Text('الخصوصية'),
+              subtitle: const Text(
                 'لا يتم رفع BSSID أو هوية الجهاز أو إحداثيات الموقع',
+              ),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PrivacyPolicyScreen(),
+                ),
               ),
             ),
           ),
+          if (user != null)
+            Card(
+              child: ListTile(
+                key: const Key('account-deletion-entry'),
+                leading: const Icon(
+                  Icons.person_remove_outlined,
+                  color: AppTheme.error,
+                ),
+                title: const Text('حذف الحساب'),
+                subtitle: const Text('إغلاق الحساب وطلب إزالة البيانات الشخصية'),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: config.isConfigured
+                    ? () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AccountDeletionScreen(),
+                          ),
+                        )
+                    : null,
+              ),
+            ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,

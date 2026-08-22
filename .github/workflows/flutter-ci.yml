@@ -49,8 +49,43 @@ jobs:
       - name: Analyze Static Code
         run: flutter analyze
 
+      - name: Scan Release Readiness Guards
+        shell: pwsh
+        run: ./scripts/scan_waselnet_release_readiness.ps1
+
       - name: Run Tests
         run: timeout 4m flutter test --timeout 2m --reporter expanded
+
+      - name: Create Ephemeral CI Upload Key
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/ci-upload-keystore.jks \
+            -storepass ci-only-password \
+            -alias waselnet-ci \
+            -keypass ci-only-password \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=WASEL NET CI, OU=TEST ONLY, O=SysTrac, C=YE"
+          cat > android/key.properties <<'EOF'
+          storeFile=ci-upload-keystore.jks
+          storePassword=ci-only-password
+          keyAlias=waselnet-ci
+          keyPassword=ci-only-password
+          EOF
+
+      - name: Build Android Release Readiness Bundle
+        run: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL=https://example.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=ci-publishable-key \
+            --dart-define=PRIVACY_POLICY_URL=https://example.com/privacy \
+            --dart-define=ACCOUNT_DELETION_URL=https://example.com/delete-account
+
+      - name: Remove Ephemeral CI Upload Key
+        if: always()
+        run: |
+          rm -f android/key.properties android/ci-upload-keystore.jks
 
       - name: Build Admin Web Console
         run: flutter build web --target lib/admin_main.dart

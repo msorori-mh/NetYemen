@@ -77,5 +77,30 @@ void main() {
         );
       },
     );
+
+    test('public legal URLs require non-local HTTPS endpoints', () {
+      const valid = AppConfig(
+        supabaseUrl: 'https://example.supabase.co',
+        supabasePublishableKey: 'anon-key',
+        privacyPolicyUrl: 'https://legal.example.com/privacy',
+        accountDeletionUrl: 'https://legal.example.com/delete-account',
+      );
+      const insecure = AppConfig(
+        supabaseUrl: 'https://example.supabase.co',
+        supabasePublishableKey: 'anon-key',
+        privacyPolicyUrl: 'http://legal.example.com/privacy',
+        accountDeletionUrl: 'https://legal.example.com/delete-account',
+      );
+      const local = AppConfig(
+        supabaseUrl: 'https://example.supabase.co',
+        supabasePublishableKey: 'anon-key',
+        privacyPolicyUrl: 'https://localhost/privacy',
+        accountDeletionUrl: 'https://localhost/delete-account',
+      );
+
+      expect(valid.hasValidPublicLegalUrls, isTrue);
+      expect(insecure.hasValidPublicLegalUrls, isFalse);
+      expect(local.hasValidPublicLegalUrls, isFalse);
+    });
   });
 }

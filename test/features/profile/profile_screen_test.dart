@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/profile/presentation/profile_screen.dart';
+import 'package:netyemen/features/profile/presentation/legal_and_deletion_screens.dart';
 import 'package:netyemen/providers/app_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -60,6 +61,13 @@ void main() {
         findsOneWidget,
       );
       expect(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'), findsNothing);
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('account-deletion-entry')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.byKey(const Key('account-deletion-entry')), findsOneWidget);
     });
 
     testWidgets('shows sign-in button for unauthenticated user', (
@@ -78,6 +86,22 @@ void main() {
 
       expect(find.text('تسجيل الدخول'), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'تسجيل الخروج'), findsNothing);
+      expect(find.byKey(const Key('account-deletion-entry')), findsNothing);
+    });
+
+    testWidgets('privacy entry opens the in-app policy', (tester) async {
+      await tester.pumpWidget(buildScreen(user: null));
+
+      await tester.scrollUntilVisible(
+        find.text('الخصوصية'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('الخصوصية'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
+      expect(find.text('خصوصيتك في واصل نت'), findsOneWidget);
     });
   });
 }

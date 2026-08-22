@@ -4,11 +4,15 @@ class AppConfig {
   final String supabaseUrl;
   final String supabasePublishableKey;
   final String adminPasswordRecoveryRedirectUrl;
+  final String privacyPolicyUrl;
+  final String accountDeletionUrl;
 
   const AppConfig({
     required this.supabaseUrl,
     required this.supabasePublishableKey,
     this.adminPasswordRecoveryRedirectUrl = '',
+    this.privacyPolicyUrl = '',
+    this.accountDeletionUrl = '',
   });
 
   bool get isConfigured =>
@@ -28,10 +32,20 @@ class AppConfig {
       'ADMIN_PASSWORD_RECOVERY_REDIRECT_URL',
       defaultValue: '',
     );
+    const privacyPolicyUrl = String.fromEnvironment(
+      'PRIVACY_POLICY_URL',
+      defaultValue: '',
+    );
+    const accountDeletionUrl = String.fromEnvironment(
+      'ACCOUNT_DELETION_URL',
+      defaultValue: '',
+    );
     return const AppConfig(
       supabaseUrl: url,
       supabasePublishableKey: key,
       adminPasswordRecoveryRedirectUrl: recoveryRedirectUrl,
+      privacyPolicyUrl: privacyPolicyUrl,
+      accountDeletionUrl: accountDeletionUrl,
     );
   }
 
@@ -71,5 +85,20 @@ class AppConfig {
     if (!isConfigured) return false;
     final uri = supabaseUri;
     return uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  }
+
+  Uri? get privacyPolicyUri => _publicHttpsUri(privacyPolicyUrl);
+
+  Uri? get accountDeletionUri => _publicHttpsUri(accountDeletionUrl);
+
+  bool get hasValidPublicLegalUrls =>
+      privacyPolicyUri != null && accountDeletionUri != null;
+
+  static Uri? _publicHttpsUri(String value) {
+    if (value.isEmpty) return null;
+    final uri = Uri.tryParse(value);
+    if (uri == null || uri.scheme != 'https' || !uri.hasAuthority) return null;
+    if (uri.host == 'localhost' || uri.host == '127.0.0.1') return null;
+    return uri;
   }
 }
