@@ -52,6 +52,34 @@ void main() {
     expect(repository.signInPassword, 'correct-horse-battery-staple');
   });
 
+  testWidgets('invalid admin credentials show a precise safe message', (
+    tester,
+  ) async {
+    final repository = FakeAdminAuthRepository(
+      signInError: const AuthException(
+        'Invalid login credentials',
+        statusCode: '400',
+        code: 'invalid_credentials',
+      ),
+    );
+    await tester.pumpWidget(
+      buildScreen(const AdminEmailSignInScreen(), repository: repository),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('admin-email-field')),
+      'admin@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-password-field')),
+      'wrong-password',
+    );
+    await tester.tap(find.byKey(const Key('admin-sign-in-button')));
+    await tester.pump();
+
+    expect(find.text('البريد أو كلمة المرور غير صحيحة.'), findsOneWidget);
+  });
+
   testWidgets('recovery request uses configured admin origin', (tester) async {
     final repository = FakeAdminAuthRepository();
     await tester.pumpWidget(
@@ -106,7 +134,11 @@ void main() {
     tester,
   ) async {
     final repository = FakeAdminAuthRepository(
-      recoveryError: const AuthException('Email rate limit exceeded'),
+      recoveryError: const AuthException(
+        'Too many emails sent',
+        statusCode: '429',
+        code: 'over_email_send_rate_limit',
+      ),
     );
     await tester.pumpWidget(
       buildScreen(const AdminForgotPasswordScreen(), repository: repository),
@@ -120,6 +152,30 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('انتظر ساعة'), findsOneWidget);
+  });
+
+  testWidgets('default SMTP restriction shows the exact recovery action', (
+    tester,
+  ) async {
+    final repository = FakeAdminAuthRepository(
+      recoveryError: const AuthException(
+        'Email address not authorized',
+        statusCode: '422',
+        code: 'email_address_not_authorized',
+      ),
+    );
+    await tester.pumpWidget(
+      buildScreen(const AdminForgotPasswordScreen(), repository: repository),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('admin-recovery-email-field')),
+      'admin@example.com',
+    );
+    await tester.tap(find.byKey(const Key('admin-send-recovery-button')));
+    await tester.pump();
+
+    expect(find.textContaining('أعضاء المؤسسة'), findsOneWidget);
   });
 
   testWidgets('recovery redirect rejection identifies configuration gate', (
@@ -206,6 +262,7 @@ User testUser() => User(
     );
 
 class FakeAdminAuthRepository implements AdminAuthRepository {
+  final Object? signInError;
   final Object? recoveryError;
   String? signInEmail;
   String? signInPassword;
@@ -214,7 +271,7 @@ class FakeAdminAuthRepository implements AdminAuthRepository {
   String? updatedPassword;
   bool didSignOut = false;
 
-  FakeAdminAuthRepository({this.recoveryError});
+  FakeAdminAuthRepository({this.signInError, this.recoveryError});
 
   @override
   Stream<AdminAuthEvent> get events => const Stream.empty();
@@ -223,6 +280,7 @@ class FakeAdminAuthRepository implements AdminAuthRepository {
   Future<void> signIn({required String email, required String password}) async {
     signInEmail = email;
     signInPassword = password;
+    if (signInError != null) throw signInError!;
   }
 
   @override
