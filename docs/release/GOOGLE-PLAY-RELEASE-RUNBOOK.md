@@ -14,6 +14,34 @@ Google Play receives an Android App Bundle (`.aab`), not the debug APK.
    the protected release environment. It must never be committed.
 6. The signed bundle is smoke-tested on a physical 64-bit Android device.
 
+## Production account-deletion migration gate
+
+Migration 20260822200000_netyemen_account_deletion_requests.sql remains a
+separate production write. Do not infer apply authority from source or CI PASS.
+
+Run the read-only preflight in the WASEL NET SQL Editor before any apply:
+
+~~~powershell
+Get-Content -Raw .\supabase\verification\018_account_deletion_production_preflight.sql | Set-Clipboard
+~~~
+
+Paste only the SQL contents into the SQL Editor. The result must report
+decision=PASS, pending migration 20260822200000, zero existing deletion
+requests, and baseline counts for Auth users, profiles, roles, and push tokens.
+Any exception is HOLD.
+
+After separately authorized migration apply, run:
+
+~~~powershell
+Get-Content -Raw .\supabase\verification\018_account_deletion_production_postverify.sql | Set-Clipboard
+~~~
+
+The post-verify must report the applied migration, forced RLS, correct RPC
+grants, no direct authenticated mutations, zero unexpected deletion requests,
+and unchanged baseline entity counts. Then run linked migration history, DB
+lint, and db push --dry-run. Do not test the RPC with a real account; any later
+E2E must use an exact disposable TEST_ONLY identity and preserve audit evidence.
+
 ## Public legal endpoints
 
 Deploy `supabase/functions/public-legal` with JWT verification disabled, then
