@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
@@ -338,6 +339,12 @@ class _AdminForgotPasswordScreenState
             redirectUrl: callbackUrl,
           );
       if (mounted) setState(() => _emailSent = true);
+    } on AuthException catch (error) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = _adminRecoveryErrorMessage(error);
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -623,4 +630,31 @@ String? _validateEmail(String? value) {
     return 'أدخل بريدًا إلكترونيًا صحيحًا';
   }
   return null;
+}
+
+String _adminRecoveryErrorMessage(AuthException error) {
+  final message = error.message.toLowerCase();
+
+  if (message.contains('rate limit') ||
+      message.contains('too many requests') ||
+      message.contains('429')) {
+    return 'تم بلوغ حد إرسال رسائل الاستعادة. '
+        'انتظر ساعة من آخر محاولة ثم أعد الطلب مرة واحدة.';
+  }
+
+  if (message.contains('redirect') &&
+      (message.contains('allow') || message.contains('not allowed'))) {
+    return 'رابط العودة غير مسموح في إعدادات Supabase Auth. '
+        'أضف رابط لوحة الإدارة إلى Redirect URLs.';
+  }
+
+  if (message.contains('smtp') ||
+      message.contains('email provider') ||
+      message.contains('gomail')) {
+    return 'تعذر تسليم بريد الاستعادة. '
+        'تحقق من إعداد SMTP وسجلات Auth.';
+  }
+
+  return 'تعذر إرسال رابط الاستعادة. '
+      'تحقق من إعدادات Auth ثم أعد المحاولة.';
 }
