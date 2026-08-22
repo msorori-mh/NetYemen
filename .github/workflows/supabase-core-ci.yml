@@ -34,6 +34,8 @@ jobs:
             supabase/tests/002_core_authorization_positive.sql \
             supabase/tests/003_core_authorization_negative.sql \
             supabase/tests/004_core_invariants.sql \
+            supabase/verification/018_account_deletion_production_preflight.sql \
+            supabase/verification/018_account_deletion_production_postverify.sql \
             docs/NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md \
             docs/NETYEMEN-CORE-BACKEND-MIGRATION-MANIFEST-01.md \
             docs/adr/ADR-002-ROLE-AND-RLS-FOUNDATION.md \
@@ -84,6 +86,13 @@ jobs:
               -v ON_ERROR_STOP=1 \
               -f "$test_file"
           done
+
+      - name: Verify Account Deletion Post-Migration Contract
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/verification/018_account_deletion_production_postverify.sql
 
       - name: Execute PowerShell Static Verification Script
         shell: pwsh
