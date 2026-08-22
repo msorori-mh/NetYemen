@@ -51,6 +51,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check Public Legal Edge Function
+        run: deno check supabase/functions/public-legal/index.ts
+
       - name: Disable Analytics in Local Supabase Config
         run: |
           if ! grep -q "\[analytics\]" supabase/config.toml; then
