@@ -89,7 +89,7 @@ COMMIT;
 
 BEGIN;
 
-DO $$
+DO $review$
 DECLARE
     v_admin UUID := 'a6190000-0000-4000-8000-000000000099';
     v_customer_approve_application UUID;
@@ -144,7 +144,7 @@ BEGIN
         'TEST_ONLY disposable negative-path closure'
     );
 END;
-$;
+$review$;
 
 COMMIT;
 
