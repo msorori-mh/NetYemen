@@ -92,8 +92,33 @@ BEGIN;
 DO $$
 DECLARE
     v_admin UUID := 'a6190000-0000-4000-8000-000000000099';
-    v_application UUID;
+    v_customer_approve_application UUID;
+    v_owner_approve_application UUID;
+    v_customer_reject_application UUID;
 BEGIN
+    -- Resolve exact immutable references while still in the postgres test
+    -- context. The authenticated admin intentionally cannot read auth.users.
+    SELECT a.id
+    INTO v_customer_approve_application
+    FROM public.test_onboarding_applications a
+    JOIN auth.users u ON u.id = a.user_id
+    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
+          = '967770000021';
+
+    SELECT a.id
+    INTO v_owner_approve_application
+    FROM public.test_onboarding_applications a
+    JOIN auth.users u ON u.id = a.user_id
+    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
+          = '967770000022';
+
+    SELECT a.id
+    INTO v_customer_reject_application
+    FROM public.test_onboarding_applications a
+    JOIN auth.users u ON u.id = a.user_id
+    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
+          = '967770000023';
+
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_config(
         'request.jwt.claims',
@@ -101,46 +126,25 @@ BEGIN
         true
     );
 
-    SELECT a.id
-    INTO v_application
-    FROM public.test_onboarding_applications a
-    JOIN auth.users u ON u.id = a.user_id
-    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
-          = '967770000021';
-
     PERFORM public.admin_review_test_onboarding(
-        v_application,
+        v_customer_approve_application,
         'approve',
         'TEST_ONLY hosted customer review closure'
     );
 
-    SELECT a.id
-    INTO v_application
-    FROM public.test_onboarding_applications a
-    JOIN auth.users u ON u.id = a.user_id
-    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
-          = '967770000022';
-
     PERFORM public.admin_review_test_onboarding(
-        v_application,
+        v_owner_approve_application,
         'approve',
         'TEST_ONLY hosted owner review closure'
     );
 
-    SELECT a.id
-    INTO v_application
-    FROM public.test_onboarding_applications a
-    JOIN auth.users u ON u.id = a.user_id
-    WHERE regexp_replace(COALESCE(u.phone, ''), '[^0-9]', '', 'g')
-          = '967770000023';
-
     PERFORM public.admin_review_test_onboarding(
-        v_application,
+        v_customer_reject_application,
         'reject',
         'TEST_ONLY disposable negative-path closure'
     );
 END;
-$$;
+
 
 COMMIT;
 
