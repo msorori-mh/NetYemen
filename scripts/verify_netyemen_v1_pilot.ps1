@@ -26,7 +26,29 @@ if ($LASTEXITCODE -ne 0) { throw 'Fresh local migration reset failed.' }
 
 foreach ($test in $tests) {
     Write-Host "RUN $($test.Name)" -ForegroundColor Cyan
-    Get-Content -Raw $test.FullName |
+    $testSql = Get-Content -Raw $test.FullName
+
+    # supabase test db resolves \ir from supabase/tests, while this verifier
+    # streams SQL through docker exec from the repository root. Inline the
+    # exact production verifier artifacts so both runners execute the same SQL.
+    if ($test.Name -eq '019_hosted_admin_review_verifiers.sql') {
+        $preflight = Get-Content -Raw (
+            Join-Path $repoRoot 'supabase/verification/017_hosted_admin_review_production_preflight.sql'
+        )
+        $postverify = Get-Content -Raw (
+            Join-Path $repoRoot 'supabase/verification/017_hosted_admin_review_production_postverify.sql'
+        )
+        $testSql = $testSql.Replace(
+            '\ir ../verification/017_hosted_admin_review_production_preflight.sql',
+            $preflight
+        )
+        $testSql = $testSql.Replace(
+            '\ir ../verification/017_hosted_admin_review_production_postverify.sql',
+            $postverify
+        )
+    }
+
+    $testSql |
         docker exec -i supabase_db_netyemen-local psql -U postgres -d postgres -v ON_ERROR_STOP=1
     if ($LASTEXITCODE -ne 0) { throw "SQL suite failed: $($test.Name)" }
 }
