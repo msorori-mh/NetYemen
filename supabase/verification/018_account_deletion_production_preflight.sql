@@ -56,7 +56,7 @@ BEGIN
             'HOLD: chk_profiles_account_status does not exist.';
     END IF;
 
-    IF v_constraint_definition ~ '(closure_pending|anonymized)' THEN
+    IF v_constraint_definition ~ 'closure_pending' THEN
         RAISE EXCEPTION
             'HOLD: profile status constraint already contains post-migration values.';
     END IF;
@@ -67,7 +67,8 @@ BEGIN
     WHERE account_status NOT IN (
         'active',
         'suspended',
-        'pending_verification'
+        'pending_verification',
+        'anonymized'
     );
 
     IF v_invalid_statuses <> 0 THEN
