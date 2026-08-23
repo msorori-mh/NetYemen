@@ -160,6 +160,16 @@ class _TestOnboardingCard extends ConsumerWidget {
                 application.displayName,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 4),
+              SelectableText(
+                'مرجع الطلب: ${application.id}',
+                key: Key('test-onboarding-reference-${application.id}'),
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 6),
               Text(
                 'النوع المطلوب: ${application.requestedAccountTypeLabel}',
