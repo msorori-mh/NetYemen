@@ -90,6 +90,22 @@ void main() {
     expect(find.text('1 طلب بانتظار قرار المدير'), findsOneWidget);
     await tester.tap(find.byKey(const Key('test-onboarding-section')));
     await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const Key(
+          'test-onboarding-reference-test-onboarding-owner-1',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'مرجع الطلب: test-onboarding-owner-1',
+      ),
+      findsOneWidget,
+    );
+
     final approve = find.byKey(
       const Key('approve-test-onboarding-test-onboarding-owner-1'),
     );
