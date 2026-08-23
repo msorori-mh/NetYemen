@@ -144,7 +144,7 @@ BEGIN
         'TEST_ONLY disposable negative-path closure'
     );
 END;
-
+$;
 
 COMMIT;
 
