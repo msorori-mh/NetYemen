@@ -1,6 +1,6 @@
 # WASEL NET phone/password test onboarding
 
-Status: **SOURCE ONLY / HOLD FOR PRODUCTION ENABLEMENT**
+Status: **PRODUCTION TEST ONBOARDING ENABLED / HOSTED ADMIN REVIEW HOLD**
 
 This stage provides a temporary, controlled path for named testers in مأرب
 while SMS and WhatsApp delivery is unavailable. It does not replace the final
@@ -70,6 +70,42 @@ Each item requires a separate release authorization and evidence:
 
 Do not enable the Flutter signup entry point against production until steps
 1–8 pass.
+
+## Exact hosted admin-review closure
+
+The production review gate is deliberately separate from onboarding creation.
+Run the read-only verifier first:
+
+~~~powershell
+Get-Content -Raw .\supabase\verification\017_hosted_admin_review_production_preflight.sql | Set-Clipboard
+~~~
+
+Paste only the SQL contents into the WASEL NET SQL Editor. It maps each
+normalized stored phone to an immutable application reference without exposing
+the private coordinates. The administration card displays the same reference;
+do not make a decision unless the references match exactly.
+
+| Normalized phone | Expected account type | Planned decision |
+|---|---|---|
+| `967770000021` | customer | approve |
+| `967770000022` | network_owner | approve |
+| `967770000023` | customer | reject |
+
+These are production writes against exact disposable `TEST_ONLY` identities.
+They require a separate explicit authorization after preflight PASS. Use the
+local administration console as the signed-in `platform_admin`; do not execute
+the review RPC from the SQL Editor and do not use a service-role credential.
+
+After the three authorized decisions, run:
+
+~~~powershell
+Get-Content -Raw .\supabase\verification\017_hosted_admin_review_production_postverify.sql | Set-Clipboard
+~~~
+
+The post-verify must report three terminal identities, exactly four roles
+(three customer roles plus one owner role), exactly three successful admin
+review audit events, forced RLS, and no automatically created network or
+membership. Any mismatch is HOLD.
 
 ## Password recovery during the outage
 
