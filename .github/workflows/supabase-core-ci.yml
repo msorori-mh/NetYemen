@@ -34,6 +34,9 @@ jobs:
             supabase/tests/002_core_authorization_positive.sql \
             supabase/tests/003_core_authorization_negative.sql \
             supabase/tests/004_core_invariants.sql \
+            supabase/tests/019_hosted_admin_review_verifiers.sql \
+            supabase/verification/017_hosted_admin_review_production_preflight.sql \
+            supabase/verification/017_hosted_admin_review_production_postverify.sql \
             supabase/verification/018_account_deletion_production_preflight.sql \
             supabase/verification/018_account_deletion_production_postverify.sql \
             docs/NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md \
@@ -76,10 +79,10 @@ jobs:
         run: |
           npx --yes supabase@2.109.1 db reset --no-seed
 
-      - name: Run Full SQL Contract and E2E Suite (001-018)
+      - name: Run Full SQL Contract and E2E Suite (001-019)
         run: |
           set -euo pipefail
-          for test_file in supabase/tests/{001..018}_*.sql; do
+          for test_file in supabase/tests/{001..019}_*.sql; do
             echo "Running $test_file"
             PGPASSWORD=postgres psql \
               "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
