@@ -16,8 +16,10 @@ Deno.serve((request) => {
   const nonce = crypto.randomUUID().replaceAll("-", "");
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const publishableKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-  const origin = url.origin;
-  const functionRoot = `${origin}/functions/v1/public-legal`;
+  const publicOrigin = (supabaseUrl || url.origin)
+    .replace(/^http:/, "https:")
+    .replace(/\/$/, "");
+  const functionRoot = `${publicOrigin}/functions/v1/public-legal`;
 
   const headers = new Headers(securityHeaders);
   headers.set(
