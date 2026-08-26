@@ -1,5 +1,5 @@
 name: netyemen
-description: NetYemen — منصة بيع كروت الإنترنت للشبكات المحلية في اليمن
+description: WASEL NET — واصل نت، منصة بيع كروت الإنترنت للشبكات المحلية في اليمن
 
 publish_to: 'none'
 
@@ -10,6 +10,10 @@ environment:
 
 dependencies:
   flutter:
+    sdk: flutter
+
+  # Official Flutter localization (required for Arabic RTL Material widgets)
+  flutter_localizations:
     sdk: flutter
 
   # Supabase
@@ -23,6 +27,20 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.6
+
+  # Wi-Fi discovery (Android only; iOS stub)
+  wifi_scan: ^0.4.1+2
+  unorm_dart: ^0.3.2
+
+  # Android notification permission UX (no push-provider SDK / secrets)
+  permission_handler: ^11.3.1
+
+  # Public privacy and account-deletion links required by store policy
+  url_launcher: ^6.3.2
+
+  # Push notifications (FCM token registration only; no server secrets)
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 dev_dependencies:
   flutter_test:

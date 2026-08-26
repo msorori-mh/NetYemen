@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/network_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
-import 'purchase_success_screen.dart';
 
 class NetworkDetailScreen extends ConsumerStatefulWidget {
   final Network network;
@@ -38,45 +37,22 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
     setState(() => _isPurchasing = true);
 
     try {
-      final service = ref.read(supabaseServiceProvider);
-
-      final result = await service.purchaseCard(
-        userId: user.id,
-        networkId: widget.network.id,
-        denomination: _selectedDenomination!,
-      );
-
-      if (result != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PurchaseSuccessScreen(
-              cardNumber: result['card_number'] ?? '',
-              denomination: _selectedDenomination!,
-              networkName: widget.network.name,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      _showError('فشلت عملية الشراء: $e');
+      _showError('تم نقل تدفق الشراء إلى شاشة تفاصيل الشبكة الجديدة.');
     } finally {
       setState(() => _isPurchasing = false);
     }
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.network.name),
-      ),
+      appBar: AppBar(title: Text(widget.network.name)),
       body: Column(
         children: [
           // Network Info Header

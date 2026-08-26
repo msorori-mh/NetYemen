@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/network_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/constants.dart';
 import 'network_detail_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NetYemen'),
+        title: const Text(AppConstants.appNameAr),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -148,7 +149,9 @@ class NetworkCard extends StatelessWidget {
                   if (network.isFeatured)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),

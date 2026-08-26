@@ -10,9 +10,9 @@ class PurchasesScreen extends ConsumerWidget {
 
   void _copyCardNumber(BuildContext context, String number) {
     Clipboard.setData(ClipboardData(text: number));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ رقم الكرت')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم نسخ رقم الكرت')));
   }
 
   @override
@@ -20,9 +20,7 @@ class PurchasesScreen extends ConsumerWidget {
     final purchasesAsync = ref.watch(userPurchasesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('مشترياتي'),
-      ),
+      appBar: AppBar(title: const Text('مشترياتي')),
       body: purchasesAsync.when(
         data: (purchases) {
           if (purchases.isEmpty) {
@@ -62,8 +60,9 @@ class PurchasesScreen extends ConsumerWidget {
                       Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor:
-                                AppTheme.primary.withValues(alpha: 0.1),
+                            backgroundColor: AppTheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
                             child: Text(
                               purchase.networkName?.isNotEmpty == true
                                   ? purchase.networkName![0]
@@ -89,7 +88,8 @@ class PurchasesScreen extends ConsumerWidget {
                                 Text(
                                   purchase.formattedDate,
                                   style: const TextStyle(
-                                      color: AppTheme.textSecondary),
+                                    color: AppTheme.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -130,10 +130,8 @@ class PurchasesScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            onPressed: () => _copyCardNumber(
-                              context,
-                              purchase.cardNumber,
-                            ),
+                            onPressed: () =>
+                                _copyCardNumber(context, purchase.cardNumber),
                             icon: const Icon(Icons.copy),
                             color: AppTheme.primary,
                           ),

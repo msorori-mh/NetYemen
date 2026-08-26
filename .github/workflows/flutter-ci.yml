@@ -8,10 +8,15 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build & Test Baseline
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Repository
@@ -30,24 +35,82 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - name: Install Locked Dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify Dependency Lock Stability
+        run: git diff --exit-code -- pubspec.lock
 
       - name: Verify Formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          dart format lib test
+          git diff --exit-code -- lib test
 
       - name: Analyze Static Code
         run: flutter analyze
 
+      - name: Scan Release Readiness Guards
+        shell: pwsh
+        run: ./scripts/scan_waselnet_release_readiness.ps1
+
+      - name: Verify Public Legal Artifact Generator
+        env:
+          ADMIN_PUBLIC_ORIGIN: https://admin.example.com
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_only
+        run: |
+          set -euo pipefail
+          node --check scripts/configure_waselnet_public_legal_pages.mjs
+          node --check scripts/verify_waselnet_public_legal_host.mjs
+          node scripts/verify_waselnet_public_legal_host.mjs --self-test
+          node scripts/configure_waselnet_public_legal_pages.mjs build/ci-public-legal
+          test -s build/ci-public-legal/privacy.html
+          test -s build/ci-public-legal/delete-account.html
+          test -s build/ci-public-legal/delete-account.js
+          node --check build/ci-public-legal/delete-account.js
+          ! grep -R '{{[A-Z0-9_]\+}}' build/ci-public-legal
+          grep -F 'request_my_account_deletion' build/ci-public-legal/delete-account.js
+
       - name: Run Tests
-        run: flutter test
+        run: timeout 4m flutter test --timeout 2m --reporter expanded
 
-      - name: Build Debug APK
-        run: flutter build apk --debug
+      - name: Create Ephemeral CI Upload Key
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/ci-upload-keystore.jks \
+            -storepass ci-only-password \
+            -alias waselnet-ci \
+            -keypass ci-only-password \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=WASEL NET CI, OU=TEST ONLY, O=SysTrac, C=YE"
+          cat > android/key.properties <<'EOF'
+          storeFile=ci-upload-keystore.jks
+          storePassword=ci-only-password
+          keyAlias=waselnet-ci
+          keyPassword=ci-only-password
+          EOF
 
-      - name: Upload Debug APK Artifact
+      - name: Build Android Release Readiness Bundle
+        run: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL=https://example.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=ci-publishable-key \
+            --dart-define=PRIVACY_POLICY_URL=https://example.com/privacy \
+            --dart-define=ACCOUNT_DELETION_URL=https://example.com/delete-account
+
+      - name: Remove Ephemeral CI Upload Key
+        if: always()
+        run: |
+          rm -f android/key.properties android/ci-upload-keystore.jks
+
+      - name: Build Admin Web Console
+        run: flutter build web --target lib/admin_main.dart
+
+      - name: Upload Admin Web Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: admin-web-console
+          path: build/web
           if-no-files-found: error

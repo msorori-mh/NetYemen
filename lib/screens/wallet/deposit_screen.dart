@@ -1,6 +1,7 @@
 // lib/screens/wallet/deposit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/uuid_generator.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 
@@ -20,7 +21,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     {
       'id': 'bank_transfer',
       'name': 'تحويل بنكي',
-      'icon': Icons.account_balance
+      'icon': Icons.account_balance,
     },
     {'id': 'ewallet', 'name': 'محفظة إلكترونية', 'icon': Icons.phone_android},
     {'id': 'agent', 'name': 'وكيل شحن', 'icon': Icons.storefront},
@@ -41,9 +42,9 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
       final service = ref.read(supabaseServiceProvider);
       await service.createDepositRequest(
-        userId: user.id,
         amount: amount,
-        paymentMethod: _selectedMethod,
+        proofReference: _selectedMethod,
+        idempotencyKey: UuidGenerator.generateV4(),
       );
 
       if (!mounted) return;
@@ -73,17 +74,15 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('شحن المحفظة'),
-      ),
+      appBar: AppBar(title: const Text('شحن المحفظة')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

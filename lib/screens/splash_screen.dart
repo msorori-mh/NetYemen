@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/app_theme.dart';
+import '../utils/constants.dart';
 import '../providers/app_providers.dart';
 import 'auth/login_screen.dart';
 import 'main_screen.dart';
@@ -50,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'NetYemen',
+              AppConstants.appNameAr,
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

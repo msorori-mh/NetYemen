@@ -2,14 +2,17 @@
 // ⚠️ عدل هذه القيم ببيانات Supabase الخاصة بك
 
 class AppConstants {
-  static const String supabaseUrl = 'https://pgiidgoafajfpcnlmzde.supabase.co';
-  static const String supabaseAnonKey =
-      'sb_publishable_sFLWfYET8aWskNxHPKZyuA_tk2f4kN_';
+  // V1 uses environment variables (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY).
+  // These legacy constants are kept empty so the app never defaults to a
+  // remote project or hardcoded credentials.
+  static const String supabaseUrl = '';
+  static const String supabaseAnonKey = '';
 
-  static const String appName = 'NetYemen';
+  static const String appName = 'WASEL NET';
+  static const String appNameAr = 'واصل نت';
   static const String appVersion = '1.0.0';
 
-  // ALAWAEL SMS API (لاحقاً)
-  static const String alawaelApiKey = 'YOUR_ALAWAEL_API_KEY';
-  static const String alawaelSenderId = 'NetYemen';
+  // ALAWAEL SMS API (لاحقاً — يُملأ يدوياً عند الربط)
+  static const String alawaelApiKey = '';
+  static const String alawaelSenderId = 'WASELNET';
 }

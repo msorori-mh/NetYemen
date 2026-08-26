@@ -3,15 +3,59 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../models/network_model.dart';
 import '../models/card_model.dart';
+import '../features/auth/domain/customer_auth.dart';
 
 class SupabaseService {
-  final _client = Supabase.instance.client;
+  SupabaseClient get _client => Supabase.instance.client;
 
   // ==================== AUTH ====================
 
   Future<void> signInWithPhone(String phone) async {
-    await _client.auth.signInWithOtp(
-      phone: phone,
+    await _client.auth.signInWithOtp(phone: phone);
+  }
+
+  Future<AuthResponse> signInWithPhonePassword({
+    required String phone,
+    required String password,
+  }) async {
+    return _client.auth.signInWithPassword(
+      phone: normalizeYemeniPhone(phone),
+      password: password,
+    );
+  }
+
+  Future<AuthResponse> registerTestAccount(
+    TestAccountRegistration registration,
+  ) async {
+    late final FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'test-onboarding',
+        body: registration.toFunctionBody(),
+      );
+    } catch (error) {
+      final message = error.toString();
+      const knownCodes = [
+        'ACCOUNT_EXISTS',
+        'INVALID_INVITE',
+        'TESTER_NOT_ALLOWED',
+        'TEST_ONBOARDING_EXPIRED',
+        'TEST_ONBOARDING_DISABLED',
+      ];
+      for (final code in knownCodes) {
+        if (message.contains(code)) throw StateError(code);
+      }
+      rethrow;
+    }
+    if (response.status < 200 || response.status >= 300) {
+      final data = response.data;
+      final code = data is Map ? data['error']?.toString() : null;
+      throw StateError(code ?? 'ACCOUNT_CREATION_FAILED');
+    }
+
+    return signInWithPhonePassword(
+      phone: registration.phone,
+      password: registration.password,
     );
   }
 
@@ -29,27 +73,38 @@ class SupabaseService {
 
   User? get currentUser => _client.auth.currentUser;
 
-  // ==================== USERS ====================
+  // ==================== PROFILES ====================
+  // V1 identity uses auth.users for authentication and public.profiles for
+  // application identity. Profile provisioning is handled automatically by the
+  // public.handle_new_user trigger on auth.users insert; client code must not
+  // write to or expect a legacy public.users table.
 
   Future<AppUser?> getUserProfile(String userId) async {
-    final response =
-        await _client.from('users').select().eq('id', userId).maybeSingle();
+    final response = await _client
+        .from('profiles')
+        .select(
+          'id, full_name, account_status, default_governorate, default_city, created_at',
+        )
+        .eq('id', userId)
+        .maybeSingle();
 
     if (response == null) return null;
-    return AppUser.fromJson(response);
-  }
 
-  Future<void> createOrUpdateUser({
-    required String userId,
-    required String phone,
-    String? fullName,
-  }) async {
-    await _client.from('users').upsert({
-      'id': userId,
-      'phone': phone,
-      'full_name': fullName,
-      'wallet_balance': 0,
-    });
+    return AppUser(
+      id: response['id'] as String,
+      phone: _client.auth.currentUser?.id == userId
+          ? (_client.auth.currentUser?.phone ?? '')
+          : '',
+      fullName: response['full_name'] as String?,
+      role: 'customer',
+      walletBalance: 0,
+      governorate: response['default_governorate'] as String?,
+      city: response['default_city'] as String?,
+      isActive: response['account_status'] == 'active',
+      createdAt: response['created_at'] != null
+          ? DateTime.parse(response['created_at'] as String)
+          : null,
+    );
   }
 
   // ==================== NETWORKS ====================
@@ -76,7 +131,77 @@ class SupabaseService {
         .toList();
   }
 
-  // ==================== CARDS & PURCHASES ====================
+  // ==================== WALLET (V1 commerce schema) ====================
+
+  Future<Map<String, dynamic>> getMyWalletSummary() async {
+    return await _client.rpc('get_customer_wallet') as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyDepositRequests() async {
+    return await _client
+        .from('wallet_deposit_requests')
+        .select()
+        .order('created_at', ascending: false);
+  }
+
+  Future<List<dynamic>> getActiveDepositChannels() async {
+    return await _client
+        .from('payment_destinations')
+        .select()
+        .eq('is_active', true)
+        .order('sort_order');
+  }
+
+  Future<Map<String, dynamic>> createDepositRequest({
+    required int amount,
+    String? paymentDestinationId,
+    String? proofReference,
+    required String idempotencyKey,
+  }) async {
+    return await _client.rpc(
+      'create_wallet_deposit_request',
+      params: {
+        'p_amount': amount,
+        'p_reference_number': proofReference ?? '',
+        'p_payment_destination_id': paymentDestinationId,
+        'p_proof_storage_path': proofReference,
+        'p_idempotency_key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
+  }
+
+  // ==================== PURCHASES (V1 commerce schema) ====================
+
+  Future<Map<String, dynamic>> purchasePackage({
+    required String packageId,
+    required String idempotencyKey,
+  }) async {
+    return await _client.rpc(
+      'purchase_package',
+      params: {
+        'p_package_id': packageId,
+        'p_idempotency_key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyPurchaseOrders() async {
+    return await _client
+        .from('purchase_records')
+        .select('*, network_packages(name), networks(name)')
+        .order('created_at', ascending: false);
+  }
+
+  Future<List<dynamic>> getMyFulfillmentRecords() async {
+    // card_fulfillment_records RLS allows the purchase owner to see status
+    // columns only; secret payload fields are never returned to the client.
+    return await _client
+        .from('card_fulfillment_records')
+        .select('*, network_packages(name), networks(name)')
+        .order('created_at', ascending: false);
+  }
+
+  // ==================== LEGACY COMPATIBILITY (deprecated) ====================
 
   Future<CardModel?> getAvailableCard({
     required String networkId,
@@ -96,24 +221,6 @@ class SupabaseService {
     return CardModel.fromJson(response);
   }
 
-  Future<Map<String, dynamic>?> purchaseCard({
-    required String userId,
-    required String networkId,
-    required int denomination,
-  }) async {
-    try {
-      final result = await _client.rpc('purchase_card', params: {
-        'p_user_id': userId,
-        'p_network_id': networkId,
-        'p_denomination': denomination,
-      });
-
-      return result as Map<String, dynamic>?;
-    } catch (e) {
-      throw Exception('فشل شراء الكرت: $e');
-    }
-  }
-
   Future<List<Purchase>> getUserPurchases(String userId) async {
     final response = await _client
         .from('purchases')
@@ -122,30 +229,5 @@ class SupabaseService {
         .order('created_at', ascending: false);
 
     return (response as List).map((json) => Purchase.fromJson(json)).toList();
-  }
-
-  // ==================== WALLET ====================
-
-  Future<List<dynamic>> getWalletTransactions(String userId) async {
-    final response = await _client
-        .from('wallet_transactions')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-
-    return response as List;
-  }
-
-  Future<void> createDepositRequest({
-    required String userId,
-    required int amount,
-    required String paymentMethod,
-  }) async {
-    await _client.from('wallet_deposit_requests').insert({
-      'user_id': userId,
-      'amount': amount,
-      'payment_method': paymentMethod,
-      'status': 'pending',
-    });
   }
 }
