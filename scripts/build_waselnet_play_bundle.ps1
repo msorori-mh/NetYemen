@@ -27,6 +27,10 @@ foreach ($uri in @($privacyUri, $deletionUri)) {
     if ($uri.Scheme -ne 'https' -or $uri.Host -in @('localhost', '127.0.0.1')) {
         throw "HOLD: Public legal URL must use non-local HTTPS: $uri"
     }
+    if ($uri.Host.EndsWith('.supabase.co', [StringComparison]::OrdinalIgnoreCase) -and
+        $uri.AbsolutePath.StartsWith('/functions/v1/', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "HOLD: Supabase shared-domain Edge Functions rewrite HTML to text/plain. Use the hosted admin legal artifact: $uri"
+    }
 }
 
 if (-not (Test-Path 'android/key.properties')) {

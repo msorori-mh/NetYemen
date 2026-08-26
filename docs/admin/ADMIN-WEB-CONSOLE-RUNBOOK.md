@@ -90,6 +90,20 @@ hosted administration console. For local testing only, `http://localhost` or
 `http://127.0.0.1` is accepted. The release build fails closed when the value is
 missing. The console adds `mode=recovery` to the callback query automatically.
 
+Create a second protected-environment variable, `ADMIN_PUBLIC_ORIGIN`, with the
+same production HTTPS origin. The release gate uses it to generate two public,
+authentication-free files in the release artifact:
+
+- `<origin>/legal/privacy.html`
+- `<origin>/legal/delete-account.html`
+
+The deletion page receives only the client-safe Supabase publishable key at
+artifact-generation time. The generator rejects local/non-HTTPS origins,
+unresolved placeholders, and any service-role reference. Configure the hosting
+platform to serve these files directly with `text/html`, `nosniff`, frame denial,
+and the CSP declared by the page. Do not route `/legal/*` through the
+administration authentication gate or an SPA fallback.
+
 ## Administration authentication and password recovery
 
 The administration entry point uses email and password authentication. The
@@ -128,8 +142,9 @@ PR release decision is independently approved.
 
 The workflow links the project, compares migration history, runs linked database
 lint, and performs `db push --dry-run`. It never applies migrations. It then
-builds the release web console and uploads both the release candidate and the
-preflight evidence. It does not build an Android APK.
+builds the release web console, generates the public legal pages, and uploads
+both the release candidate and the preflight evidence. It does not build an
+Android APK.
 
 ## Release gate
 
@@ -140,5 +155,7 @@ Before hosting the console:
 3. Confirm local and remote migration histories match.
 4. Test sign-in and each role on the hosted origin.
 5. Configure the hosted origin in Supabase Auth redirect URL allowlists.
-6. Keep the console deployment on HOLD if any privileged RPC, RLS policy, or audit
+6. Verify both `/legal/*.html` routes return `200`, `text/html`, the expected
+   Arabic title, and reciprocal HTTPS links.
+7. Keep the console deployment on HOLD if any privileged RPC, RLS policy, or audit
    event is missing.

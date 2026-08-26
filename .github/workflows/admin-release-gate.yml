@@ -24,6 +24,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
       ADMIN_PASSWORD_RECOVERY_REDIRECT_URL: ${{ vars.ADMIN_PASSWORD_RECOVERY_REDIRECT_URL }}
+      ADMIN_PUBLIC_ORIGIN: ${{ vars.ADMIN_PUBLIC_ORIGIN }}
 
     steps:
       - name: Checkout Repository
@@ -39,7 +40,8 @@ jobs:
             SUPABASE_DB_PASSWORD \
             SUPABASE_URL \
             SUPABASE_PUBLISHABLE_KEY \
-            ADMIN_PASSWORD_RECOVERY_REDIRECT_URL; do
+            ADMIN_PASSWORD_RECOVERY_REDIRECT_URL \
+            ADMIN_PUBLIC_ORIGIN; do
             if [ -z "${!name:-}" ]; then
               echo "::error::Required admin release configuration is missing: $name"
               exit 1
@@ -109,6 +111,20 @@ jobs:
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
             --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL="$ADMIN_PASSWORD_RECOVERY_REDIRECT_URL"
+
+      - name: Generate Public Legal Pages
+        run: node scripts/configure_waselnet_public_legal_pages.mjs build/web/legal
+
+      - name: Verify Public Legal Artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/web/legal/privacy.html
+          test -s build/web/legal/delete-account.html
+          test -s build/web/legal/delete-account.js
+          ! grep -R '{{[A-Z0-9_]\+}}' build/web/legal
+          grep -F 'سياسة خصوصية واصل نت' build/web/legal/privacy.html
+          grep -F 'request_my_account_deletion' build/web/legal/delete-account.js
 
       - name: Upload Admin Release Candidate
         uses: actions/upload-artifact@v4

@@ -53,6 +53,22 @@ jobs:
         shell: pwsh
         run: ./scripts/scan_waselnet_release_readiness.ps1
 
+      - name: Verify Public Legal Artifact Generator
+        env:
+          ADMIN_PUBLIC_ORIGIN: https://admin.example.com
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_only
+        run: |
+          set -euo pipefail
+          node --check scripts/configure_waselnet_public_legal_pages.mjs
+          node scripts/configure_waselnet_public_legal_pages.mjs build/ci-public-legal
+          test -s build/ci-public-legal/privacy.html
+          test -s build/ci-public-legal/delete-account.html
+          test -s build/ci-public-legal/delete-account.js
+          node --check build/ci-public-legal/delete-account.js
+          ! grep -R '{{[A-Z0-9_]\+}}' build/ci-public-legal
+          grep -F 'request_my_account_deletion' build/ci-public-legal/delete-account.js
+
       - name: Run Tests
         run: timeout 4m flutter test --timeout 2m --reporter expanded
 

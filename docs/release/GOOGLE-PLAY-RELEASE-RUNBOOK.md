@@ -5,7 +5,7 @@ Google Play receives an Android App Bundle (`.aab`), not the debug APK.
 ## Mandatory evidence
 
 1. PR CI passes Flutter analysis/tests, the admin web build, Android API 36
-   release compilation, and SQL contracts 001–018.
+   release compilation, and SQL contracts 001–019.
 2. Production migrations are aligned and DB lint passes.
 3. Administrative onboarding review and role checks pass for the exact
    `TEST_ONLY` identities.
@@ -44,13 +44,23 @@ E2E must use an exact disposable TEST_ONLY identity and preserve audit evidence.
 
 ## Public legal endpoints
 
-Deploy `supabase/functions/public-legal` with JWT verification disabled, then
-use these function routes as release defines and Play Console URLs:
+Use the public legal files generated inside the protected administration web
+release artifact as release defines and Play Console URLs:
 
-- `.../functions/v1/public-legal/privacy`
-- `.../functions/v1/public-legal/delete-account`
+- `<ADMIN_PUBLIC_ORIGIN>/legal/privacy.html`
+- `<ADMIN_PUBLIC_ORIGIN>/legal/delete-account.html`
 
 The second page supports authenticated deletion without reinstalling the app.
+It signs in through the Supabase Auth REST endpoint with the public publishable
+key, invokes the guarded `request_my_account_deletion` RPC, clears the password
+field, and signs out. It never receives a service-role key.
+
+Do not use `*.supabase.co/functions/v1/public-legal/*` as the Play URLs. On the
+shared Supabase domain, hosted Edge Functions intentionally rewrite HTML
+responses to `text/plain`; an HTTP 200 therefore does not prove a renderable
+privacy or deletion page. A Supabase custom domain can render HTML, but the
+approved default architecture hosts these pages beside the administration web
+artifact.
 
 ## Local upload-key setup
 
