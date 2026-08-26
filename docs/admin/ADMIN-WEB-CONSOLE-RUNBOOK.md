@@ -159,3 +159,16 @@ Before hosting the console:
    Arabic title, and reciprocal HTTPS links.
 7. Keep the console deployment on HOLD if any privileged RPC, RLS policy, or audit
    event is missing.
+
+Run the fail-closed hosted verifier after deployment. It checks the two HTML
+pages and deletion script without submitting credentials or invoking the deletion
+RPC. It rejects redirects, `text/plain`, unresolved placeholders, Supabase shared
+domains, missing `nosniff`, and missing frame denial.
+
+```powershell
+node .\scripts\verify_waselnet_public_legal_host.mjs https://admin.example.com
+```
+
+Do not mark the hosted legal gate PASS unless this command returns
+`WASEL NET HOSTED PUBLIC LEGAL VERIFICATION: PASS` for the actual production
+origin.

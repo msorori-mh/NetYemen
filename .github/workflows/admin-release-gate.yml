@@ -113,7 +113,9 @@ jobs:
             --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL="$ADMIN_PASSWORD_RECOVERY_REDIRECT_URL"
 
       - name: Generate Public Legal Pages
-        run: node scripts/configure_waselnet_public_legal_pages.mjs build/web/legal
+        run: |
+          node scripts/verify_waselnet_public_legal_host.mjs --self-test
+          node scripts/configure_waselnet_public_legal_pages.mjs build/web/legal
 
       - name: Verify Public Legal Artifact
         shell: bash

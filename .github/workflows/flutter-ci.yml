@@ -61,6 +61,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check scripts/configure_waselnet_public_legal_pages.mjs
+          node --check scripts/verify_waselnet_public_legal_host.mjs
+          node scripts/verify_waselnet_public_legal_host.mjs --self-test
           node scripts/configure_waselnet_public_legal_pages.mjs build/ci-public-legal
           test -s build/ci-public-legal/privacy.html
           test -s build/ci-public-legal/delete-account.html

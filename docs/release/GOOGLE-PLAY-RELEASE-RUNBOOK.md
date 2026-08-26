@@ -62,6 +62,17 @@ privacy or deletion page. A Supabase custom domain can render HTML, but the
 approved default architecture hosts these pages beside the administration web
 artifact.
 
+After the administration artifact is hosted, run the read-only verifier against
+its exact origin. It does not authenticate or request account deletion:
+
+```powershell
+node .\scripts\verify_waselnet_public_legal_host.mjs https://admin.example.com
+```
+
+The legal endpoint gate remains HOLD unless the verifier confirms HTTP 200,
+HTML/JavaScript MIME types, reciprocal links, resolved templates, and required
+anti-sniffing and frame-denial headers.
+
 ## Local upload-key setup
 
 Create the Play upload key in the controlled release workstation. Copy

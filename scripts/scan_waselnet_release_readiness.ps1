@@ -13,6 +13,7 @@ $privacyTemplate = Get-Content 'legal/privacy.template.html' -Raw
 $deletionTemplate = Get-Content 'legal/delete-account.template.html' -Raw
 $deletionClient = Get-Content 'legal/delete-account.template.js' -Raw
 $legalBuilder = Get-Content 'scripts/configure_waselnet_public_legal_pages.mjs' -Raw
+$hostedLegalVerifier = Get-Content 'scripts/verify_waselnet_public_legal_host.mjs' -Raw
 $playBuilder = Get-Content 'scripts/build_waselnet_play_bundle.ps1' -Raw
 
 if ($gradle -notmatch 'compileSdk\s*=\s*36') {
@@ -53,6 +54,12 @@ if ($deletionTemplate -notmatch 'delete-account\.js' -or
 if ($legalBuilder -notmatch 'ADMIN_PUBLIC_ORIGIN' -or
     $legalBuilder -notmatch 'service\[_-\]\?role') {
     $violations += 'Public legal artifact fail-closed builder is incomplete.'
+}
+if ($hostedLegalVerifier -notmatch 'text/html' -or
+    $hostedLegalVerifier -notmatch 'x-content-type-options' -or
+    $hostedLegalVerifier -notmatch 'frame-ancestors' -or
+    $hostedLegalVerifier -notmatch 'request_my_account_deletion') {
+    $violations += 'Hosted public legal verification guard is incomplete.'
 }
 if ($playBuilder -notmatch 'rewrite HTML to text/plain') {
     $violations += 'Play release guard does not reject shared-domain Supabase HTML URLs.'
