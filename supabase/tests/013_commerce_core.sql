@@ -177,7 +177,11 @@ BEGIN
     -- NEG-01: Anon wallet denied
     -- ------------------------------------------------------------------------
     EXECUTE 'SET LOCAL ROLE anon';
+    IF current_user != 'anon' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-01): Session role is %, expected anon.', current_user;
+    END IF;
     PERFORM set_config('request.jwt.claim.sub', '', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
     v_err_occurred := FALSE;
     BEGIN
         PERFORM public.get_customer_wallet();
