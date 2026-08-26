@@ -76,6 +76,11 @@ BEGIN
   VALUES(v_package,v_network,'TEST_ONLY E2E Package',1000,1,'day','time','active',true,v_owner);
 
   EXECUTE 'SET LOCAL ROLE anon';
+  IF current_user != 'anon' THEN
+    RAISE EXCEPTION 'E2E-02 FAIL: session role is %, expected anon', current_user;
+  END IF;
+  PERFORM set_config('request.jwt.claim.sub','',true);
+  PERFORM set_config('request.jwt.claims','{}',true);
   SELECT count(*) INTO v_count FROM public.networks WHERE id=v_network;
   IF v_count<>1 THEN RAISE EXCEPTION 'E2E-02 FAIL: public discovery'; END IF;
   RAISE NOTICE 'E2E-02 PASS: public network discovery';

@@ -578,7 +578,11 @@ BEGIN
     -- NEG-30: Real anonymous column privilege & visibility enforcement (G6)
     -- ------------------------------------------------------------------------
     EXECUTE 'SET LOCAL ROLE anon';
+    IF current_user != 'anon' THEN
+        RAISE EXCEPTION 'TEST_FAIL: Session role is %, expected anon.', current_user;
+    END IF;
     PERFORM set_config('request.jwt.claim.sub', '', true);
+    PERFORM set_config('request.jwt.claims', '{}', true);
 
     -- Anonymous user selecting restricted created_by column on networks raises 42501
     v_err_occurred := FALSE;

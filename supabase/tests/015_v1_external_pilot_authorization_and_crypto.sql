@@ -126,7 +126,11 @@ BEGIN
 
   -- ANON-01: anon cannot call protected RPCs.
   EXECUTE 'SET LOCAL ROLE anon';
+  IF current_user != 'anon' THEN
+    RAISE EXCEPTION 'AUTH-ANON-ROLE FAIL: session role is %, expected anon', current_user;
+  END IF;
   PERFORM set_config('request.jwt.claim.sub','',true);
+  PERFORM set_config('request.jwt.claims','{}',true);
   v_failed:=false;
   BEGIN PERFORM public.create_wallet_deposit_request(1000,'REF',v_destination,NULL,gen_random_uuid()); EXCEPTION WHEN SQLSTATE '28000' THEN v_failed:=true; WHEN SQLSTATE '42501' THEN v_failed:=true; END;
   IF NOT v_failed THEN RAISE EXCEPTION 'AUTH-ANON-01 FAIL: anon created deposit request'; END IF;
