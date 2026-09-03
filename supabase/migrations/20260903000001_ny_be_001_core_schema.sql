@@ -137,7 +137,7 @@ create table networks (
 );
 
 comment on table networks is 'BR-NETWORK-003: a network belongs to exactly one owner; transfer requires multi-signature approval handled outside this schema.';
-comment on column networks.is_featured is 'BR-NETWORK-006: settable only by PLATFORM_ADMIN. Enforced by the NY-BE-002 RLS policy, not by this column.';
+comment on column networks.is_featured is 'BR-NETWORK-006: settable only by PLATFORM_ADMIN. Enforced by the NY-BE-002 networks_protect_admin_fields trigger, not by this column.';
 
 create index networks_owner_idx on networks (owner_id);
 -- BR-NETWORK-005: the customer discovery query filters on exactly these two flags.
