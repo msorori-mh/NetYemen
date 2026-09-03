@@ -2,8 +2,8 @@
 
 **Task ID:** NY-PRODUCT-001F  
 **Document Code:** `NETYEMEN-DECISION-REGISTER-01.md`  
-**Classification:** `OPEN_DECISION`  
-**Status:** Provisional Recommendations Recorded for Architecture & Governance Review  
+**Classification:** `APPROVED_CONTRACT`  
+**Status:** All 11 decisions APPROVED by Human Product Lead under `NY-GOV-001` on 2026-09-03. Provisional recommendations adopted verbatim.  
 
 ---
 
@@ -17,17 +17,17 @@ Where business rules or technical parameters cannot be definitively established 
 
 | Decision ID | Decision Title | Category | Impact Level | Status |
 |---|---|---|---|---|
-| `OD-AUTH-01` | SMS OTP Gateway Provider Selection | Auth & Infrastructure | High | `OPEN_DECISION` |
-| `OD-FIN-01` | Customer Deposit Verification & Proof Method | Wallet & Finance | Critical | `OPEN_DECISION` |
-| `OD-FIN-02` | Platform Commission Architecture | Business Model | High | `OPEN_DECISION` |
-| `OD-FIN-03` | Deposit Bank Directory Accounts Selection | Financial Operations | High | `OPEN_DECISION` |
-| `OD-CARD-01` | Internet Card Encryption & Storage Architecture | Security & Data | Critical | `OPEN_DECISION` |
-| `OD-CARD-02` | Customer Card Dispute & Quarantine Window | Operations & Support | Medium | `OPEN_DECISION` |
-| `OD-SETTLE-01` | Network Owner Settlement Payout Schedule | Finance & Operations | High | `OPEN_DECISION` |
-| `OD-PRIV-01` | User Data Retention & Anonymization Policy | Privacy & Governance | Medium | `OPEN_DECISION` |
-| `OD-ARCH-01` | Administration Web Portal Technology Stack | Frontend Architecture | High | `OPEN_DECISION` |
-| `OD-WALLET-01` | Wallet Balance Storage: Cached vs Real-Time Aggregation | Database Architecture | Critical | `OPEN_DECISION` |
-| `OD-NOTIF-01` | Push Notification Infrastructure & Gateway | Mobile Architecture | Medium | `OPEN_DECISION` |
+| `OD-AUTH-01` | SMS OTP Gateway Provider Selection | Auth & Infrastructure | High | `APPROVED` |
+| `OD-FIN-01` | Customer Deposit Verification & Proof Method | Wallet & Finance | Critical | `APPROVED` |
+| `OD-FIN-02` | Platform Commission Architecture | Business Model | High | `APPROVED` |
+| `OD-FIN-03` | Deposit Bank Directory Accounts Selection | Financial Operations | High | `APPROVED` |
+| `OD-CARD-01` | Internet Card Encryption & Storage Architecture | Security & Data | Critical | `APPROVED` |
+| `OD-CARD-02` | Customer Card Dispute & Quarantine Window | Operations & Support | Medium | `APPROVED` |
+| `OD-SETTLE-01` | Network Owner Settlement Payout Schedule | Finance & Operations | High | `APPROVED` |
+| `OD-PRIV-01` | User Data Retention & Anonymization Policy | Privacy & Governance | Medium | `APPROVED` |
+| `OD-ARCH-01` | Administration Web Portal Technology Stack | Frontend Architecture | High | `APPROVED` |
+| `OD-WALLET-01` | Wallet Balance Storage: Cached vs Real-Time Aggregation | Database Architecture | Critical | `APPROVED` |
+| `OD-NOTIF-01` | Push Notification Infrastructure & Gateway | Mobile Architecture | Medium | `APPROVED` |
 
 ---
 
