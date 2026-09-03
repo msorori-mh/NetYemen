@@ -121,13 +121,19 @@ as $$
   select convert_from(decrypt(p_ciphertext, active_card_encryption_key(), 'aes'), 'utf8');
 $$;
 
--- Supabase/PostgREST exposes every public-schema function as a callable RPC by
--- default. These three touch key material directly and must never be reachable
--- except from another SECURITY DEFINER function owned by the same role (the
--- owner's own privileges are never subject to REVOKE ... FROM PUBLIC).
-revoke execute on function active_card_encryption_key() from public;
-revoke execute on function encrypt_card_number(text) from public;
-revoke execute on function decrypt_card_number(bytea) from public;
+-- Supabase's platform bootstrap runs
+--   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES
+--   TO anon, authenticated, service_role;
+-- which grants EXECUTE to those three roles BY NAME at CREATE FUNCTION time —
+-- "REVOKE ... FROM PUBLIC" alone does not touch a named-role grant, it only
+-- removes what PUBLIC itself was given. These three functions touch key
+-- material directly, so all three roles must be revoked explicitly. The
+-- object owner's own privileges are never subject to any REVOKE below, which
+-- is exactly what lets other SECURITY DEFINER functions owned by the same
+-- role keep calling these.
+revoke execute on function active_card_encryption_key() from public, anon, authenticated, service_role;
+revoke execute on function encrypt_card_number(text) from public, anon, authenticated, service_role;
+revoke execute on function decrypt_card_number(bytea) from public, anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- card_batches
@@ -389,5 +395,11 @@ $$;
 
 comment on function import_card_batch(uuid, uuid, text, text[]) is 'BR-CARD-007 atomic batch import. Authorization (COND-3/COND-4) is checked inline rather than relied on at the GRANT level, matching the purchase_card RPC pattern used in NY-BE-005.';
 
-revoke execute on function import_card_batch(uuid, uuid, text, text[]) from public;
+-- Same named-role caveat as the crypto functions above: revoke from anon and
+-- service_role explicitly (not just public), then grant back to authenticated
+-- only. anon has no legitimate reason to call this at all; a service_role
+-- caller would fail the internal auth.uid() check anyway (no JWT claims under
+-- that role) but is revoked here too for clarity — trusted server-side batch
+-- imports, if ever needed, should go through their own path, not this RPC.
+revoke execute on function import_card_batch(uuid, uuid, text, text[]) from public, anon, authenticated, service_role;
 grant execute on function import_card_batch(uuid, uuid, text, text[]) to authenticated;
