@@ -24,6 +24,12 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.6
 
+  # Client-generated idempotency keys for purchase_card / deposit requests (BR-PURCHASE-002)
+  uuid: ^4.4.0
+
+  # Deposit receipt photo capture (BR-WALLET-003)
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

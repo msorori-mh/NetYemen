@@ -82,10 +82,13 @@ class ProfileScreen extends ConsumerWidget {
                 onTap: () {},
               ),
               _buildListTile(
-                icon: Icons.location_on_outlined,
-                title: 'الموقع',
-                subtitle:
-                    '${user.governorate ?? '---'} - ${user.city ?? '---'}',
+                icon: user.isIdentityVerified
+                    ? Icons.verified_user_outlined
+                    : Icons.gpp_maybe_outlined,
+                title: 'حالة الحساب',
+                subtitle: user.isIdentityVerified
+                    ? 'هوية موثّقة'
+                    : 'هوية غير موثّقة',
                 onTap: () {},
               ),
 

@@ -3,32 +3,36 @@ class Network {
   final String id;
   final String? ownerId;
   final String name;
-  final String? ssid;
+  final String? description;
   final String governorate;
-  final String city;
   final String? district;
-  final String? phone;
-  final String? whatsapp;
+  final String? city;
+  final String? locationText;
   final double? lat;
   final double? lng;
+  final bool isApproved;
   final bool isActive;
   final bool isFeatured;
+  final bool verifiedBadge;
+  final List<String> ssids;
   final DateTime? createdAt;
 
   Network({
     required this.id,
     this.ownerId,
     required this.name,
-    this.ssid,
+    this.description,
     required this.governorate,
-    required this.city,
     this.district,
-    this.phone,
-    this.whatsapp,
+    this.city,
+    this.locationText,
     this.lat,
     this.lng,
-    this.isActive = true,
+    this.isApproved = false,
+    this.isActive = false,
     this.isFeatured = false,
+    this.verifiedBadge = false,
+    this.ssids = const [],
     this.createdAt,
   });
 
@@ -37,42 +41,55 @@ class Network {
       id: json['id'] ?? '',
       ownerId: json['owner_id'],
       name: json['name'] ?? '',
-      ssid: json['ssid'],
+      description: json['description'],
       governorate: json['governorate'] ?? '',
-      city: json['city'] ?? '',
       district: json['district'],
-      phone: json['phone'],
-      whatsapp: json['whatsapp'],
-      lat: json['location_lat'] != null
-          ? (json['location_lat'] as num).toDouble()
-          : null,
-      lng: json['location_lng'] != null
-          ? (json['location_lng'] as num).toDouble()
-          : null,
-      isActive: json['is_active'] ?? true,
+      city: json['city'],
+      locationText: json['location_text'],
+      lat: json['lat'] != null ? (json['lat'] as num).toDouble() : null,
+      lng: json['lng'] != null ? (json['lng'] as num).toDouble() : null,
+      isApproved: json['is_approved'] ?? false,
+      isActive: json['is_active'] ?? false,
       isFeatured: json['is_featured'] ?? false,
+      verifiedBadge: json['verified_badge'] ?? false,
+      // network_ssids is fetched via a separate embedded select
+      // (network_ssids(ssid)) — see SupabaseService.getNetworks.
+      ssids: json['network_ssids'] != null
+          ? (json['network_ssids'] as List)
+              .map((row) => row['ssid'] as String)
+              .toList()
+          : const [],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
     );
   }
 
-  String get locationText =>
-      '$governorate - $city${district != null ? ' - $district' : ''}';
+  String get displayLocation {
+    if (locationText != null && locationText!.isNotEmpty) return locationText!;
+    final parts = [governorate, if (city != null) city!].where((p) => p.isNotEmpty);
+    return parts.join(' - ');
+  }
 }
 
 class NetworkPrice {
   final String id;
   final String networkId;
   final int denomination;
-  final int price;
+  final int sellingPrice;
+  final int dataQuotaMb;
+  final int validityMinutes;
+  final double speedLimitMbps;
   final bool isActive;
 
   NetworkPrice({
     required this.id,
     required this.networkId,
     required this.denomination,
-    required this.price,
+    required this.sellingPrice,
+    required this.dataQuotaMb,
+    required this.validityMinutes,
+    required this.speedLimitMbps,
     this.isActive = true,
   });
 
@@ -81,8 +98,32 @@ class NetworkPrice {
       id: json['id'] ?? '',
       networkId: json['network_id'] ?? '',
       denomination: json['denomination'] ?? 0,
-      price: json['price'] ?? 0,
+      sellingPrice: json['selling_price'] ?? 0,
+      dataQuotaMb: json['data_quota_mb'] ?? 0,
+      validityMinutes: json['validity_minutes'] ?? 0,
+      speedLimitMbps: json['speed_limit_mbps'] != null
+          ? (json['speed_limit_mbps'] as num).toDouble()
+          : 0,
       isActive: json['is_active'] ?? true,
     );
+  }
+
+  String get validityLabel {
+    if (validityMinutes % (24 * 60) == 0) {
+      final days = validityMinutes ~/ (24 * 60);
+      return '$days ${days == 1 ? 'يوم' : 'أيام'}';
+    }
+    if (validityMinutes % 60 == 0) {
+      final hours = validityMinutes ~/ 60;
+      return '$hours ${hours == 1 ? 'ساعة' : 'ساعات'}';
+    }
+    return '$validityMinutes دقيقة';
+  }
+
+  String get dataQuotaLabel {
+    if (dataQuotaMb >= 1024 && dataQuotaMb % 1024 == 0) {
+      return '${dataQuotaMb ~/ 1024} جيجابايت';
+    }
+    return '$dataQuotaMb ميجابايت';
   }
 }

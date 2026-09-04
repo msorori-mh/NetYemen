@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../models/network_model.dart';
-import '../models/card_model.dart';
+import '../models/purchase_model.dart';
+import '../models/wallet_model.dart';
 import '../services/supabase_service.dart';
 
 // Service
@@ -37,6 +38,12 @@ final networksProvider = FutureProvider<List<Network>>((ref) async {
 
 final networksSearchQueryProvider = StateProvider<String>((ref) => '');
 
+final networkPricesProvider =
+    FutureProvider.family<List<NetworkPrice>, String>((ref, networkId) async {
+  final service = ref.watch(supabaseServiceProvider);
+  return await service.getNetworkPrices(networkId);
+});
+
 // Purchases
 final userPurchasesProvider = FutureProvider<List<Purchase>>((ref) async {
   final user = ref.watch(currentUserProvider);
@@ -47,23 +54,26 @@ final userPurchasesProvider = FutureProvider<List<Purchase>>((ref) async {
 });
 
 // Wallet
-final walletTransactionsProvider = FutureProvider<List<dynamic>>((ref) async {
+final walletBalanceProvider = FutureProvider<int>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return 0;
+
+  final service = ref.watch(supabaseServiceProvider);
+  return await service.getWalletBalance(user.id);
+});
+
+final walletLedgerProvider = FutureProvider<List<WalletLedgerEntry>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
 
   final service = ref.watch(supabaseServiceProvider);
-  return await service.getWalletTransactions(user.id);
+  return await service.getWalletLedger(user.id);
 });
 
-final walletBalanceProvider = Provider<int>((ref) {
-  final userAsync = ref.watch(userProfileProvider);
-  return userAsync.when(
-    data: (user) => user?.walletBalance ?? 0,
-    loading: () => 0,
-    error: (_, __) => 0,
-  );
+final bankAccountsProvider = FutureProvider<List<BankAccount>>((ref) async {
+  final service = ref.watch(supabaseServiceProvider);
+  return await service.getBankAccounts();
 });
 
 // UI State
 final selectedTabProvider = StateProvider<int>((ref) => 0);
-final selectedDenominationProvider = StateProvider<int?>((ref) => null);

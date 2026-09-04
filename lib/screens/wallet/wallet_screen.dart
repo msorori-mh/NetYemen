@@ -1,6 +1,7 @@
 // lib/screens/wallet/wallet_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/wallet_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 import 'deposit_screen.dart';
@@ -10,8 +11,8 @@ class WalletScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(userProfileProvider);
-    final transactionsAsync = ref.watch(walletTransactionsProvider);
+    final balanceAsync = ref.watch(walletBalanceProvider);
+    final ledgerAsync = ref.watch(walletLedgerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,9 +36,9 @@ class WalletScreen extends ConsumerWidget {
                   style: TextStyle(fontSize: 14, color: Colors.white70),
                 ),
                 const SizedBox(height: 8),
-                userAsync.when(
-                  data: (user) => Text(
-                    '${user?.walletBalance ?? 0} ر.ي',
+                balanceAsync.when(
+                  data: (balance) => Text(
+                    '$balance ر.ي',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -58,7 +59,10 @@ class WalletScreen extends ConsumerWidget {
                         context,
                         MaterialPageRoute(
                             builder: (_) => const DepositScreen()),
-                      );
+                      ).then((_) {
+                        ref.invalidate(walletBalanceProvider);
+                        ref.invalidate(walletLedgerProvider);
+                      });
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('شحن الرصيد'),
@@ -72,42 +76,21 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
 
-          // Transactions List
+          // Ledger (wallet_ledger_entries — the immutable movement log)
           Expanded(
-            child: transactionsAsync.when(
-              data: (transactions) {
-                if (transactions.isEmpty) {
+            child: ledgerAsync.when(
+              data: (entries) {
+                if (entries.isEmpty) {
                   return const Center(
                     child: Text('لا توجد حركات حالياً'),
                   );
                 }
 
                 return ListView.builder(
-                  itemCount: transactions.length,
+                  itemCount: entries.length,
                   itemBuilder: (context, index) {
-                    final tx = transactions[index];
-                    final isCredit =
-                        tx['type'] == 'deposit' || tx['type'] == 'refund';
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isCredit
-                            ? AppTheme.accent.withValues(alpha: 0.1)
-                            : AppTheme.error.withValues(alpha: 0.1),
-                        child: Icon(
-                          isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-                          color: isCredit ? AppTheme.accent : AppTheme.error,
-                        ),
-                      ),
-                      title: Text(tx['description'] ?? 'معاملة'),
-                      subtitle: Text(tx['created_at']?.toString() ?? ''),
-                      trailing: Text(
-                        '${isCredit ? '+' : '-'}${tx['amount']} ر.ي',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: isCredit ? AppTheme.accent : AppTheme.error,
-                        ),
-                      ),
-                    );
+                    final entry = entries[index];
+                    return _LedgerEntryTile(entry: entry);
                   },
                 );
               },
@@ -116,6 +99,39 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LedgerEntryTile extends StatelessWidget {
+  final WalletLedgerEntry entry;
+
+  const _LedgerEntryTile({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCredit = entry.isCredit;
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: isCredit
+            ? AppTheme.accent.withValues(alpha: 0.1)
+            : AppTheme.error.withValues(alpha: 0.1),
+        child: Icon(
+          isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+          color: isCredit ? AppTheme.accent : AppTheme.error,
+        ),
+      ),
+      title: Text(entry.referenceLabel),
+      subtitle: Text(
+        '${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}',
+      ),
+      trailing: Text(
+        '${isCredit ? '+' : '-'}${entry.amount} ر.ي',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isCredit ? AppTheme.accent : AppTheme.error,
+        ),
       ),
     );
   }

@@ -5,13 +5,13 @@ import '../../utils/app_theme.dart';
 
 class PurchaseSuccessScreen extends StatelessWidget {
   final String cardNumber;
-  final int denomination;
+  final int pricePaid;
   final String networkName;
 
   const PurchaseSuccessScreen({
     super.key,
     required this.cardNumber,
-    required this.denomination,
+    required this.pricePaid,
     required this.networkName,
   });
 
@@ -52,7 +52,7 @@ class PurchaseSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '$networkName - $denomination ر.ي',
+                '$networkName - $pricePaid ر.ي',
                 style: const TextStyle(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 40),

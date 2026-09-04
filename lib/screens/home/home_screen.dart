@@ -139,7 +139,7 @@ class NetworkCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          network.locationText,
+                          network.displayLocation,
                           style: const TextStyle(color: AppTheme.textSecondary),
                         ),
                       ],

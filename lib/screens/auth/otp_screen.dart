@@ -32,11 +32,10 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
       final response = await service.verifyOTP(widget.phone, otp);
 
       if (response.user != null) {
-        await service.createOrUpdateUser(
-          userId: response.user!.id,
-          phone: widget.phone,
-        );
-
+        // No manual profile creation here: handle_new_auth_user() provisions
+        // the `users` and `wallet_accounts` rows server-side the moment
+        // auth.users gets this row (BR-AUTH-003). A client-side insert into
+        // `users` has no matching RLS policy and would simply be rejected.
         if (!mounted) return;
 
         Navigator.pushAndRemoveUntil(

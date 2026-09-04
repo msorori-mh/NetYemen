@@ -2,16 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import '../../models/purchase_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 
 class PurchasesScreen extends ConsumerWidget {
   const PurchasesScreen({super.key});
 
-  void _copyCardNumber(BuildContext context, String number) {
-    Clipboard.setData(ClipboardData(text: number));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ رقم الكرت')),
+  void _revealCard(BuildContext context, Purchase purchase) {
+    showDialog(
+      context: context,
+      builder: (_) => _RevealCardDialog(purchase: purchase),
     );
   }
 
@@ -95,7 +96,7 @@ class PurchasesScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '${purchase.denomination} ر.ي',
+                            '${purchase.pricePaid} ر.ي',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -105,39 +106,13 @@ class PurchasesScreen extends ConsumerWidget {
                         ],
                       ),
                       const Divider(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.background,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                purchase.maskedCardNumber,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _copyCardNumber(
-                              context,
-                              purchase.cardNumber,
-                            ),
-                            icon: const Icon(Icons.copy),
-                            color: AppTheme.primary,
-                          ),
-                        ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _revealCard(context, purchase),
+                          icon: const Icon(Icons.visibility_outlined),
+                          label: const Text('عرض رقم الكرت'),
+                        ),
                       ),
                     ],
                   ),
@@ -149,6 +124,83 @@ class PurchasesScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('حدث خطأ')),
       ),
+    );
+  }
+}
+
+/// COND-6: only the purchaser can reveal their own card. The plaintext is
+/// fetched fresh on every open and never stored in provider state — it lives
+/// only in this dialog's local State for as long as it's on screen.
+class _RevealCardDialog extends ConsumerStatefulWidget {
+  final Purchase purchase;
+
+  const _RevealCardDialog({required this.purchase});
+
+  @override
+  ConsumerState<_RevealCardDialog> createState() => _RevealCardDialogState();
+}
+
+class _RevealCardDialogState extends ConsumerState<_RevealCardDialog> {
+  String? _cardNumber;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _reveal();
+  }
+
+  Future<void> _reveal() async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final cardNumber =
+          await service.revealPurchasedCard(widget.purchase.id);
+      if (mounted) setState(() => _cardNumber = cardNumber);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'تعذّر جلب رقم الكرت');
+    }
+  }
+
+  void _copyToClipboard() {
+    if (_cardNumber == null) return;
+    Clipboard.setData(ClipboardData(text: _cardNumber!));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ الرقم')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('رقم الكرت'),
+      content: _error != null
+          ? Text(_error!, style: const TextStyle(color: AppTheme.error))
+          : _cardNumber == null
+              ? const SizedBox(
+                  height: 60,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : SelectableText(
+                  _cardNumber!,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+      actions: [
+        if (_cardNumber != null)
+          TextButton.icon(
+            onPressed: _copyToClipboard,
+            icon: const Icon(Icons.copy),
+            label: const Text('نسخ'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إغلاق'),
+        ),
+      ],
     );
   }
 }
