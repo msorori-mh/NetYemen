@@ -30,6 +30,13 @@ dependencies:
   # Deposit receipt photo capture (BR-WALLET-003)
   image_picker: ^1.1.2
 
+  # User-triggered nearby Wi-Fi scan (BR-NETWORK-011) — Android only, matches V1 scope
+  wifi_scan: ^0.4.1
+
+  # Runtime permission requests for the Wi-Fi scan (Android requires location
+  # permission to read scan results)
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

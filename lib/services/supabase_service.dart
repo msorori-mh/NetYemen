@@ -86,6 +86,62 @@ class SupabaseService {
         .toList();
   }
 
+  Future<Network?> getNetworkById(String networkId) async {
+    final response = await _client
+        .from('networks')
+        .select('*, network_ssids(ssid)')
+        .eq('id', networkId)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Network.fromJson(response);
+  }
+
+  /// The full registered-SSID -> network catalog (BR-NETWORK-008), for
+  /// on-device nearby-network matching. This table's contents are PUBLIC
+  /// (data classification: "Network Name / SSID / City" = PUBLIC) — what
+  /// must never leave the device is the *live scan result* being matched
+  /// against it (BR-NETWORK-011), not this catalog itself.
+  Future<List<({String ssid, String networkId, String networkName})>>
+      getNetworkSsidCatalog() async {
+    final response = await _client
+        .from('network_ssids')
+        .select('ssid, network_id, networks!inner(name, is_approved, is_active)')
+        .eq('networks.is_approved', true)
+        .eq('networks.is_active', true);
+
+    return (response as List)
+        .map((row) => (
+              ssid: row['ssid'] as String,
+              networkId: row['network_id'] as String,
+              networkName: row['networks']['name'] as String,
+            ))
+        .toList();
+  }
+
+  /// BR-NETWORK-009: enters the unapproved lead queue. Does not grant public
+  /// listing on its own — an admin still has to onboard it through the
+  /// normal network creation path.
+  Future<void> submitNetworkAdditionLead({
+    required String submittedBy,
+    required String suggestedName,
+    required String governorate,
+    String? district,
+    String? city,
+    String? locationText,
+    String? notes,
+  }) async {
+    await _client.from('network_addition_leads').insert({
+      'submitted_by': submittedBy,
+      'suggested_name': suggestedName,
+      'governorate': governorate,
+      'district': district,
+      'city': city,
+      'location_text': locationText,
+      'notes': notes,
+    });
+  }
+
   // ==================== PURCHASES ====================
 
   /// Calls the atomic purchase_card RPC (NY-BE-005). There is no user id or

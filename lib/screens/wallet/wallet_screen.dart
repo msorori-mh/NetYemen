@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/wallet_model.dart';
 import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
+import '../discovery/nearby_discovery_screen.dart';
+import '../discovery/suggest_network_screen.dart';
+import 'bank_directory_screen.dart';
 import 'deposit_screen.dart';
 
 class WalletScreen extends ConsumerWidget {
@@ -76,6 +79,51 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
 
+          // Quick access to the other Wave 4/5 customer features that don't
+          // have a home elsewhere in this app's navigation yet (discovery
+          // and suggest-network naturally live near the network listing, but
+          // lib/screens/home/ is outside this task's Allowed Files).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _QuickAction(
+                    icon: Icons.account_balance_outlined,
+                    label: 'دليل البنوك',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BankDirectoryScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickAction(
+                    icon: Icons.wifi_find_rounded,
+                    label: 'شبكات قريبة',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NearbyDiscoveryScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickAction(
+                    icon: Icons.add_location_alt_outlined,
+                    label: 'اقترح شبكة',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SuggestNetworkScreen()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Ledger (wallet_ledger_entries — the immutable movement log)
           Expanded(
             child: ledgerAsync.when(
@@ -99,6 +147,45 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppTheme.primary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }
