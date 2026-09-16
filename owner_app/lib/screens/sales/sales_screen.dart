@@ -367,6 +367,7 @@ class _SettlementCard extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 

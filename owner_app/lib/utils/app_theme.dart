@@ -144,11 +144,11 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      chipTheme: ChipThemeData(
-        shape: const StadiumBorder(),
+      chipTheme: const ChipThemeData(
+        shape: StadiumBorder(),
         backgroundColor: primarySoft,
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primary),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primary),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         side: BorderSide.none,
       ),
     );
