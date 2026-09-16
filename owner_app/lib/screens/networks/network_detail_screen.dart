@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/owned_network_model.dart';
 import '../../providers/networks_providers.dart';
+import '../../utils/app_theme.dart';
 import 'package_form_screen.dart';
 
 class NetworkDetailScreen extends ConsumerStatefulWidget {
@@ -92,6 +93,10 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
         title: Text(widget.network.commercialName),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: AppTheme.primary,
+          labelColor: AppTheme.primary,
+          unselectedLabelColor: AppTheme.textMuted,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'الباقات'),
             Tab(text: 'SSID Aliases'),
@@ -133,70 +138,132 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
     return packagesAsync.when(
       data: (packages) {
         if (packages.isEmpty) {
-          return const Center(child: Text('لا توجد باقات لهذه الشبكة.'));
+          return AppTheme.emptyState(
+            icon: Icons.inventory_2_outlined,
+            message: 'لا توجد باقات لهذه الشبكة.',
+          );
         }
         return ListView.builder(
+          padding: const EdgeInsets.all(16),
           itemCount: packages.length,
           itemBuilder: (context, index) {
             final pkg = packages[index];
-            return ListTile(
-              title: Text(pkg['name']),
-              subtitle: Text('${pkg['price']} YER - ${pkg['package_type']}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (pkg['status'] == 'draft')
-                    IconButton(
-                      icon: const Icon(Icons.publish, color: Colors.green),
-                      onPressed: () async {
-                        try {
-                          await ref.read(networksServiceProvider).publishNetworkPackage(pkg['id']);
-                          ref.invalidate(networkPackagesProvider(widget.network.id));
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
-                          }
-                        }
-                      },
-                    ),
-                  if (pkg['status'] == 'active')
-                    IconButton(
-                      icon: const Icon(Icons.block, color: Colors.red),
-                      onPressed: () async {
-                        try {
-                          await ref.read(networksServiceProvider).deactivateNetworkPackage(pkg['id']);
-                          ref.invalidate(networkPackagesProvider(widget.network.id));
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
-                          }
-                        }
-                      },
-                    ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PackageFormScreen(
-                            networkId: widget.network.id,
-                            packageData: pkg,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            pkg['name'],
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${pkg['price']} YER — ${pkg['package_type']}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (pkg['status'] == 'draft')
+                      _actionIcon(
+                        Icons.publish_rounded,
+                        AppTheme.success,
+                        'نشر',
+                        () async {
+                          try {
+                            await ref.read(networksServiceProvider).publishNetworkPackage(pkg['id']);
+                            ref.invalidate(networkPackagesProvider(widget.network.id));
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+                            }
+                          }
+                        },
+                      ),
+                    if (pkg['status'] == 'active')
+                      _actionIcon(
+                        Icons.block_rounded,
+                        AppTheme.error,
+                        'تعطيل',
+                        () async {
+                          try {
+                            await ref.read(networksServiceProvider).deactivateNetworkPackage(pkg['id']);
+                            ref.invalidate(networkPackagesProvider(widget.network.id));
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+                            }
+                          }
+                        },
+                      ),
+                    _actionIcon(
+                      Icons.edit_rounded,
+                      AppTheme.textSecondary,
+                      'تعديل',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PackageFormScreen(
+                              networkId: widget.network.id,
+                              packageData: pkg,
+                            ),
+                          ),
+                        ).then((_) {
+                          ref.invalidate(networkPackagesProvider(widget.network.id));
+                        });
+                      },
+                    ),
+                    if (pkg['status'] != null)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(start: 8),
+                        child: AppTheme.statusChip(
+                          pkg['status'] == 'active' ? 'نشطة' : (pkg['status'] == 'draft' ? 'مسودة' : pkg['status']),
+                          color: pkg['status'] == 'active'
+                              ? AppTheme.success.withValues(alpha: 0.12)
+                              : AppTheme.warning.withValues(alpha: 0.12),
+                          textColor: pkg['status'] == 'active' ? AppTheme.success : AppTheme.warning,
                         ),
-                      ).then((_) {
-                        ref.invalidate(networkPackagesProvider(widget.network.id));
-                      });
-                    },
-                  ),
-                ],
+                      ),
+                  ],
+                ),
               ),
             );
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('خطأ: $e')),
+      loading: () => AppTheme.loadingIndicator(),
+      error: (e, st) => AppTheme.errorState(
+        message: 'تعذّر تحميل الباقات',
+        onRetry: () => ref.invalidate(networkPackagesProvider(widget.network.id)),
+      ),
+    );
+  }
+
+  Widget _actionIcon(IconData icon, Color color, String tooltip, VoidCallback onTap) {
+    return IconButton(
+      icon: Icon(icon, color: color, size: 20),
+      onPressed: onTap,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -206,21 +273,75 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
     return ssidsAsync.when(
       data: (ssids) {
         if (ssids.isEmpty) {
-          return const Center(child: Text('لا توجد SSID aliases لهذه الشبكة.'));
+          return AppTheme.emptyState(
+            icon: Icons.router_outlined,
+            message: 'لا توجد SSID aliases لهذه الشبكة.',
+          );
         }
         return ListView.builder(
+          padding: const EdgeInsets.all(16),
           itemCount: ssids.length,
           itemBuilder: (context, index) {
             final ssid = ssids[index];
-            return ListTile(
-              title: Text(ssid['ssid_display']),
-              subtitle: Text('Status: ${ssid['status']} | Normalized: ${ssid['ssid_normalized']}'),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primarySoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.wifi_rounded, color: AppTheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ssid['ssid_display'],
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Normalized: ${ssid['ssid_normalized']}',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AppTheme.statusChip(
+                    ssid['status'] == 'active' ? 'نشط' : ssid['status'],
+                    color: ssid['status'] == 'active'
+                        ? AppTheme.success.withValues(alpha: 0.12)
+                        : AppTheme.textMuted.withValues(alpha: 0.12),
+                    textColor: ssid['status'] == 'active' ? AppTheme.success : AppTheme.textMuted,
+                  ),
+                ],
+              ),
             );
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('خطأ: $e')),
+      loading: () => AppTheme.loadingIndicator(),
+      error: (e, st) => AppTheme.errorState(
+        message: 'تعذّر تحميل SSIDs',
+        onRetry: () => ref.invalidate(networkSsidAliasesProvider(widget.network.id)),
+      ),
     );
   }
 }

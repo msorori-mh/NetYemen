@@ -3,33 +3,32 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Primary Colors
-  static const Color primary = Color(0xFF1E3A5F);
-  static const Color primaryLight = Color(0xFF2A4A73);
-  static const Color primaryDark = Color(0xFF152A45);
+  static const Color primary = Color(0xFF1E6FD9);
+  static const Color primaryDark = Color(0xFF1657AE);
+  static const Color primarySoft = Color(0xFFEAF2FD);
 
-  // Accent Colors
-  static const Color accent = Color(0xFF2ECC71);
-  static const Color accentDark = Color(0xFF27AE60);
-
-  // Semantic Colors
-  static const Color error = Color(0xFFE74C3C);
-  static const Color warning = Color(0xFFF39C12);
-  static const Color info = Color(0xFF3498DB);
+  // Accent/Semantic Colors
+  static const Color accent = Color(0xFF1E9E6A);
+  static const Color accentDark = Color(0xFF178255);
+  static const Color error = Color(0xFFD14343);
+  static const Color warning = Color(0xFFE0952A);
+  static const Color info = Color(0xFF1E6FD9);
+  static const Color success = Color(0xFF1E9E6A);
 
   // Neutral Colors
-  static const Color background = Color(0xFFF4F6F9); // Slightly cooler gray
+  static const Color background = Color(0xFFF7F8FA);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color border = Color(0xFFE5E7EB); // Softer border
+  static const Color border = Color(0xFFE5E8EE);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF1A1A2E);
-  static const Color textSecondary = Color(0xFF64748B); // Slate-500
-  static const Color textMuted = Color(0xFF94A3B8); // Slate-400
+  static const Color textPrimary = Color(0xFF1A2233);
+  static const Color textSecondary = Color(0xFF5B6472);
+  static const Color textMuted = Color(0xFF5B6472);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryLight, primaryDark],
+    colors: [primary, primaryDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -77,7 +76,8 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: surface,
         elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
+        shadowColor: const Color(0xFF142233).withValues(alpha: 0.06),
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),

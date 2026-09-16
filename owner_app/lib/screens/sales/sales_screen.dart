@@ -23,7 +23,10 @@ class SalesScreen extends ConsumerWidget {
       body: networksAsync.when(
         data: (networks) {
           if (networks.isEmpty) {
-            return const Center(child: Text('لا توجد شبكات مسجَّلة باسمك.'));
+            return AppTheme.emptyState(
+              icon: Icons.point_of_sale_outlined,
+              message: 'لا توجد شبكات مسجَّلة باسمك.',
+            );
           }
 
           return RefreshIndicator(
@@ -40,7 +43,6 @@ class SalesScreen extends ConsumerWidget {
                   initialValue: selectedNetwork,
                   decoration: const InputDecoration(
                     labelText: 'الشبكة',
-                    border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.wifi_rounded),
                   ),
                   items: [
@@ -53,19 +55,19 @@ class SalesScreen extends ConsumerWidget {
                       ref.read(selectedSalesNetworkProvider.notifier).state = v,
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ───── ملخّص تجاري ─────
                 _CommercialSummarySection(networkId: selectedNetwork),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ───── عنوان التسويات ─────
                 const Text(
                   'سجلّ التسويات',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 // ───── قائمة التسويات ─────
                 _SettlementsList(networkId: selectedNetwork),
@@ -73,8 +75,11 @@ class SalesScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('تعذّر تحميل الشبكات.')),
+        loading: () => AppTheme.loadingIndicator(),
+        error: (_, __) => AppTheme.errorState(
+          message: 'تعذّر تحميل الشبكات.',
+          onRetry: () => ref.invalidate(ownedNetworksProvider),
+        ),
       ),
     );
   }
@@ -157,31 +162,43 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            alignment: Alignment.center,
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -292,43 +309,45 @@ class _SettlementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _statusColor();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SettlementDetailScreen(settlement: settlement),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ───── الصف العلوي: فترة + حالة ─────
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SettlementDetailScreen(settlement: settlement),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ───── الصف العلوي: فترة + حالة ─────
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
+                    AppTheme.statusChip(
                       _statusLabel(),
-                      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+                      color: color.withValues(alpha: 0.12),
+                      textColor: color,
                     ),
-                  ),
                 ],
               ),
 

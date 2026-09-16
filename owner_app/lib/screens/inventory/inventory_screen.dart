@@ -46,7 +46,10 @@ class InventoryScreen extends ConsumerWidget {
       body: networksAsync.when(
         data: (networks) {
           if (networks.isEmpty) {
-            return const Center(child: Text('لا توجد شبكات مسجَّلة باسمك.'));
+            return AppTheme.emptyState(
+              icon: Icons.inventory_2_outlined,
+              message: 'لا توجد شبكات مسجَّلة باسمك.',
+            );
           }
 
           return RefreshIndicator(
@@ -70,8 +73,11 @@ class InventoryScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('تعذّر تحميل الشبكات.')),
+        loading: () => AppTheme.loadingIndicator(),
+        error: (_, __) => AppTheme.errorState(
+          message: 'تعذّر تحميل الشبكات.',
+          onRetry: () => ref.invalidate(ownedNetworksProvider),
+        ),
       ),
     );
   }
@@ -92,11 +98,15 @@ class _NetworkInventoryCard extends ConsumerWidget {
     final balancesAsync = ref.watch(inventoryBalancesProvider(networkId));
     final breakdownAsync = ref.watch(cardStateBreakdownProvider(networkId));
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ───── اسم الشبكة ─────
@@ -174,7 +184,6 @@ class _NetworkInventoryCard extends ConsumerWidget {
               error: (_, __) => const SizedBox.shrink(),
             ),
           ],
-        ),
       ),
     );
   }
@@ -227,7 +236,7 @@ class _StateBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

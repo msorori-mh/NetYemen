@@ -31,7 +31,7 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text('شبكاتي'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             tooltip: 'تسجيل الخروج',
             onPressed: () => _signOut(context, ref),
           ),
@@ -44,11 +44,12 @@ class DashboardScreen extends ConsumerWidget {
             if (networks.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 120),
-                  Icon(Icons.wifi_off_rounded, size: 64, color: AppTheme.textMuted),
-                  SizedBox(height: 16),
-                  Center(child: Text('لا توجد شبكات مسجَّلة باسمك بعد')),
+                children: [
+                  const SizedBox(height: 80),
+                  AppTheme.emptyState(
+                    icon: Icons.wifi_off_rounded,
+                    message: 'لا توجد شبكات مسجَّلة باسمك بعد',
+                  ),
                 ],
               );
             }
@@ -56,15 +57,19 @@ class DashboardScreen extends ConsumerWidget {
             return ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: networks.length,
-              itemBuilder: (context, index) => _NetworkCard(network: networks[index]),
+              itemBuilder: (context, index) =>
+                  _NetworkCard(network: networks[index]),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => AppTheme.loadingIndicator(),
           error: (_, __) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 120),
-              Center(child: Text('تعذّر تحميل شبكاتك. اسحب للأسفل للمحاولة مرة أخرى.')),
+            children: [
+              const SizedBox(height: 80),
+              AppTheme.errorState(
+                message: 'تعذّر تحميل شبكاتك. اسحب للأسفل للمحاولة مرة أخرى.',
+                onRetry: () => ref.invalidate(ownedNetworksProvider),
+              ),
             ],
           ),
         ),
@@ -81,7 +86,7 @@ class _NetworkCard extends StatelessWidget {
   Color _statusColor() {
     switch (network.status) {
       case 'active':
-        return AppTheme.accentDark;
+        return AppTheme.success;
       case 'suspended':
       case 'rejected':
         return AppTheme.error;
@@ -107,68 +112,87 @@ class _NetworkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-              child: Text(
-                network.commercialName.isNotEmpty ? network.commercialName[0] : '؟',
-                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppTheme.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              network.commercialName.isNotEmpty
+                  ? network.commercialName[0]
+                  : '؟',
+              style: const TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          network.commercialName,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (network.isVerified) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.verified, size: 16, color: AppTheme.info),
-                      ],
-                    ],
-                  ),
-                  if (network.locationText.isNotEmpty)
-                    Text(
-                      network.locationText,
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                    ),
-                  if (network.status == 'pending_approval')
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4.0),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
                       child: Text(
-                        'الشبكة قيد الاعتماد من الإدارة، ولن تظهر للعملاء بعد.',
-                        style: TextStyle(color: AppTheme.warning, fontSize: 12),
+                        network.commercialName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (network.isVerified) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.verified_rounded, size: 18,
+                          color: AppTheme.primary),
+                    ],
+                  ],
+                ),
+                if (network.locationText.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    network.locationText,
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
-              ),
+                if (network.status == 'pending_approval') ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    'الشبكة قيد الاعتماد من الإدارة، ولن تظهر للعملاء بعد.',
+                    style: TextStyle(color: AppTheme.warning, fontSize: 12),
+                  ),
+                ],
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _statusColor().withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _statusText(),
-                style: TextStyle(color: _statusColor(), fontSize: 11, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          AppTheme.statusChip(
+            _statusText(),
+            color: _statusColor().withValues(alpha: 0.12),
+            textColor: _statusColor(),
+          ),
+        ],
       ),
     );
   }

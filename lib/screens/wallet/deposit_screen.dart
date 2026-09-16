@@ -196,7 +196,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
+      color: isSelected ? AppTheme.primarySoft : null,
       child: ListTile(
         leading: Icon(
           _iconFor(destination.providerType),

@@ -149,12 +149,12 @@ class _NotificationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: _isRead ? null : AppTheme.primary.withValues(alpha: 0.04),
+      color: _isRead ? null : AppTheme.primarySoft,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: _isRead
               ? AppTheme.border
-              : AppTheme.primary.withValues(alpha: 0.12),
+              : AppTheme.primarySoft,
           child: Icon(
             _categoryIcon(),
             color: _isRead ? AppTheme.textMuted : AppTheme.primary,
