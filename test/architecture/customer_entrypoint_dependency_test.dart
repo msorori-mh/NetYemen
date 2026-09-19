@@ -255,6 +255,28 @@ void main() {
     expect(source, contains('signInWithPhonePassword'));
     expect(source, contains('getUserProfile'));
   });
+
+  test('superseded customer models stay removed from the legacy layer', () {
+    const removedModels = <String>{
+      'lib/models/network_model.dart',
+      'lib/models/card_model.dart',
+    };
+
+    for (final path in removedModels) {
+      expect(
+        File(path).existsSync(),
+        isFalse,
+        reason: '$path was replaced by a feature-owned domain entity',
+      );
+    }
+
+    final legacyModels = Directory('lib/models')
+        .listSync()
+        .whereType<File>()
+        .map((file) => file.path.replaceAll('\\', '/'))
+        .toSet();
+    expect(legacyModels, {'lib/models/user_model.dart'});
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {
