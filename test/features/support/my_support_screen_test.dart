@@ -24,9 +24,57 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('دعمي'), findsOneWidget);
+    expect(find.text('الدعم والشكاوى'), findsOneWidget);
     expect(find.text('لا توجد تذاكر دعم بعد'), findsOneWidget);
     expect(find.text('تذكرة جديدة'), findsOneWidget);
+
+    await tester.tap(find.text('تذكرة جديدة'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('الخدمة'), findsOneWidget);
+    expect(find.text('عادية'), findsOneWidget);
+    expect(find.textContaining('معرّف الشبكة'), findsNothing);
+    expect(find.textContaining('معرّف الباقة'), findsNothing);
+  });
+
+  testWidgets('customer support list and details hide operational codes', (
+    tester,
+  ) async {
+    final repository = FakeSupportRepository()
+      ..cases.add(
+        SupportCase(
+          id: 'case-1',
+          number: 1001,
+          type: SupportCaseType.ticket,
+          category: 'service',
+          priority: 'normal',
+          subject: 'ضعف الاتصال',
+          description: 'الخدمة بطيئة منذ الصباح',
+          status: 'waiting_customer',
+          dueAt: DateTime.now().add(const Duration(hours: 2)),
+          createdAt: DateTime.now(),
+        ),
+      );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [supportRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: MySupportScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('بانتظار ردك'), findsOneWidget);
+    expect(find.textContaining('الأولوية: عادية'), findsOneWidget);
+    expect(find.textContaining('waiting_customer'), findsNothing);
+    expect(find.textContaining('normal'), findsNothing);
+
+    await tester.tap(find.text('ضعف الاتصال'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('لا توجد رسائل بعد. أرسل ردًا لإضافة معلومات جديدة.'),
+        findsOneWidget);
+    expect(find.text('السجل التشغيلي'), findsNothing);
   });
 
   testWidgets('offline support list exposes a safe retry action', (

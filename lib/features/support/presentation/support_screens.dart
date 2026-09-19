@@ -2,43 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/customer_load_error.dart';
-import '../../auth/presentation/customer_session_providers.dart';
 import '../domain/entities.dart';
 import '../domain/support_operation_policy.dart';
+import 'support_display.dart';
 import 'support_providers.dart';
-
-const statusAr = {
-  'open': 'مفتوحة',
-  'assigned': 'مُسندة',
-  'in_progress': 'قيد المعالجة',
-  'waiting_customer': 'بانتظار العميل',
-  'resolved': 'تم الحل',
-  'closed': 'مغلقة',
-};
-const typeAr = {'ticket': 'تذكرة', 'complaint': 'شكوى', 'dispute': 'نزاع'};
 
 class MySupportScreen extends ConsumerWidget {
   const MySupportScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(supportCasesProvider);
-    final roles = ref.watch(currentUserRolesProvider).valueOrNull ?? [];
-    final staff = roles.any({'support_agent', 'platform_admin'}.contains);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('دعمي'),
-        actions: [
-          if (staff)
-            IconButton(
-              tooltip: 'قائمة الدعم',
-              icon: const Icon(Icons.support_agent),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SupportQueueScreen()),
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('الدعم والشكاوى')),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'new-support-case',
         onPressed: () => Navigator.push(
@@ -124,7 +99,11 @@ class CaseTile extends StatelessWidget {
           leading: CircleAvatar(child: Text('#${item.number}')),
           title: Text(item.subject),
           subtitle: Text(
-            '${typeAr[item.type.name]} • ${statusAr[item.status]} • ${item.priority}${item.isOverdue ? ' • متأخرة عن SLA' : ''}',
+            '${supportTypeLabel(item.type)} • '
+            '${supportCategoryLabel(item.category)} • '
+            '${supportStatusLabel(item.status)}\n'
+            'الأولوية: ${supportPriorityLabel(item.priority)}'
+            '${item.isOverdue ? ' • متأخرة عن موعد الرد' : ''}',
           ),
           trailing: const Icon(Icons.chevron_left),
           onTap: () => Navigator.push(
@@ -139,7 +118,16 @@ class CaseTile extends StatelessWidget {
 }
 
 class NewSupportCaseScreen extends ConsumerStatefulWidget {
-  const NewSupportCaseScreen({super.key});
+  final String? networkId;
+  final String? packageId;
+  final String? requestId;
+
+  const NewSupportCaseScreen({
+    super.key,
+    this.networkId,
+    this.packageId,
+    this.requestId,
+  });
   @override
   ConsumerState<NewSupportCaseScreen> createState() => _NewSupportCaseState();
 }
@@ -147,16 +135,13 @@ class NewSupportCaseScreen extends ConsumerStatefulWidget {
 class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
   final form = GlobalKey<FormState>(),
       subject = TextEditingController(),
-      description = TextEditingController(),
-      network = TextEditingController(),
-      package = TextEditingController(),
-      request = TextEditingController();
+      description = TextEditingController();
   SupportCaseType type = SupportCaseType.ticket;
   String category = 'service', priority = 'normal';
   bool busy = false;
   @override
   void dispose() {
-    for (final c in [subject, description, network, package, request]) {
+    for (final c in [subject, description]) {
       c.dispose();
     }
     super.dispose();
@@ -176,7 +161,9 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
                 items: SupportCaseType.values
                     .map(
                       (v) => DropdownMenuItem(
-                          value: v, child: Text(typeAr[v.name]!)),
+                        value: v,
+                        child: Text(supportTypeLabel(v)),
+                      ),
                     )
                     .toList(),
                 onChanged: (v) => setState(() => type = v!),
@@ -185,15 +172,13 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
               DropdownButtonFormField(
                 initialValue: category,
                 decoration: const InputDecoration(labelText: 'التصنيف'),
-                items: [
-                  'network',
-                  'package',
-                  'service',
-                  'account',
-                  'request',
-                  'other',
-                ]
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                items: supportCategoryLabels.keys
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(supportCategoryLabel(v)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => category = v!),
               ),
@@ -201,26 +186,33 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
               DropdownButtonFormField(
                 initialValue: priority,
                 decoration: const InputDecoration(labelText: 'الأولوية'),
-                items: [
-                  'low',
-                  'normal',
-                  'high',
-                  'urgent',
-                ]
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                items: supportPriorityLabels.keys
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(supportPriorityLabel(v)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => priority = v!),
               ),
               const SizedBox(height: 12),
-              _field(subject, 'الموضوع', 3),
+              _field(subject, 'الموضوع', 3, maxLength: 120),
               const SizedBox(height: 12),
-              _field(description, 'التفاصيل', 3, lines: 5),
-              const SizedBox(height: 12),
-              _field(network, 'معرّف الشبكة (اختياري)', 0, optional: true),
-              const SizedBox(height: 12),
-              _field(package, 'معرّف الباقة (اختياري)', 0, optional: true),
-              const SizedBox(height: 12),
-              _field(request, 'معرّف الطلب (اختياري)', 0, optional: true),
+              _field(
+                description,
+                'التفاصيل',
+                3,
+                lines: 5,
+                maxLength: SupportOperationPolicy.maximumActionTextLength,
+              ),
+              if (_hasLinkedContext) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'سيتم ربط التذكرة بالعملية التي فتحت منها صفحة الدعم.',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+              ],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: busy ? null : _submit,
@@ -236,10 +228,12 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
     int min, {
     int lines = 1,
     bool optional = false,
+    int? maxLength,
   }) =>
       TextFormField(
         controller: c,
         maxLines: lines,
+        maxLength: maxLength,
         decoration: InputDecoration(labelText: label),
         validator: (v) => optional || ((v?.trim().length ?? 0) >= min)
             ? null
@@ -255,9 +249,9 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
             priority: priority,
             subject: subject.text,
             description: description.text,
-            networkId: _null(network.text),
-            packageId: _null(package.text),
-            requestId: _null(request.text),
+            networkId: widget.networkId,
+            packageId: widget.packageId,
+            requestId: widget.requestId,
           );
       if (!mounted) return;
       refreshSupport(ref, null);
@@ -276,7 +270,10 @@ class _NewSupportCaseState extends ConsumerState<NewSupportCaseScreen> {
     }
   }
 
-  String? _null(String v) => v.trim().isEmpty ? null : v.trim();
+  bool get _hasLinkedContext =>
+      widget.networkId != null ||
+      widget.packageId != null ||
+      widget.requestId != null;
 }
 
 class SupportCaseScreen extends ConsumerWidget {
@@ -291,7 +288,7 @@ class SupportCaseScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final item = ref.watch(supportCaseProvider(caseId));
     final messages = ref.watch(supportMessagesProvider(caseId));
-    final events = ref.watch(supportEventsProvider(caseId));
+    final events = agentView ? ref.watch(supportEventsProvider(caseId)) : null;
     return Scaffold(
       appBar: AppBar(
         title: Text(agentView ? 'عرض الحالة للموظف' : 'تفاصيل التذكرة'),
@@ -314,24 +311,33 @@ class SupportCaseScreen extends ConsumerWidget {
             Wrap(
               spacing: 8,
               children: [
-                Chip(label: Text(typeAr[c.type.name]!)),
-                Chip(label: Text(statusAr[c.status]!)),
-                Chip(label: Text('الأولوية: ${c.priority}')),
+                Chip(label: Text(supportTypeLabel(c.type))),
+                Chip(label: Text(supportCategoryLabel(c.category))),
+                Chip(label: Text(supportStatusLabel(c.status))),
+                Chip(
+                  label: Text(
+                    'الأولوية: ${supportPriorityLabel(c.priority)}',
+                  ),
+                ),
                 if (c.isOverdue)
                   const Chip(
-                    label: Text('متأخرة عن SLA'),
+                    label: Text('متأخرة عن موعد الرد'),
                     backgroundColor: Color(0xFFFFE0E0),
                   ),
               ],
             ),
             const SizedBox(height: 12),
             Text(c.description),
-            if (c.networkId != null) Text('الشبكة: ${c.networkId}'),
-            if (c.packageId != null) Text('الباقة: ${c.packageId}'),
-            if (c.requestId != null) Text('الطلب: ${c.requestId}'),
+            const SizedBox(height: 8),
+            Text('أُنشئت في ${formatSupportDate(c.createdAt)}'),
+            Text('موعد الرد المتوقع: ${formatSupportDate(c.dueAt)}'),
             if (c.resolution != null) ...[
               const Divider(),
               Text('الحل: ${c.resolution}'),
+              if (c.resolutionOutcome != null)
+                Text(
+                  'النتيجة: ${supportOutcomeLabel(c.resolutionOutcome!)}',
+                ),
             ],
             if (agentView) ...[
               const Divider(),
@@ -386,17 +392,24 @@ class SupportCaseScreen extends ConsumerWidget {
                 compact: true,
                 onRetry: () => ref.invalidate(supportMessagesProvider(caseId)),
               ),
-              data: (m) => Column(
-                children: m
-                    .map(
-                      (x) => ListTile(
-                        leading: const Icon(Icons.chat_bubble_outline),
-                        title: Text(x.body),
-                        subtitle: Text(x.createdAt.toLocal().toString()),
+              data: (m) => m.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'لا توجد رسائل بعد. أرسل ردًا لإضافة معلومات جديدة.',
                       ),
                     )
-                    .toList(),
-              ),
+                  : Column(
+                      children: m
+                          .map(
+                            (x) => ListTile(
+                              leading: const Icon(Icons.chat_bubble_outline),
+                              title: Text(x.body),
+                              subtitle: Text(formatSupportDate(x.createdAt)),
+                            ),
+                          )
+                          .toList(),
+                    ),
             ),
             if (c.status != 'closed')
               FilledButton.icon(
@@ -410,30 +423,38 @@ class SupportCaseScreen extends ConsumerWidget {
                 icon: const Icon(Icons.send),
                 label: const Text('إرسال رد'),
               ),
-            const Divider(),
-            Text('السجل', style: Theme.of(context).textTheme.titleMedium),
-            events.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (error, _) => CustomerLoadError(
-                error: error,
-                fallbackTitle: 'تعذر تحميل سجل الحالة',
-                compact: true,
-                onRetry: () => ref.invalidate(supportEventsProvider(caseId)),
+            if (agentView) ...[
+              const Divider(),
+              Text(
+                'السجل التشغيلي',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              data: (ev) => Column(
-                children: ev
-                    .map(
-                      (x) => ListTile(
-                        dense: true,
-                        title: Text(x.eventType),
-                        subtitle: Text(
-                          '${x.fromStatus ?? ''} ${x.toStatus ?? ''} • ${x.createdAt.toLocal()}',
+              events!.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (error, _) => CustomerLoadError(
+                  error: error,
+                  fallbackTitle: 'تعذر تحميل سجل الحالة',
+                  compact: true,
+                  onRetry: () => ref.invalidate(supportEventsProvider(caseId)),
+                ),
+                data: (ev) => Column(
+                  children: ev
+                      .map(
+                        (x) => ListTile(
+                          dense: true,
+                          title: Text(supportEventLabel(x.eventType)),
+                          subtitle: Text(
+                            [
+                              supportEventTransition(x),
+                              formatSupportDate(x.createdAt),
+                            ].where((value) => value.isNotEmpty).join(' • '),
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -524,7 +545,7 @@ class SupportCaseScreen extends ConsumerWidget {
                     .map(
                       (v) => DropdownMenuItem(
                         value: v,
-                        child: Text(statusAr[v]!),
+                        child: Text(supportStatusLabel(v)),
                       ),
                     )
                     .toList(),
@@ -549,7 +570,10 @@ class SupportCaseScreen extends ConsumerWidget {
                     'refund_recommended',
                   ]
                       .map(
-                        (v) => DropdownMenuItem(value: v, child: Text(v)),
+                        (v) => DropdownMenuItem(
+                          value: v,
+                          child: Text(supportOutcomeLabel(v)),
+                        ),
                       )
                       .toList(),
                   onChanged: (v) => set(() => outcome = v),
