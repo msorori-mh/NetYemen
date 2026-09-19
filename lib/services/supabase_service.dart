@@ -1,8 +1,6 @@
 // lib/services/supabase_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
-import '../models/network_model.dart';
-import '../models/card_model.dart';
 import '../features/auth/domain/customer_auth.dart';
 
 class SupabaseService {
@@ -71,8 +69,6 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
-  User? get currentUser => _client.auth.currentUser;
-
   // ==================== PROFILES ====================
   // V1 identity uses auth.users for authentication and public.profiles for
   // application identity. Profile provisioning is handled automatically by the
@@ -105,129 +101,5 @@ class SupabaseService {
           ? DateTime.parse(response['created_at'] as String)
           : null,
     );
-  }
-
-  // ==================== NETWORKS ====================
-
-  Future<List<Network>> getNetworks() async {
-    final response = await _client
-        .from('networks')
-        .select()
-        .eq('is_active', true)
-        .order('name');
-
-    return (response as List).map((json) => Network.fromJson(json)).toList();
-  }
-
-  Future<List<NetworkPrice>> getNetworkPrices(String networkId) async {
-    final response = await _client
-        .from('network_prices')
-        .select()
-        .eq('network_id', networkId)
-        .eq('is_active', true);
-
-    return (response as List)
-        .map((json) => NetworkPrice.fromJson(json))
-        .toList();
-  }
-
-  // ==================== WALLET (V1 commerce schema) ====================
-
-  Future<Map<String, dynamic>> getMyWalletSummary() async {
-    return await _client.rpc('get_customer_wallet') as Map<String, dynamic>;
-  }
-
-  Future<List<dynamic>> getMyDepositRequests() async {
-    return await _client
-        .from('wallet_deposit_requests')
-        .select()
-        .order('created_at', ascending: false);
-  }
-
-  Future<List<dynamic>> getActiveDepositChannels() async {
-    return await _client
-        .from('payment_destinations')
-        .select()
-        .eq('is_active', true)
-        .order('sort_order');
-  }
-
-  Future<Map<String, dynamic>> createDepositRequest({
-    required int amount,
-    String? paymentDestinationId,
-    String? proofReference,
-    required String idempotencyKey,
-  }) async {
-    return await _client.rpc(
-      'create_wallet_deposit_request',
-      params: {
-        'p_amount': amount,
-        'p_reference_number': proofReference ?? '',
-        'p_payment_destination_id': paymentDestinationId,
-        'p_proof_storage_path': proofReference,
-        'p_idempotency_key': idempotencyKey,
-      },
-    ) as Map<String, dynamic>;
-  }
-
-  // ==================== PURCHASES (V1 commerce schema) ====================
-
-  Future<Map<String, dynamic>> purchasePackage({
-    required String packageId,
-    required String idempotencyKey,
-  }) async {
-    return await _client.rpc(
-      'purchase_package',
-      params: {
-        'p_package_id': packageId,
-        'p_idempotency_key': idempotencyKey,
-      },
-    ) as Map<String, dynamic>;
-  }
-
-  Future<List<dynamic>> getMyPurchaseOrders() async {
-    return await _client
-        .from('purchase_records')
-        .select('*, network_packages(name), networks(name)')
-        .order('created_at', ascending: false);
-  }
-
-  Future<List<dynamic>> getMyFulfillmentRecords() async {
-    // card_fulfillment_records RLS allows the purchase owner to see status
-    // columns only; secret payload fields are never returned to the client.
-    return await _client
-        .from('card_fulfillment_records')
-        .select('*, network_packages(name), networks(name)')
-        .order('created_at', ascending: false);
-  }
-
-  // ==================== LEGACY COMPATIBILITY (deprecated) ====================
-
-  Future<CardModel?> getAvailableCard({
-    required String networkId,
-    required int denomination,
-  }) async {
-    final response = await _client
-        .from('cards')
-        .select()
-        .eq('network_id', networkId)
-        .eq('denomination', denomination)
-        .eq('status', 'available')
-        .order('created_at')
-        .limit(1)
-        .maybeSingle();
-
-    if (response == null) return null;
-    return CardModel.fromJson(response);
-  }
-
-  Future<List<Purchase>> getUserPurchases(String userId) async {
-    final response = await _client
-        .from('purchases')
-        .select('*, networks(name)')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-
-    return (response as List).map((json) => Purchase.fromJson(json)).toList();
   }
 }

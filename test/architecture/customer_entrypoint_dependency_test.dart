@@ -231,6 +231,29 @@ void main() {
       reason: 'Runtime code must import provider owners: $runtimeImports',
     );
   });
+
+  test('legacy Supabase service only serves auth and profile migration', () {
+    final source = File('lib/services/supabase_service.dart').readAsStringSync();
+    const removedOperations = <String>{
+      'getNetworks',
+      'getNetworkPrices',
+      'getMyWalletSummary',
+      'getMyDepositRequests',
+      'getActiveDepositChannels',
+      'createDepositRequest',
+      'purchasePackage',
+      'getMyPurchaseOrders',
+      'getMyFulfillmentRecords',
+      'getAvailableCard',
+      'getUserPurchases',
+    };
+
+    for (final operation in removedOperations) {
+      expect(source, isNot(contains('$operation(')));
+    }
+    expect(source, contains('signInWithPhonePassword'));
+    expect(source, contains('getUserProfile'));
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {
