@@ -17,10 +17,12 @@ void main() {
     tester,
   ) async {
     final repository = FakePurchaseRepository();
-    await repository.purchasePackage(
+    final purchase = repository.purchasePackage(
       packageId: 'package-1',
       idempotencyKey: 'history-key',
     );
+    await tester.pump(const Duration(milliseconds: 300));
+    await purchase;
 
     await tester.pumpWidget(
       _buildScreen(const PurchaseHistoryScreen(), repository),
@@ -55,10 +57,12 @@ void main() {
     );
 
     final repository = FakePurchaseRepository();
-    final result = await repository.purchasePackage(
+    final purchase = repository.purchasePackage(
       packageId: 'package-1',
       idempotencyKey: 'detail-key',
     );
+    await tester.pump(const Duration(milliseconds: 300));
+    final result = await purchase;
 
     await tester.pumpWidget(
       _buildScreen(
