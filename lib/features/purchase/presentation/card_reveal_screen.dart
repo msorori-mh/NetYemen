@@ -109,7 +109,8 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                           ),
                           IconButton(
                             key: const Key('card-secret-visibility'),
-                            tooltip: _showSecret ? 'إخفاء الكرت' : 'إظهار الكرت',
+                            tooltip:
+                                _showSecret ? 'إخفاء الكرت' : 'إظهار الكرت',
                             onPressed: () =>
                                 setState(() => _showSecret = !_showSecret),
                             icon: Icon(

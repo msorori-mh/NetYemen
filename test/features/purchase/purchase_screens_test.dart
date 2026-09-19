@@ -41,8 +41,8 @@ void main() {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'Clipboard.setData') {
-        clipboardText = (call.arguments as Map<dynamic, dynamic>)['text']
-            as String?;
+        clipboardText =
+            (call.arguments as Map<dynamic, dynamic>)['text'] as String?;
         return null;
       }
       if (call.method == 'Clipboard.getData') {
