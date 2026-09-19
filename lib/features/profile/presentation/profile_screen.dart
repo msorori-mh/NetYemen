@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../providers/app_providers.dart';
 import '../../../utils/constants.dart';
 import '../../../screens/auth/login_screen.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 import '../../notifications/presentation/notification_preferences_screen.dart';
 import '../../notifications/presentation/fcm_token_service.dart';
 import '../../network_requests/presentation/my_requests_screen.dart';
 import '../../support/presentation/support_screens.dart';
 import '../../wallet/presentation/deposit_history_screen.dart';
+import 'customer_profile_providers.dart';
 import 'legal_and_deletion_screens.dart';
 import 'profile_edit_screen.dart';
 

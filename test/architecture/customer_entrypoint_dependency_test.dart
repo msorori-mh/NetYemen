@@ -95,9 +95,20 @@ void main() {
 
     expect(
       remainingFeatureImports,
-      equals(['lib/features/profile/presentation/profile_screen.dart']),
+      isEmpty,
       reason: 'Features must depend on owned providers, not the legacy facade.',
     );
+  });
+
+  test('customer profile provider is owned by profile feature', () {
+    final profileSource = File(
+      'lib/features/profile/presentation/customer_profile_providers.dart',
+    ).readAsStringSync();
+    expect(profileSource, contains('final userProfileProvider'));
+
+    final legacyFacade =
+        File('lib/providers/app_providers.dart').readAsStringSync();
+    expect(legacyFacade, isNot(contains('final userProfileProvider =')));
   });
 }
 

@@ -2,22 +2,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers/supabase_service_provider.dart';
 import '../features/auth/presentation/customer_session_providers.dart';
+import '../features/profile/presentation/customer_profile_providers.dart';
 export '../core/config/app_config_provider.dart' show appConfigProvider;
 export '../core/providers/supabase_service_provider.dart'
     show supabaseServiceProvider;
 export '../features/auth/presentation/customer_session_providers.dart'
     show authStateProvider, currentUserProvider, currentUserRolesProvider;
-import '../models/user_model.dart';
+export '../features/profile/presentation/customer_profile_providers.dart'
+    show userProfileProvider;
 import '../models/network_model.dart';
-
-// User Profile
-final userProfileProvider = FutureProvider<AppUser?>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return null;
-
-  final service = ref.watch(supabaseServiceProvider);
-  return await service.getUserProfile(user.id);
-});
 
 // Networks
 final networksProvider = FutureProvider<List<Network>>((ref) async {
