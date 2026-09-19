@@ -151,9 +151,11 @@ void main() {
       expect(find.textContaining('تعذر تسجيل الخروج بأمان'), findsOneWidget);
       expect(find.textContaining('AUTH_INTERNAL_SECRET'), findsNothing);
       expect(
-        tester.widget<OutlinedButton>(
-          find.byKey(const Key('profile-sign-out')),
-        ).onPressed,
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(const Key('profile-sign-out')),
+            )
+            .onPressed,
         isNotNull,
       );
     });
