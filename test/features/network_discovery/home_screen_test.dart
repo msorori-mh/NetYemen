@@ -32,12 +32,15 @@ void main() {
     expect(find.text('شبكة يمن نت'), findsOneWidget);
     expect(find.text('شبكة عدن للاتصالات'), findsOneWidget);
     expect(find.text('شبكة تعز السريعة'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('home-open-networks')));
+    expect(selectedDestination, 1);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
     expect(
       find.text('لا توجد مشتريات بعد. ابدأ باختيار شبكة وباقة.'),
       findsOneWidget,
     );
-
-    await tester.tap(find.byKey(const Key('home-open-networks')));
-    expect(selectedDestination, 1);
   });
 }

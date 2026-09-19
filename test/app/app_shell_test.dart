@@ -28,11 +28,42 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
-    expect(find.text('الرئيسية'), findsOneWidget);
-    expect(find.text('الشبكات'), findsOneWidget);
-    expect(find.text('المحفظة'), findsOneWidget);
-    expect(find.text('المشتريات'), findsOneWidget);
-    expect(find.text('الحساب'), findsOneWidget);
+    final navigationBarFinder = find.byType(NavigationBar);
+    expect(
+      find.descendant(
+        of: navigationBarFinder,
+        matching: find.text('الرئيسية'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: navigationBarFinder,
+        matching: find.text('الشبكات'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: navigationBarFinder,
+        matching: find.text('المحفظة'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: navigationBarFinder,
+        matching: find.text('المشتريات'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: navigationBarFinder,
+        matching: find.text('الحساب'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('الإدارة'), findsNothing);
     expect(find.text('الإدارة والمالية'), findsNothing);
 
@@ -40,7 +71,7 @@ void main() {
     await tester.pump();
 
     final navigationBar = tester.widget<NavigationBar>(
-      find.byType(NavigationBar),
+      navigationBarFinder,
     );
     expect(navigationBar.selectedIndex, 1);
   });
