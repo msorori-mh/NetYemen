@@ -4,7 +4,7 @@ import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/presentation/network_request_providers.dart';
-import '../../../screens/auth/login_screen.dart';
+import '../../auth/presentation/login_screen.dart';
 
 class AddRequestScreen extends ConsumerStatefulWidget {
   const AddRequestScreen({super.key});

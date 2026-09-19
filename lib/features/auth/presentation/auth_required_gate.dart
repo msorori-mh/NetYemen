@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../screens/auth/login_screen.dart';
 import 'customer_session_providers.dart';
+import 'login_screen.dart';
 
 /// Gates a screen or feature that requires an authenticated user.
 ///

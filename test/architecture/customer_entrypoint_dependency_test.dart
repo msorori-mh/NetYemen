@@ -110,6 +110,41 @@ void main() {
         File('lib/providers/app_providers.dart').readAsStringSync();
     expect(legacyFacade, isNot(contains('final userProfileProvider =')));
   });
+
+  test('customer auth screens are owned by auth feature', () {
+    const screenNames = ['login', 'signup', 'otp'];
+    for (final name in screenNames) {
+      final canonical =
+          File('lib/features/auth/presentation/${name}_screen.dart');
+      final compatibility = File('lib/screens/auth/${name}_screen.dart');
+
+      expect(
+        canonical.existsSync(),
+        isTrue,
+        reason: 'Missing ${canonical.path}',
+      );
+      expect(
+        compatibility.readAsStringSync(),
+        contains(
+          "export '../../features/auth/presentation/${name}_screen.dart';",
+        ),
+      );
+    }
+
+    final legacyImports = Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) => file.readAsStringSync().contains('screens/auth/'))
+        .map((file) => file.path.replaceAll('\\', '/'))
+        .toList();
+
+    expect(
+      legacyImports,
+      isEmpty,
+      reason: 'Features must use canonical auth screens: $legacyImports',
+    );
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {

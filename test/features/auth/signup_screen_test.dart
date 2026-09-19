@@ -5,7 +5,7 @@ import 'package:netyemen/app/app_shell.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/auth/domain/customer_auth.dart';
 import 'package:netyemen/providers/app_providers.dart';
-import 'package:netyemen/screens/auth/signup_screen.dart';
+import 'package:netyemen/features/auth/presentation/signup_screen.dart';
 
 import '../../fakes/fake_supabase_service.dart';
 

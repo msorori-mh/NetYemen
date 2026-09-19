@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../screens/auth/login_screen.dart';
 import '../../../utils/constants.dart';
 import '../../auth/presentation/customer_session_providers.dart';
+import '../../auth/presentation/login_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 import '../../notifications/presentation/notification_providers.dart';
 import '../../purchase/domain/entities.dart';
