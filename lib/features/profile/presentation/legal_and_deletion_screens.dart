@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config_provider.dart';
-import '../../../core/providers/supabase_service_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/presentation/customer_auth_providers.dart';
 import '../../notifications/presentation/fcm_token_service.dart';
 import '../data/account_deletion_repository.dart';
 
@@ -178,7 +178,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
 
     var signedOut = true;
     try {
-      await ref.read(supabaseServiceProvider).signOut();
+      await ref.read(customerAuthRepositoryProvider).signOut();
     } catch (_) {
       signedOut = false;
     }

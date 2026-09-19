@@ -1,26 +1,44 @@
-// lib/services/supabase_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../features/auth/domain/customer_auth.dart';
 
-class SupabaseService {
-  SupabaseClient get _client => Supabase.instance.client;
+import '../domain/customer_auth.dart';
 
-  // ==================== AUTH ====================
-
-  Future<void> signInWithPhone(String phone) async {
-    await _client.auth.signInWithOtp(phone: phone);
-  }
+abstract interface class CustomerAuthRepository {
+  Future<void> signInWithPhone(String phone);
 
   Future<AuthResponse> signInWithPhonePassword({
     required String phone,
     required String password,
-  }) async {
+  });
+
+  Future<AuthResponse> registerTestAccount(
+    TestAccountRegistration registration,
+  );
+
+  Future<AuthResponse> verifyOtp(String phone, String otp);
+
+  Future<void> signOut();
+}
+
+class SupabaseCustomerAuthRepository implements CustomerAuthRepository {
+  SupabaseClient get _client => Supabase.instance.client;
+
+  @override
+  Future<void> signInWithPhone(String phone) async {
+    await _client.auth.signInWithOtp(phone: phone);
+  }
+
+  @override
+  Future<AuthResponse> signInWithPhonePassword({
+    required String phone,
+    required String password,
+  }) {
     return _client.auth.signInWithPassword(
       phone: normalizeYemeniPhone(phone),
       password: password,
     );
   }
 
+  @override
   Future<AuthResponse> registerTestAccount(
     TestAccountRegistration registration,
   ) async {
@@ -56,15 +74,15 @@ class SupabaseService {
     );
   }
 
-  Future<AuthResponse> verifyOTP(String phone, String otp) async {
-    return await _client.auth.verifyOTP(
+  @override
+  Future<AuthResponse> verifyOtp(String phone, String otp) {
+    return _client.auth.verifyOTP(
       phone: phone,
       token: otp,
       type: OtpType.sms,
     );
   }
 
-  Future<void> signOut() async {
-    await _client.auth.signOut();
-  }
+  @override
+  Future<void> signOut() => _client.auth.signOut();
 }

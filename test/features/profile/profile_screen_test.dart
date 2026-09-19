@@ -5,7 +5,10 @@ import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/profile/domain/customer_profile.dart';
 import 'package:netyemen/features/profile/presentation/profile_screen.dart';
 import 'package:netyemen/features/profile/presentation/legal_and_deletion_screens.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
+import 'package:netyemen/features/profile/presentation/customer_profile_providers.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {

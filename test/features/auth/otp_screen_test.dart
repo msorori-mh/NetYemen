@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/app/app_shell.dart';
 import 'package:netyemen/core/config/app_config.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
+
 import 'package:netyemen/features/auth/presentation/otp_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../fakes/fake_supabase_service.dart';
+import '../../fakes/fake_customer_auth_repository.dart';
 
 void main() {
   group('OTPScreen', () {
@@ -16,10 +19,10 @@ void main() {
       supabasePublishableKey: 'test-publishable-key',
     );
 
-    Widget buildScreen({required FakeSupabaseService service, User? user}) {
+    Widget buildScreen({required FakeCustomerAuthRepository service, User? user}) {
       return ProviderScope(
         overrides: [
-          supabaseServiceProvider.overrideWithValue(service),
+          customerAuthRepositoryProvider.overrideWithValue(service),
           currentUserProvider.overrideWithValue(user),
           appConfigProvider.overrideWithValue(configuredConfig),
         ],
@@ -30,8 +33,8 @@ void main() {
     testWidgets(
       'successful OTP verification navigates to AppShell without legacy users table call',
       (tester) async {
-        final service = FakeSupabaseService()
-          ..verifyResult = User(
+        final service = FakeCustomerAuthRepository()
+          ..otpResult = User(
             id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
             appMetadata: {},
             userMetadata: {},
@@ -46,14 +49,14 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(AppShell), findsOneWidget);
-        expect(service.verifyPhone, '+967770000000');
-        expect(service.verifyOtp, '123456');
+        expect(service.otpPhone, '+967770000000');
+        expect(service.otpValue, '123456');
       },
     );
 
     testWidgets('invalid OTP shows Arabic error', (tester) async {
-      final service = FakeSupabaseService()
-        ..verifyException = Exception('invalid token');
+      final service = FakeCustomerAuthRepository()
+        ..otpException = Exception('invalid token');
 
       await tester.pumpWidget(buildScreen(service: service));
 

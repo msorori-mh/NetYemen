@@ -10,7 +10,7 @@ import 'package:netyemen/features/purchase/presentation/purchase_detail_screen.d
 import 'package:netyemen/features/purchase/presentation/purchase_history_screen.dart';
 import 'package:netyemen/features/purchase/presentation/purchase_providers.dart';
 import 'package:netyemen/features/purchase/presentation/purchase_result_screen.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
 
 void main() {
   testWidgets('customer purchase history excludes owner finance data', (

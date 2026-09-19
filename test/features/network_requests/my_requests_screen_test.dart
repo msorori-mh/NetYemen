@@ -8,7 +8,7 @@ import 'package:netyemen/features/network_requests/data/fake_network_request_rep
 import 'package:netyemen/features/network_requests/domain/entities.dart';
 import 'package:netyemen/features/network_requests/presentation/my_requests_screen.dart';
 import 'package:netyemen/features/network_requests/presentation/network_request_providers.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
 
 void main() {
   testWidgets('offline request history uses the shared retry state', (

@@ -7,7 +7,7 @@ import 'package:netyemen/features/purchase/presentation/purchase_history_screen.
 import 'package:netyemen/features/wallet/presentation/deposit_history_screen.dart';
 import 'package:netyemen/features/wallet/presentation/deposit_screen.dart';
 import 'package:netyemen/features/wallet/presentation/wallet_screen.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
 
 void main() {
   group('CommerceScreens', () {

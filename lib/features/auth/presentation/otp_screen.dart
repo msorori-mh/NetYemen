@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/app_shell.dart';
-import '../../../core/providers/supabase_service_provider.dart';
 import '../../../utils/app_theme.dart';
+import 'customer_auth_providers.dart';
 
 class OTPScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -27,8 +27,8 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final service = ref.read(supabaseServiceProvider);
-      final response = await service.verifyOTP(widget.phone, otp);
+      final repository = ref.read(customerAuthRepositoryProvider);
+      final response = await repository.verifyOtp(widget.phone, otp);
 
       if (response.user != null) {
         // V1 identity is provisioned automatically by the Supabase auth trigger

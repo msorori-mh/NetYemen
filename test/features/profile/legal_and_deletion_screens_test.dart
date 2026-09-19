@@ -6,9 +6,11 @@ import 'package:netyemen/features/notifications/data/fake_notification_repositor
 import 'package:netyemen/features/notifications/presentation/fcm_token_service.dart';
 import 'package:netyemen/features/profile/data/account_deletion_repository.dart';
 import 'package:netyemen/features/profile/presentation/legal_and_deletion_screens.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart';
 
-import '../../fakes/fake_supabase_service.dart';
+
+import '../../fakes/fake_customer_auth_repository.dart';
 
 void main() {
   const config = AppConfig(
@@ -109,14 +111,14 @@ void main() {
     tester,
   ) async {
     final repository = _FakeAccountDeletionRepository();
-    final authService = FakeSupabaseService();
+    final authService = FakeCustomerAuthRepository();
     final fcmService = _RecordingFcmTokenService();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appConfigProvider.overrideWithValue(config),
           accountDeletionRepositoryProvider.overrideWithValue(repository),
-          supabaseServiceProvider.overrideWithValue(authService),
+          customerAuthRepositoryProvider.overrideWithValue(authService),
           fcmTokenServiceProvider.overrideWithValue(fcmService),
         ],
         child: const MaterialApp(home: AccountDeletionScreen()),
@@ -141,14 +143,14 @@ void main() {
     'sign-out failure does not relabel a confirmed request as failed',
     (tester) async {
       final repository = _FakeAccountDeletionRepository();
-      final authService = FakeSupabaseService()
+      final authService = FakeCustomerAuthRepository()
         ..signOutException = Exception('SIGN_OUT_FAILED');
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             appConfigProvider.overrideWithValue(config),
             accountDeletionRepositoryProvider.overrideWithValue(repository),
-            supabaseServiceProvider.overrideWithValue(authService),
+            customerAuthRepositoryProvider.overrideWithValue(authService),
             fcmTokenServiceProvider.overrideWithValue(
               _RecordingFcmTokenService(),
             ),

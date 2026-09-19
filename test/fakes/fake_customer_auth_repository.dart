@@ -1,20 +1,20 @@
+import 'package:netyemen/features/auth/data/customer_auth_repository.dart';
 import 'package:netyemen/features/auth/domain/customer_auth.dart';
-import 'package:netyemen/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Test-only fake for the Supabase auth boundary. Avoids real network calls and
-/// lets tests verify OTP success navigation and profile provisioning without a
-/// running Supabase stack.
-class FakeSupabaseService extends SupabaseService {
-  String? verifyPhone;
-  String? verifyOtp;
-  User? verifyResult;
-  Exception? verifyException;
+class FakeCustomerAuthRepository implements CustomerAuthRepository {
+  String? otpPhone;
+  String? otpValue;
+  User? otpResult;
+  Exception? otpException;
 
   String? passwordPhone;
   String? passwordValue;
   User? passwordResult;
   Exception? passwordException;
+
+  String? phoneOtpRequest;
+  Exception? phoneOtpException;
 
   TestAccountRegistration? registration;
   User? registrationResult;
@@ -22,14 +22,19 @@ class FakeSupabaseService extends SupabaseService {
 
   bool signOutCalled = false;
   Exception? signOutException;
+
   @override
-  Future<AuthResponse> verifyOTP(String phone, String otp) async {
-    verifyPhone = phone;
-    verifyOtp = otp;
-    if (verifyException != null) {
-      throw verifyException!;
-    }
-    return AuthResponse(user: verifyResult, session: null);
+  Future<void> signInWithPhone(String phone) async {
+    phoneOtpRequest = phone;
+    if (phoneOtpException != null) throw phoneOtpException!;
+  }
+
+  @override
+  Future<AuthResponse> verifyOtp(String phone, String otp) async {
+    otpPhone = phone;
+    otpValue = otp;
+    if (otpException != null) throw otpException!;
+    return AuthResponse(user: otpResult, session: null);
   }
 
   @override

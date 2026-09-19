@@ -76,12 +76,6 @@ void main() {
     expect(sessionSource, contains('final currentUserProvider'));
     expect(sessionSource, contains('final currentUserRolesProvider'));
 
-    final legacyFacade =
-        File('lib/providers/app_providers.dart').readAsStringSync();
-    expect(legacyFacade, isNot(contains('final authStateProvider =')));
-    expect(legacyFacade, isNot(contains('final currentUserProvider =')));
-    expect(legacyFacade, isNot(contains('final currentUserRolesProvider =')));
-
     final remainingFeatureImports = Directory('lib/features')
         .listSync(recursive: true)
         .whereType<File>()
@@ -106,9 +100,7 @@ void main() {
     ).readAsStringSync();
     expect(profileSource, contains('final userProfileProvider'));
 
-    final legacyFacade =
-        File('lib/providers/app_providers.dart').readAsStringSync();
-    expect(legacyFacade, isNot(contains('final userProfileProvider =')));
+    expect(File('lib/providers/app_providers.dart').existsSync(), isFalse);
   });
 
   test('customer auth screens are owned by auth feature', () {
@@ -207,53 +199,57 @@ void main() {
     );
   });
 
-  test('legacy provider facade only re-exports owned providers', () {
-    final facade = File('lib/providers/app_providers.dart').readAsStringSync();
-    expect(facade, isNot(contains('final ')));
-    expect(facade, isNot(contains('Provider<')));
+  test('legacy provider facade stays retired and unreferenced', () {
+    expect(File('lib/providers/app_providers.dart').existsSync(), isFalse);
 
-    final runtimeImports = Directory('lib')
+    final imports = Directory('.')
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
         .where(
           (file) =>
               file.path.replaceAll('\\', '/') !=
-                  'lib/providers/app_providers.dart' &&
+                  'test/architecture/customer_entrypoint_dependency_test.dart' &&
               file.readAsStringSync().contains('providers/app_providers.dart'),
         )
         .map((file) => file.path.replaceAll('\\', '/'))
         .toList();
 
     expect(
-      runtimeImports,
+      imports,
       isEmpty,
-      reason: 'Runtime code must import provider owners: $runtimeImports',
+      reason: 'Code must import provider owners directly: $imports',
     );
   });
 
-  test('legacy Supabase service only serves customer authentication', () {
-    final source =
-        File('lib/services/supabase_service.dart').readAsStringSync();
-    const removedOperations = <String>{
-      'getNetworks',
-      'getNetworkPrices',
-      'getMyWalletSummary',
-      'getMyDepositRequests',
-      'getActiveDepositChannels',
-      'createDepositRequest',
-      'purchasePackage',
-      'getMyPurchaseOrders',
-      'getMyFulfillmentRecords',
-      'getAvailableCard',
-      'getUserPurchases',
-      'getUserProfile',
-    };
+  test('customer authentication boundary is owned by auth feature', () {
+    final source = File(
+      'lib/features/auth/data/customer_auth_repository.dart',
+    ).readAsStringSync();
 
-    for (final operation in removedOperations) {
-      expect(source, isNot(contains('$operation(')));
-    }
+    expect(source, contains('abstract interface class CustomerAuthRepository'));
+    expect(source, contains('class SupabaseCustomerAuthRepository'));
     expect(source, contains('signInWithPhonePassword'));
+    expect(File('lib/services/supabase_service.dart').existsSync(), isFalse);
+    expect(
+      File('lib/core/providers/supabase_service_provider.dart').existsSync(),
+      isFalse,
+    );
+  });
+
+  test('legacy root provider and service layers stay retired', () {
+    final legacyFiles = ['lib/providers', 'lib/services']
+        .where((path) => Directory(path).existsSync())
+        .expand(
+          (path) => Directory(path)
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((file) => file.path.endsWith('.dart')),
+        )
+        .map((file) => file.path.replaceAll('\\', '/'))
+        .toList();
+
+    expect(legacyFiles, isEmpty, reason: 'Legacy files: $legacyFiles');
   });
 
   test('superseded customer models stay removed from the legacy layer', () {

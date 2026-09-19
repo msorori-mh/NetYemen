@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/app/app_shell.dart';
 import 'package:netyemen/core/config/app_config.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
+
 
 void main() {
   testWidgets('customer shell always exposes only customer destinations', (

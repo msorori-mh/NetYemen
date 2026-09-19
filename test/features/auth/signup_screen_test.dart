@@ -4,10 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/app/app_shell.dart';
 import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/auth/domain/customer_auth.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
+
 import 'package:netyemen/features/auth/presentation/signup_screen.dart';
 
-import '../../fakes/fake_supabase_service.dart';
+import '../../fakes/fake_customer_auth_repository.dart';
 
 void main() {
   const configuredConfig = AppConfig(
@@ -15,11 +18,11 @@ void main() {
     supabasePublishableKey: 'test-publishable-key',
   );
 
-  Widget buildScreen([FakeSupabaseService? service]) {
+  Widget buildScreen([FakeCustomerAuthRepository? service]) {
     return ProviderScope(
       overrides: [
-        supabaseServiceProvider.overrideWithValue(
-          service ?? FakeSupabaseService(),
+        customerAuthRepositoryProvider.overrideWithValue(
+          service ?? FakeCustomerAuthRepository(),
         ),
         appConfigProvider.overrideWithValue(configuredConfig),
         currentUserProvider.overrideWithValue(null),
@@ -49,7 +52,7 @@ void main() {
       (
     tester,
   ) async {
-    final service = FakeSupabaseService();
+    final service = FakeCustomerAuthRepository();
     await tester.pumpWidget(buildScreen(service));
 
     await tester.enterText(

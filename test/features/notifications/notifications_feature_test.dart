@@ -6,7 +6,7 @@ import 'package:netyemen/features/notifications/data/fake_notification_repositor
 import 'package:netyemen/features/notifications/data/notification_transport_adapter.dart';
 import 'package:netyemen/features/notifications/domain/entities.dart';
 import 'package:netyemen/features/notifications/presentation/fcm_token_service.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _testAuthUserProvider = StateProvider<User?>((ref) => null);

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_shell.dart';
-import '../../../core/providers/supabase_service_provider.dart';
 import '../../../utils/app_theme.dart';
 import '../domain/customer_auth.dart';
+import 'customer_auth_providers.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -54,7 +54,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await ref.read(supabaseServiceProvider).registerTestAccount(
+      await ref.read(customerAuthRepositoryProvider).registerTestAccount(
             TestAccountRegistration(
               fullName: _fullNameController.text,
               phone: _phoneController.text,

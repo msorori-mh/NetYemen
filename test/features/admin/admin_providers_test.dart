@@ -4,7 +4,9 @@ import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/admin/data/admin_repository.dart';
 import 'package:netyemen/features/admin/domain/entities.dart';
 import 'package:netyemen/features/admin/presentation/admin_providers.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
+import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
+
 
 class _FakeAdminRepository extends AdminRepository {
   final AdminDashboardKpi kpis;

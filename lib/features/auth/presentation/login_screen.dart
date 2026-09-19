@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_shell.dart';
-import '../../../core/providers/supabase_service_provider.dart';
 import '../../../utils/app_theme.dart';
 import '../domain/customer_auth.dart';
+import 'customer_auth_providers.dart';
 import 'otp_screen.dart';
 import 'signup_screen.dart';
 
@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final phone = normalizeYemeniPhone(_phoneController.text);
-      await ref.read(supabaseServiceProvider).signInWithPhonePassword(
+      await ref.read(customerAuthRepositoryProvider).signInWithPhonePassword(
             phone: phone,
             password: _passwordController.text,
           );
@@ -64,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await ref.read(supabaseServiceProvider).signInWithPhone(phone);
+      await ref.read(customerAuthRepositoryProvider).signInWithPhone(phone);
       if (!mounted) return;
       Navigator.of(
         context,

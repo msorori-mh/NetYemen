@@ -9,7 +9,7 @@ import 'package:netyemen/features/notifications/data/push_message_source.dart';
 import 'package:netyemen/features/notifications/presentation/notification_providers.dart';
 import 'package:netyemen/features/notifications/presentation/notification_center_screen.dart';
 import 'package:netyemen/features/notifications/presentation/push_message_listener.dart';
-import 'package:netyemen/providers/app_providers.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
 
 void main() {
   test('uses a stable fallback key when an FCM message ID is absent', () {
