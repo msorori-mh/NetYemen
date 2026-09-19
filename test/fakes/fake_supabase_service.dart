@@ -21,6 +21,7 @@ class FakeSupabaseService extends SupabaseService {
   Exception? registrationException;
 
   bool signOutCalled = false;
+  Exception? signOutException;
   @override
   Future<AuthResponse> verifyOTP(String phone, String otp) async {
     verifyPhone = phone;
@@ -54,5 +55,6 @@ class FakeSupabaseService extends SupabaseService {
   @override
   Future<void> signOut() async {
     signOutCalled = true;
+    if (signOutException != null) throw signOutException!;
   }
 }

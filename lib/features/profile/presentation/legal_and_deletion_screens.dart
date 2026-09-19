@@ -72,7 +72,12 @@ class _PublicLegalLink extends ConsumerWidget {
       onPressed: uri == null
           ? null
           : () async {
-              final opened = await ref.read(legalUrlLauncherProvider)(uri!);
+              var opened = false;
+              try {
+                opened = await ref.read(legalUrlLauncherProvider)(uri!);
+              } catch (_) {
+                opened = false;
+              }
               if (!opened && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('تعذر فتح الرابط الآمن.')),
@@ -146,35 +151,62 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       _errorMessage = null;
     });
 
+    late final AccountDeletionReceipt receipt;
     try {
-      await ref.read(accountDeletionRepositoryProvider).requestDeletion(
+      receipt = await ref
+          .read(accountDeletionRepositoryProvider)
+          .requestDeletion(
             reason: _reasonController.text.trim().isEmpty
                 ? null
                 : _reasonController.text.trim(),
           );
-      try {
-        await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
-      } finally {
-        await ref.read(supabaseServiceProvider).signOut();
-      }
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'تم استلام طلب حذف الحساب وإغلاقه. تبدأ الآن مهلة 30 يومًا.',
-          ),
-        ),
-      );
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _errorMessage =
             'تعذر تسجيل طلب الحذف بأمان. تحقق من الاتصال ثم أعد المحاولة.';
+        _submitting = false;
       });
-    } finally {
-      if (mounted) setState(() => _submitting = false);
+      return;
     }
+
+    try {
+      await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
+    } catch (_) {
+      // The server already deactivated all push tokens atomically with the
+      // deletion request. Local cleanup must not change the confirmed result.
+    }
+
+    var signedOut = true;
+    try {
+      await ref.read(supabaseServiceProvider).signOut();
+    } catch (_) {
+      signedOut = false;
+    }
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    messenger.showSnackBar(
+      SnackBar(content: Text(_successMessage(receipt, signedOut: signedOut))),
+    );
+  }
+
+  String _successMessage(
+    AccountDeletionReceipt receipt, {
+    required bool signedOut,
+  }) {
+    final scheduled = receipt.scheduledFor.toLocal();
+    final date = '${scheduled.day}/${scheduled.month}/${scheduled.year}';
+    final prefix = receipt.idempotent
+        ? 'طلب حذف الحساب مسجل مسبقًا'
+        : 'تم استلام طلب حذف الحساب';
+    if (!signedOut) {
+      return '$prefix، وموعد إزالة البيانات الشخصية $date. '
+          'تعذر تسجيل الخروج تلقائيًا؛ استخدم زر تسجيل الخروج من الحساب.';
+    }
+    return '$prefix وإغلاقه. موعد إزالة البيانات الشخصية $date.';
   }
 
   @override
