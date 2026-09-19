@@ -157,7 +157,7 @@ void main() {
     expect(legacyMain, isNot(contains("'profile/profile_screen.dart'")));
   });
 
-  test('retired customer screens have no inbound project imports', () {
+  test('retired customer screens stay deleted and unreferenced', () {
     const retiredPaths = <String>{
       'lib/screens/home/home_screen.dart',
       'lib/screens/home/network_detail_screen.dart',
@@ -168,6 +168,14 @@ void main() {
       'lib/screens/profile/profile_screen.dart',
     };
     final inboundImports = <String>[];
+
+    for (final path in retiredPaths) {
+      expect(
+        File(path).existsSync(),
+        isFalse,
+        reason: '$path must stay deleted',
+      );
+    }
 
     final projectFiles = Directory('lib')
         .listSync(recursive: true)
