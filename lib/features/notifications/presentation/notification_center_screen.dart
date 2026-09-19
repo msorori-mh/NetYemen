@@ -271,7 +271,7 @@ Future<void> _openNetworkDestination(
     MaterialPageRoute(
       builder: (_) => network == null
           ? const NetworksListScreen()
-          : NetworkDetailsScreen(network: network!),
+          : NetworkDetailsScreen(network: network),
     ),
   );
 }
