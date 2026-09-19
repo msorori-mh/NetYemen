@@ -211,9 +211,8 @@ Future<void> navigateNotificationDeepLink(
       String? networkId;
       if (packageId != null && packageId.isNotEmpty) {
         try {
-          final package = await ref
-              .read(packageRepositoryProvider)
-              .fetchPackage(packageId);
+          final package =
+              await ref.read(packageRepositoryProvider).fetchPackage(packageId);
           networkId = package?.networkId;
         } catch (_) {
           networkId = null;
