@@ -31,7 +31,22 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
         child: purchaseAsync.when(
           data: (purchase) => _buildContent(context, purchase),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('خطأ: $e')),
+          error: (_, __) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('تعذر تحميل تفاصيل عملية الشراء'),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => ref.invalidate(
+                    purchaseDetailProvider(widget.purchaseId),
+                  ),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -51,17 +66,37 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
           _InfoCard(purchase: purchase),
           const SizedBox(height: 16),
           if (isCompleted)
-            ElevatedButton.icon(
-              onPressed:
-                  _revealing ? null : () => _revealCard(context, purchase),
-              icon: const Icon(Icons.visibility),
-              label: _revealing
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('كشف الكرت'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'بيانات الكرت مخفية لحمايتها. أظهرها فقط عند الاستخدام، ولا تشاركها مع أي شخص.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  key: const Key('purchase-reveal-card'),
+                  onPressed:
+                      _revealing ? null : () => _revealCard(context, purchase),
+                  icon: const Icon(Icons.visibility),
+                  label: _revealing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('إظهار بيانات الكرت بأمان'),
+                ),
+              ],
+            ),
+          if (!isCompleted)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'لا يمكن إظهار بيانات الكرت لهذه الحالة. راجع حالة العملية أو تواصل مع الدعم.',
+                ),
+              ),
             ),
           const SizedBox(height: 12),
           if (_message != null)
@@ -86,7 +121,6 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
       final repo = ref.read(purchaseRepositoryProvider);
       final result = await repo.revealPurchaseCardSecret(purchase.id);
       if (context.mounted) {
-        setState(() => _message = 'تم كشف الكرت');
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => CardRevealScreen(
@@ -99,9 +133,12 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() => _message = 'فشل الكشف: $e');
+        setState(
+          () => _message =
+              'تعذر إظهار بيانات الكرت. تحقق من الاتصال وحالة العملية ثم حاول مجددًا.',
+        );
       }
     } finally {
       if (mounted) {
@@ -134,20 +171,8 @@ class _InfoCard extends StatelessWidget {
             _row('تاريخ الشراء', _formatDate(purchase.createdAt)),
             const Divider(height: 24),
             _row(
-              'المبلغ الإجمالي',
-              '${purchase.grossAmount} ${purchase.currency}',
-            ),
-            _row(
-              'نسبة العمولة',
-              '${(purchase.commissionRateSnapshot * 100).toStringAsFixed(2)}%',
-            ),
-            _row(
-              'قيمة العمولة',
-              '${purchase.commissionAmount} ${purchase.currency}',
-            ),
-            _row(
-              'الصافي لصاحب الشبكة',
-              '${purchase.ownerNetAmount} ${purchase.currency}',
+              'المبلغ المدفوع',
+              '${purchase.totalPrice} ${purchase.currency}',
             ),
           ],
         ),

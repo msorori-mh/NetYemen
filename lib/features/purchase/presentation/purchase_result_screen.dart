@@ -1,6 +1,7 @@
 // lib/features/purchase/presentation/purchase_result_screen.dart
 
 import 'package:flutter/material.dart';
+import 'purchase_detail_screen.dart';
 
 class PurchaseResultScreen extends StatelessWidget {
   final bool success;
@@ -64,6 +65,21 @@ class PurchaseResultScreen extends StatelessWidget {
                   style: const TextStyle(color: Colors.red),
                 ),
               const Spacer(),
+              if (success && _purchaseId != null) ...[
+                OutlinedButton.icon(
+                  key: const Key('purchase-result-open-detail'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PurchaseDetailScreen(
+                        purchaseId: _purchaseId!,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('عرض تفاصيل العملية والكرت'),
+                ),
+                const SizedBox(height: 8),
+              ],
               ElevatedButton(
                 onPressed: () =>
                     Navigator.of(context).popUntil((route) => route.isFirst),
@@ -74,6 +90,11 @@ class PurchaseResultScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String? get _purchaseId {
+    final value = purchaseResult?['purchase_id'] as String?;
+    return value == null || value.isEmpty ? null : value;
   }
 
   String _fulfillmentText(String? status) {

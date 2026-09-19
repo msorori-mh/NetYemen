@@ -60,7 +60,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('سجل المشتريات'), findsOneWidget);
-      expect(find.text('لا توجد مشتريات'), findsOneWidget);
+      expect(find.text('لا توجد مشتريات بعد'), findsOneWidget);
     });
 
     testWidgets('DepositReviewQueueScreen renders finance queue', (

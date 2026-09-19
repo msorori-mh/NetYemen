@@ -20,6 +20,7 @@ class CardRevealScreen extends ConsumerStatefulWidget {
 class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   bool _showSecret = false;
   bool _disputing = false;
+  bool _disputeSubmitted = false;
   final _reasonController = TextEditingController();
   Timer? _clipboardClearTimer;
   String? _message;
@@ -33,18 +34,18 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
 
   bool get _disputeEligible {
     final deadline = widget.revealedInfo.disputeDeadline;
-    if (deadline == null) return true;
+    if (deadline == null || _disputeSubmitted) return false;
     return DateTime.now().isBefore(deadline);
   }
 
   String get _remainingText {
     final deadline = widget.revealedInfo.disputeDeadline;
-    if (deadline == null) return '';
+    if (_disputeSubmitted) return 'تم تسجيل بلاغ الكرت غير الصالح.';
+    if (deadline == null) return 'تعذر التحقق من مهلة النزاع.';
     final remaining = deadline.difference(DateTime.now());
     if (remaining.isNegative) return 'انتهت مهلة فتح النزاع';
-    final minutes = remaining.inMinutes;
-    final seconds = remaining.inSeconds % 60;
-    return 'متبقي لفتح نزاع: $minutes:${seconds.toString().padLeft(2, '0')}';
+    final minutes = (remaining.inSeconds + 59) ~/ 60;
+    return 'متبقي لفتح نزاع: $minutes دقيقة';
   }
 
   @override
@@ -107,6 +108,8 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                             ),
                           ),
                           IconButton(
+                            key: const Key('card-secret-visibility'),
+                            tooltip: _showSecret ? 'إخفاء الكرت' : 'إظهار الكرت',
                             onPressed: () =>
                                 setState(() => _showSecret = !_showSecret),
                             icon: Icon(
@@ -116,6 +119,8 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
                             ),
                           ),
                           IconButton(
+                            key: const Key('card-secret-copy'),
+                            tooltip: 'نسخ الكرت',
                             onPressed: () =>
                                 _copyToClipboard(widget.revealedInfo.plaintext),
                             icon: const Icon(Icons.copy),
@@ -199,6 +204,10 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   }
 
   Future<void> _submitDispute() async {
+    if (!_disputeEligible) {
+      setState(() => _message = 'انتهت أو تعذر التحقق من مهلة فتح النزاع.');
+      return;
+    }
     final reason = _reasonController.text.trim();
     if (reason.isEmpty) {
       setState(() => _message = 'أدخل سبب النزاع');
@@ -217,12 +226,18 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
         reason,
       );
       if (mounted) {
-        setState(() => _message = 'تم فتح النزاع بنجاح');
+        setState(() {
+          _disputeSubmitted = true;
+          _message = 'تم فتح النزاع بنجاح';
+        });
         _reasonController.clear();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() => _message = 'فشل فتح النزاع: $e');
+        setState(
+          () => _message =
+              'تعذر تأكيد فتح النزاع. تحقق من الاتصال ثم راجع مشترياتك قبل إعادة المحاولة.',
+        );
       }
     } finally {
       if (mounted) {

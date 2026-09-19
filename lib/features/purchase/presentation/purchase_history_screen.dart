@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
+import '../../network_discovery/presentation/networks_list_screen.dart';
 import 'purchase_detail_screen.dart';
 import 'purchase_providers.dart';
 
@@ -57,61 +58,132 @@ class PurchaseHistoryScreen extends ConsumerWidget {
         child: purchasesAsync.when(
           data: (purchases) {
             if (purchases.isEmpty) {
-              return const Center(child: Text('لا توجد مشتريات'));
-            }
-            return ListView.builder(
-              itemCount: purchases.length,
-              itemBuilder: (context, index) {
-                final purchase = purchases[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: ListTile(
-                    title: Text(purchase.packageName ?? 'باقة'),
-                    subtitle: Text(
-                      'الشبكة: ${purchase.networkName ?? '-'}\n'
-                      'السعر: ${purchase.totalPrice} ${purchase.currency}\n'
-                      'العمولة: ${purchase.commissionAmount} ${purchase.currency} | '
-                      'الصافي: ${purchase.ownerNetAmount} ${purchase.currency}\n'
-                      'الحالة: ${_statusText(purchase.status)}',
-                    ),
-                    trailing: Text(
-                      purchase.createdAt != null
-                          ? '${purchase.createdAt!.day}/${purchase.createdAt!.month}'
-                          : '',
-                    ),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            PurchaseDetailScreen(purchaseId: purchase.id),
+              return RefreshIndicator(
+                onRefresh: () => _refresh(ref),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 150),
+                    const Icon(Icons.shopping_bag_outlined, size: 56),
+                    const SizedBox(height: 12),
+                    const Center(child: Text('لا توجد مشتريات بعد')),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NetworksListScreen(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.wifi),
+                        label: const Text('استكشاف الشبكات والباقات'),
                       ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () => _refresh(ref),
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: purchases.length,
+                itemBuilder: (context, index) {
+                  final purchase = purchases[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: ListTile(
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(purchase.packageName ?? 'باقة إنترنت'),
+                          ),
+                          _PurchaseStatusBadge(status: purchase.status),
+                        ],
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '${purchase.networkName ?? 'شبكة'}\n'
+                          '${purchase.totalPrice} ${purchase.currency}'
+                          '${purchase.createdAt == null ? '' : ' · ${_formatDate(purchase.createdAt!)}'}',
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_left),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              PurchaseDetailScreen(purchaseId: purchase.id),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('خطأ: $e')),
+          error: (_, __) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('تعذر تحميل سجل المشتريات'),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => ref.invalidate(purchaseHistoryProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  String _statusText(String status) {
-    switch (status) {
-      case 'completed':
-        return 'مكتمل';
-      case 'refunded':
-        return 'مسترجع';
-      case 'disputed':
-        return 'متنازع عليه';
-      case 'cancelled':
-        return 'ملغي';
-      default:
-        return status;
-    }
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(purchaseHistoryProvider);
+    await ref.read(purchaseHistoryProvider.future);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+class _PurchaseStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _PurchaseStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      'completed' => ('مكتمل', Colors.green),
+      'refunded' => ('مسترجع', Colors.blue),
+      'disputed' => ('قيد النزاع', Colors.orange),
+      'cancelled' => ('ملغي', Colors.grey),
+      _ => ('قيد المعالجة', Colors.orange),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }
