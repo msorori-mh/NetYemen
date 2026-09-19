@@ -17,7 +17,10 @@ void main() {
       await container.read(purchaseSubmissionProvider.future);
 
       final notifier = container.read(purchaseSubmissionProvider.notifier);
-      await expectLater(notifier.submit('package-1'), throwsException);
+      await expectLater(
+        notifier.submit('package-1'),
+        throwsA(isA<StateError>()),
+      );
       final result = await notifier.submit('package-1');
 
       expect(result['purchase_id'], 'purchase-1');
