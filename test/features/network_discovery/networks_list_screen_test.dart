@@ -6,9 +6,7 @@ import 'package:netyemen/features/network_discovery/presentation/network_discove
 import 'package:netyemen/features/network_discovery/presentation/networks_list_screen.dart';
 
 void main() {
-  testWidgets('search and governorate filters stay visible and clear together', (
-    tester,
-  ) async {
+  testWidgets('filters networks by search and governorate', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

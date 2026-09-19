@@ -9,8 +9,7 @@ class NetworksListScreen extends ConsumerStatefulWidget {
   const NetworksListScreen({super.key});
 
   @override
-  ConsumerState<NetworksListScreen> createState() =>
-      _NetworksListScreenState();
+  ConsumerState<NetworksListScreen> createState() => _NetworksListScreenState();
 }
 
 class _NetworksListScreenState extends ConsumerState<NetworksListScreen> {
@@ -114,8 +113,8 @@ class _NetworksListScreenState extends ConsumerState<NetworksListScreen> {
             child: networksAsync.when(
               data: (networks) {
                 if (networks.isEmpty) {
-                  final catalogIsEmpty = catalogAsync.valueOrNull?.isEmpty ??
-                      !hasActiveFilter;
+                  final catalogIsEmpty =
+                      catalogAsync.valueOrNull?.isEmpty ?? !hasActiveFilter;
                   return _NetworkEmptyState(
                     isFiltered: !catalogIsEmpty && hasActiveFilter,
                     onClear: _clearFilters,
