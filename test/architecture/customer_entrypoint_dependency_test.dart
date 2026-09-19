@@ -208,8 +208,9 @@ void main() {
         .where((file) => file.path.endsWith('.dart'))
         .where(
           (file) =>
-              file.path.replaceAll('\\', '/') !=
-                  'test/architecture/customer_entrypoint_dependency_test.dart' &&
+              !file.path.replaceAll('\\', '/').endsWith(
+                    'test/architecture/customer_entrypoint_dependency_test.dart',
+                  ) &&
               file.readAsStringSync().contains('providers/app_providers.dart'),
         )
         .map((file) => file.path.replaceAll('\\', '/'))
