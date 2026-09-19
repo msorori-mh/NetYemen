@@ -206,6 +206,33 @@ void main() {
       reason: 'Retired screens must remain unreachable: $inboundImports',
     );
   });
+
+  test('legacy provider facade only re-exports owned providers', () {
+    final facade = File('lib/providers/app_providers.dart').readAsStringSync();
+    expect(facade, isNot(contains('final ')));
+    expect(facade, isNot(contains('Provider<')));
+
+    final runtimeImports = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where(
+          (file) =>
+              file.path.replaceAll('\\', '/') !=
+                  'lib/providers/app_providers.dart' &&
+              file
+                  .readAsStringSync()
+                  .contains('providers/app_providers.dart'),
+        )
+        .map((file) => file.path.replaceAll('\\', '/'))
+        .toList();
+
+    expect(
+      runtimeImports,
+      isEmpty,
+      reason: 'Runtime code must import provider owners: $runtimeImports',
+    );
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {
