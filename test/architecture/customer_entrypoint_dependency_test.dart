@@ -232,7 +232,7 @@ void main() {
     );
   });
 
-  test('legacy Supabase service only serves auth and profile migration', () {
+  test('legacy Supabase service only serves customer authentication', () {
     final source =
         File('lib/services/supabase_service.dart').readAsStringSync();
     const removedOperations = <String>{
@@ -247,19 +247,20 @@ void main() {
       'getMyFulfillmentRecords',
       'getAvailableCard',
       'getUserPurchases',
+      'getUserProfile',
     };
 
     for (final operation in removedOperations) {
       expect(source, isNot(contains('$operation(')));
     }
     expect(source, contains('signInWithPhonePassword'));
-    expect(source, contains('getUserProfile'));
   });
 
   test('superseded customer models stay removed from the legacy layer', () {
     const removedModels = <String>{
       'lib/models/network_model.dart',
       'lib/models/card_model.dart',
+      'lib/models/user_model.dart',
     };
 
     for (final path in removedModels) {
@@ -270,12 +271,14 @@ void main() {
       );
     }
 
-    final legacyModels = Directory('lib/models')
-        .listSync()
-        .whereType<File>()
-        .map((file) => file.path.replaceAll('\\', '/'))
-        .toSet();
-    expect(legacyModels, {'lib/models/user_model.dart'});
+    final legacyModelFiles = Directory('lib/models').existsSync()
+        ? Directory('lib/models')
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart'))
+            .toList()
+        : const <File>[];
+    expect(legacyModelFiles, isEmpty);
   });
 }
 

@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/features/profile/data/customer_profile_repository.dart';
+import 'package:netyemen/features/profile/domain/customer_profile.dart';
 import 'package:netyemen/features/profile/presentation/profile_edit_screen.dart';
-import 'package:netyemen/models/user_model.dart';
 
 void main() {
-  const profile = AppUser(
+  const profile = CustomerProfile(
     id: 'profile-1',
-    phone: '+967770000000',
     fullName: 'اسم قديم',
     governorate: 'مأرب',
     city: 'مدينة مأرب',
@@ -101,6 +100,9 @@ void main() {
 class _FakeCustomerProfileRepository implements CustomerProfileRepository {
   CustomerProfileUpdate? update;
   bool shouldFail = false;
+
+  @override
+  Future<CustomerProfile?> fetchMyProfile() async => null;
 
   @override
   Future<void> updateMyProfile(CustomerProfileUpdate value) async {

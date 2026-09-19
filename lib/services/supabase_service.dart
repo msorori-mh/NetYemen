@@ -1,6 +1,5 @@
 // lib/services/supabase_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/user_model.dart';
 import '../features/auth/domain/customer_auth.dart';
 
 class SupabaseService {
@@ -67,39 +66,5 @@ class SupabaseService {
 
   Future<void> signOut() async {
     await _client.auth.signOut();
-  }
-
-  // ==================== PROFILES ====================
-  // V1 identity uses auth.users for authentication and public.profiles for
-  // application identity. Profile provisioning is handled automatically by the
-  // public.handle_new_user trigger on auth.users insert; client code must not
-  // write to or expect a legacy public.users table.
-
-  Future<AppUser?> getUserProfile(String userId) async {
-    final response = await _client
-        .from('profiles')
-        .select(
-          'id, full_name, account_status, default_governorate, default_city, created_at',
-        )
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (response == null) return null;
-
-    return AppUser(
-      id: response['id'] as String,
-      phone: _client.auth.currentUser?.id == userId
-          ? (_client.auth.currentUser?.phone ?? '')
-          : '',
-      fullName: response['full_name'] as String?,
-      role: 'customer',
-      walletBalance: 0,
-      governorate: response['default_governorate'] as String?,
-      city: response['default_city'] as String?,
-      isActive: response['account_status'] == 'active',
-      createdAt: response['created_at'] != null
-          ? DateTime.parse(response['created_at'] as String)
-          : null,
-    );
   }
 }

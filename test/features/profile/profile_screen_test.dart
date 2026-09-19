@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
+import 'package:netyemen/features/profile/domain/customer_profile.dart';
 import 'package:netyemen/features/profile/presentation/profile_screen.dart';
 import 'package:netyemen/features/profile/presentation/legal_and_deletion_screens.dart';
-import 'package:netyemen/models/user_model.dart';
 import 'package:netyemen/providers/app_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,7 +19,7 @@ void main() {
       required User? user,
       AppConfig config = configuredConfig,
       List<String> roles = const [],
-      AppUser? profile,
+      CustomerProfile? profile,
     }) {
       return ProviderScope(
         overrides: [
@@ -29,9 +29,8 @@ void main() {
           userProfileProvider.overrideWith((ref) async {
             if (profile != null) return profile;
             if (user == null) return null;
-            return AppUser(
+            return CustomerProfile(
               id: user.id,
-              phone: user.phone ?? '',
               fullName: 'أحمد محمد',
               governorate: 'مأرب',
               city: 'مدينة مأرب',

@@ -1,25 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class CustomerProfileUpdate {
-  final String fullName;
-  final String governorate;
-  final String city;
-
-  const CustomerProfileUpdate({
-    required this.fullName,
-    required this.governorate,
-    required this.city,
-  });
-
-  Map<String, String> toJson() => {
-        'full_name': fullName.trim(),
-        'default_governorate': governorate.trim(),
-        'default_city': city.trim(),
-      };
-}
+import '../domain/customer_profile.dart';
 
 abstract class CustomerProfileRepository {
+  Future<CustomerProfile?> fetchMyProfile();
+
   Future<void> updateMyProfile(CustomerProfileUpdate update);
 }
 
@@ -27,6 +13,23 @@ class SupabaseCustomerProfileRepository implements CustomerProfileRepository {
   final SupabaseClient _client;
 
   const SupabaseCustomerProfileRepository(this._client);
+
+  @override
+  Future<CustomerProfile?> fetchMyProfile() async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('AUTH_REQUIRED');
+
+    final response = await _client
+        .from('profiles')
+        .select(
+          'id, full_name, account_status, default_governorate, default_city, created_at',
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+    if (response == null) return null;
+
+    return CustomerProfile.fromJson(response);
+  }
 
   @override
   Future<void> updateMyProfile(CustomerProfileUpdate update) async {
