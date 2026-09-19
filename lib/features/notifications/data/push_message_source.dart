@@ -16,21 +16,31 @@ class PushMessage {
 
   factory PushMessage.fromRemoteMessage(RemoteMessage message) {
     final data = message.data;
+    final title = _firstNonEmpty([
+      message.notification?.title,
+      data['title_ar'],
+      data['title'],
+    ]);
+    final body = _firstNonEmpty([
+      message.notification?.body,
+      data['body_ar'],
+      data['body'],
+    ]);
+    final deepLink = _firstNonEmpty([data['deep_link'], data['deepLink']]);
     return PushMessage(
       messageId: message.messageId,
-      title:
-          message.notification?.title ??
-          data['title_ar']?.toString() ??
-          data['title']?.toString() ??
-          'إشعار جديد',
-      body:
-          message.notification?.body ??
-          data['body_ar']?.toString() ??
-          data['body']?.toString() ??
-          'لديك تحديث جديد في واصل نت.',
-      deepLink:
-          data['deep_link']?.toString() ?? data['deepLink']?.toString(),
+      title: title ?? 'إشعار جديد',
+      body: body ?? 'لديك تحديث جديد في واصل نت.',
+      deepLink: deepLink,
     );
+  }
+
+  static String? _firstNonEmpty(List<Object?> values) {
+    for (final value in values) {
+      final text = value?.toString().trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return null;
   }
 
   String get deduplicationKey =>
