@@ -87,9 +87,8 @@ void main() {
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
         .where(
-          (file) => file
-              .readAsStringSync()
-              .contains("providers/app_providers.dart'"),
+          (file) =>
+              file.readAsStringSync().contains("providers/app_providers.dart'"),
         )
         .map((file) => file.path.replaceAll('\\', '/'))
         .toList();
