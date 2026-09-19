@@ -8,6 +8,7 @@ abstract class WalletRepository {
   Future<List<DepositChannel>> getActiveDepositChannels();
   Future<String> createDepositRequest({
     required int amount,
+    required String idempotencyKey,
     String? paymentDestinationId,
     String? proofReference,
   });

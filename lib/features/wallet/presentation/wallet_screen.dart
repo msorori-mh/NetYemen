@@ -55,10 +55,14 @@ class WalletScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('المحفظة')),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(walletSummaryProvider);
+            await ref.read(walletSummaryProvider.future);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16.0),
             children: [
               Card(
                 child: Padding(
@@ -79,7 +83,17 @@ class WalletScreen extends ConsumerWidget {
                           ),
                         ),
                         loading: () => const CircularProgressIndicator(),
-                        error: (e, _) => Text('خطأ: $e'),
+                        error: (_, __) => Column(
+                          children: [
+                            const Text('تعذر تحميل الرصيد'),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  ref.invalidate(walletSummaryProvider),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('إعادة المحاولة'),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

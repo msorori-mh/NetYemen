@@ -1,7 +1,6 @@
 // lib/features/wallet/data/supabase_wallet_repository.dart
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/utils/uuid_generator.dart';
 import 'wallet_repository.dart';
 import '../domain/entities.dart';
 
@@ -44,6 +43,7 @@ class SupabaseWalletRepository implements WalletRepository {
   @override
   Future<String> createDepositRequest({
     required int amount,
+    required String idempotencyKey,
     String? paymentDestinationId,
     String? proofReference,
   }) async {
@@ -54,7 +54,7 @@ class SupabaseWalletRepository implements WalletRepository {
         'p_reference_number': proofReference ?? '',
         'p_payment_destination_id': paymentDestinationId,
         'p_proof_storage_path': proofReference,
-        'p_idempotency_key': UuidGenerator.generateV4(),
+        'p_idempotency_key': idempotencyKey,
       },
     );
     return (result as Map<String, dynamic>)['id'] as String;

@@ -18,54 +18,105 @@ class DepositHistoryScreen extends ConsumerWidget {
         child: depositsAsync.when(
           data: (deposits) {
             if (deposits.isEmpty) {
-              return const Center(child: Text('لا توجد إيداعات'));
+              return RefreshIndicator(
+                onRefresh: () => _refresh(ref),
+                child: const ListView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(height: 220),
+                    Icon(Icons.receipt_long_outlined, size: 52),
+                    SizedBox(height: 12),
+                    Center(child: Text('لا توجد طلبات إيداع بعد')),
+                  ],
+                ),
+              );
             }
-            return ListView.builder(
-              itemCount: deposits.length,
-              itemBuilder: (context, index) {
-                final deposit = deposits[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: ListTile(
-                    title: Text('${deposit.amount} ${deposit.currency}'),
-                    subtitle: Text(
-                      'الحالة: ${_statusText(deposit.status)}\n'
-                      'المرجع: ${deposit.proofReference ?? '-'}',
+            return RefreshIndicator(
+              onRefresh: () => _refresh(ref),
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: deposits.length,
+                itemBuilder: (context, index) {
+                  final deposit = deposits[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    trailing: Text(
-                      deposit.createdAt != null
-                          ? '${deposit.createdAt!.day}/${deposit.createdAt!.month}'
-                          : '',
+                    child: ListTile(
+                      title: Text('${deposit.amount} ${deposit.currency}'),
+                      subtitle: Text(
+                        'المرجع: ${deposit.proofReference ?? '-'}'
+                        '${deposit.createdAt == null ? '' : '\nالتاريخ: ${_formatDate(deposit.createdAt!)}'}'
+                        '${deposit.reviewerNotes == null ? '' : '\nملاحظة المراجعة: ${deposit.reviewerNotes}'}',
+                      ),
+                      trailing: _DepositStatusBadge(status: deposit.status),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('خطأ: $e')),
+          error: (_, __) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('تعذر تحميل سجل الإيداعات'),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => ref.invalidate(depositHistoryProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  String _statusText(String status) {
-    switch (status) {
-      case 'submitted':
-        return 'مقدم';
-      case 'under_review':
-        return 'قيد المراجعة';
-      case 'approved':
-        return 'مقبول';
-      case 'rejected':
-        return 'مرفوض';
-      case 'cancelled':
-        return 'ملغي';
-      default:
-        return status;
-    }
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(depositHistoryProvider);
+    await ref.read(depositHistoryProvider.future);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+class _DepositStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _DepositStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      'submitted' => ('مقدم', Colors.orange),
+      'under_review' => ('قيد المراجعة', Colors.blue),
+      'approved' => ('مقبول', Colors.green),
+      'rejected' => ('مرفوض', Colors.red),
+      'cancelled' => ('ملغي', Colors.grey),
+      _ => (status, Colors.grey),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

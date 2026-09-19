@@ -5,6 +5,7 @@ import '../domain/entities.dart';
 
 class FakeWalletRepository implements WalletRepository {
   final int _balance = 5000;
+  final Map<String, _FakeDepositReplay> _idempotentRequests = {};
   final List<DepositRequest> _deposits = [
     DepositRequest(
       id: 'fake-deposit-1',
@@ -51,10 +52,22 @@ class FakeWalletRepository implements WalletRepository {
   @override
   Future<String> createDepositRequest({
     required int amount,
+    required String idempotencyKey,
     String? paymentDestinationId,
     String? proofReference,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
+    final existing = _idempotentRequests[idempotencyKey];
+    if (existing != null) {
+      final isSameRequest = existing.amount == amount &&
+          existing.paymentDestinationId == paymentDestinationId &&
+          existing.proofReference == proofReference;
+      if (!isSameRequest) {
+        throw StateError('IDEMPOTENCY_CONFLICT');
+      }
+      return existing.requestId;
+    }
+
     final id = 'fake-deposit-${_deposits.length + 1}';
     _deposits.add(
       DepositRequest(
@@ -67,6 +80,26 @@ class FakeWalletRepository implements WalletRepository {
         createdAt: DateTime.now(),
       ),
     );
+    _idempotentRequests[idempotencyKey] = _FakeDepositReplay(
+      amount: amount,
+      paymentDestinationId: paymentDestinationId,
+      proofReference: proofReference,
+      requestId: id,
+    );
     return id;
   }
+}
+
+class _FakeDepositReplay {
+  final int amount;
+  final String? paymentDestinationId;
+  final String? proofReference;
+  final String requestId;
+
+  const _FakeDepositReplay({
+    required this.amount,
+    required this.paymentDestinationId,
+    required this.proofReference,
+    required this.requestId,
+  });
 }

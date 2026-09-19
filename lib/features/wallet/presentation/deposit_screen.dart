@@ -16,7 +16,6 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   final _amountController = TextEditingController();
   String? _selectedDestinationId;
   final _referenceController = TextEditingController();
-  bool _submitting = false;
   String? _message;
 
   @override
@@ -37,16 +36,12 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
       return;
     }
 
-    setState(() {
-      _submitting = true;
-      _message = null;
-    });
+    setState(() => _message = null);
 
     try {
-      final repo = ref.read(walletRepositoryProvider);
-      await repo.createDepositRequest(
+      await ref.read(depositSubmissionProvider.notifier).submit(
         amount: amount,
-        paymentDestinationId: _selectedDestinationId,
+        paymentDestinationId: _selectedDestinationId!,
         proofReference: _referenceController.text.trim().isEmpty
             ? null
             : _referenceController.text.trim(),
@@ -58,13 +53,12 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         _selectedDestinationId = null;
       }
       ref.invalidate(depositHistoryProvider);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() => _message = 'فشل الإرسال: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
+        setState(
+          () => _message =
+              'تعذر تأكيد إرسال الطلب. تحقق من الاتصال ثم أعد المحاولة؛ لن يتكرر الطلب.',
+        );
       }
     }
   }
@@ -72,16 +66,16 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
   @override
   Widget build(BuildContext context) {
     final destinationsAsync = ref.watch(activePaymentDestinationsProvider);
+    final submissionAsync = ref.watch(depositSubmissionProvider);
+    final isSubmitting = submissionAsync.isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('طلب إيداع')),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          children: [
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
@@ -124,7 +118,9 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                   );
                 },
                 loading: () => const CircularProgressIndicator(),
-                error: (e, _) => Text('خطأ في وجهات الدفع: $e'),
+                error: (_, __) => const Text(
+                  'تعذر تحميل وجهات الدفع. تحقق من الاتصال وأعد فتح الصفحة.',
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -136,8 +132,8 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
+                onPressed: isSubmitting ? null : _submit,
+                child: isSubmitting
                     ? const CircularProgressIndicator()
                     : const Text('إرسال الطلب'),
               ),
@@ -152,7 +148,6 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                 ),
               ],
             ],
-          ),
         ),
       ),
     );
