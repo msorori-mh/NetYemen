@@ -384,8 +384,7 @@ class SupportCaseScreen extends ConsumerWidget {
                 error: error,
                 fallbackTitle: 'تعذر تحميل رسائل الدعم',
                 compact: true,
-                onRetry: () =>
-                    ref.invalidate(supportMessagesProvider(caseId)),
+                onRetry: () => ref.invalidate(supportMessagesProvider(caseId)),
               ),
               data: (m) => Column(
                 children: m
