@@ -233,7 +233,8 @@ void main() {
   });
 
   test('legacy Supabase service only serves auth and profile migration', () {
-    final source = File('lib/services/supabase_service.dart').readAsStringSync();
+    final source =
+        File('lib/services/supabase_service.dart').readAsStringSync();
     const removedOperations = <String>{
       'getNetworks',
       'getNetworkPrices',
