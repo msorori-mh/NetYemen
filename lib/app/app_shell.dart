@@ -45,13 +45,17 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
-  static const _customerScreens = [
-    HomeScreen(),
-    NetworksListScreen(),
-    WalletScreen(),
-    PurchaseHistoryScreen(),
-    ProfileScreen(),
-  ];
+  List<Widget> get _customerScreens => [
+        HomeScreen(
+          onSelectDestination: (index) {
+            setState(() => _currentIndex = index);
+          },
+        ),
+        const NetworksListScreen(),
+        const WalletScreen(),
+        const PurchaseHistoryScreen(),
+        const ProfileScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {

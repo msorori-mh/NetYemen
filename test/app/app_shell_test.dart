@@ -35,5 +35,13 @@ void main() {
     expect(find.text('الحساب'), findsOneWidget);
     expect(find.text('الإدارة'), findsNothing);
     expect(find.text('الإدارة والمالية'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('home-open-networks')));
+    await tester.pump();
+
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byType(NavigationBar),
+    );
+    expect(navigationBar.selectedIndex, 1);
   });
 }
