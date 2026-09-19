@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../network_discovery/presentation/network_discovery_providers.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../data/fake_notification_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/notification_transport_adapter.dart';

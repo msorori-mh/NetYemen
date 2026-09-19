@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../network_discovery/presentation/network_discovery_providers.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../data/admin_repository.dart';
 import '../data/fake_admin_repository.dart';
 import '../data/supabase_admin_repository.dart';

@@ -1,9 +1,8 @@
 // lib/providers/app_providers.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../features/network_discovery/presentation/network_discovery_providers.dart';
-export '../features/network_discovery/presentation/network_discovery_providers.dart'
-    show appConfigProvider;
+import '../core/config/app_config_provider.dart';
+export '../core/config/app_config_provider.dart' show appConfigProvider;
 import '../models/user_model.dart';
 import '../models/network_model.dart';
 import '../services/supabase_service.dart';

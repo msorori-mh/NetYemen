@@ -44,6 +44,30 @@ void main() {
     );
     expect(File('lib/admin_main.dart').existsSync(), isTrue);
   });
+
+  test('shared app configuration is not owned by a feature', () {
+    final providerSource =
+        File('lib/core/config/app_config_provider.dart').readAsStringSync();
+    expect(providerSource, contains('final appConfigProvider'));
+
+    final misplacedOwners = Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where(
+          (file) => file
+              .readAsStringSync()
+              .contains('final appConfigProvider ='),
+        )
+        .map((file) => file.path)
+        .toList();
+
+    expect(
+      misplacedOwners,
+      isEmpty,
+      reason: 'Shared configuration must stay in core: $misplacedOwners',
+    );
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/config/app_config.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../../../core/error/app_exceptions.dart';
 import '../../network_discovery/data/android_wifi_scan_service.dart';
 import '../../network_discovery/data/demo_network_catalog_repository.dart';
@@ -11,6 +11,7 @@ import '../../network_discovery/data/supabase_network_catalog_repository.dart';
 import '../../network_discovery/data/wifi_scan_service.dart';
 import '../../network_discovery/domain/entities.dart';
 
+export '../../../core/config/app_config_provider.dart' show appConfigProvider;
 export '../../network_discovery/data/scan_matcher.dart';
 
 final networkCatalogRepositoryProvider = Provider<NetworkCatalogRepository>((
@@ -29,10 +30,6 @@ final wifiScanServiceProvider = Provider<WifiScanService>((ref) {
     return FakeWifiScanService();
   }
   return AndroidWifiScanService();
-});
-
-final appConfigProvider = Provider<AppConfig>((ref) {
-  return AppConfig.fromEnvironment();
 });
 
 final networkCatalogProvider =
