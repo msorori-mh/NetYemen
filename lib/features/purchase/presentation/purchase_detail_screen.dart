@@ -92,7 +92,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
             builder: (_) => CardRevealScreen(
               revealedInfo: RevealedCardInfo(
                 purchaseId: purchase.id,
-                plaintext: result.ciphertextB64,
+                plaintext: result.plaintext,
                 disputeDeadline: result.disputeDeadline,
               ),
             ),

@@ -2,9 +2,8 @@
  * Shared AES-256-GCM helpers for card secret decryption.
  *
  * - Production keys are read from environment variables only.
- * - LOCAL tests fall back to a deterministic TEST_ONLY key derived from a
- *   fixed seed. This fallback is logged loudly and must never be used in
- *   the physical pilot.
+ * - LOCAL tests may explicitly enable a deterministic TEST_ONLY key derived
+ *   from a fixed seed. Missing production keys always fail closed.
  */
 
 const LOCAL_TEST_SEED = "TEST_ONLY_NY_V1_LOCAL_SEED";
@@ -28,8 +27,12 @@ export async function getCardMasterKey(keyVersion: CardKeyVersion): Promise<Cryp
     return importAes256GcmKeyFromBase64(envKey);
   }
 
+  if (Deno.env.get("CARD_CRYPTO_ALLOW_TEST_KEY") !== "true") {
+    throw new Error("CARD_KEY_NOT_CONFIGURED: CARD_MASTER_KEY_v1 is required.");
+  }
+
   console.warn(
-    "WARN: CARD_MASTER_KEY_v1 is not set. Using a deterministic TEST_ONLY key for local development. " +
+    "WARN: CARD_CRYPTO_ALLOW_TEST_KEY=true. Using a deterministic TEST_ONLY key. " +
       "NEVER deploy this fallback to production or the physical pilot.",
   );
   return deriveTestMasterKey();

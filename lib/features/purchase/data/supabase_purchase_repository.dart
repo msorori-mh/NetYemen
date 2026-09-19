@@ -39,11 +39,26 @@ class SupabasePurchaseRepository implements PurchaseRepository {
 
   @override
   Future<CardRevealResult> revealPurchaseCardSecret(String purchaseId) async {
-    final result = await _client.rpc(
-      'reveal_purchase_card_secret',
-      params: {'p_purchase_id': purchaseId},
+    final response = await _client.functions.invoke(
+      'notification-transport-adapter',
+      body: {
+        'action': 'reveal_card_secret',
+        'purchase_id': purchaseId,
+      },
     );
-    return CardRevealResult.fromJson(result as Map<String, dynamic>);
+    final data = response.data;
+    if (response.status < 200 || response.status >= 300 || data is! Map) {
+      throw StateError('CARD_REVEAL_FAILED');
+    }
+
+    final result = Map<String, dynamic>.from(data);
+    final plaintext = result['plaintext'] as String?;
+    if (plaintext == null || plaintext.trim().isEmpty) {
+      throw StateError(
+        result['error'] as String? ?? 'CARD_REVEAL_EMPTY_RESPONSE',
+      );
+    }
+    return CardRevealResult.fromJson(result);
   }
 
   @override

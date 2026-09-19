@@ -62,7 +62,10 @@ jobs:
           deno-version: v2.x
 
       - name: Check Public Legal Edge Function
-        run: deno check supabase/functions/public-legal/index.ts
+        run: |
+          deno check supabase/functions/public-legal/index.ts
+          deno check supabase/functions/notification-transport-adapter/index.ts
+          deno run --allow-env supabase/functions/notification-transport-adapter/test_crypto.ts
 
       - name: Disable Analytics in Local Supabase Config
         run: |

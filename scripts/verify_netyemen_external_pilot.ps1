@@ -89,6 +89,16 @@ $r = Invoke-EdgeFunction -Authorization "Bearer $anonKey" -Body '{"action":"decr
 if ($r.StatusCode -ne 403) { $failures += "decrypt_card_secret anon token expected 403, got $($r.StatusCode): $($r.Body)" }
 else { Test-Response -Name 'decrypt_card_secret anon JWT rejected' -ExpectedStatus 403 -ResponseBody $r.Body -ExpectedSubstring 'FORBIDDEN' }
 
+# Negative: customer reveal requires an authenticated user JWT and accepts only
+# a purchase identifier (never client-supplied ciphertext or key metadata).
+$r = Invoke-EdgeFunction -Body '{"action":"reveal_card_secret","purchase_id":"00000000-0000-4000-8000-000000000000"}'
+if ($r.StatusCode -ne 401) { $failures += "reveal_card_secret missing auth expected 401, got $($r.StatusCode): $($r.Body)" }
+else { Test-Response -Name 'reveal_card_secret missing Authorization' -ExpectedStatus 401 -ResponseBody $r.Body -ExpectedSubstring 'UNAUTHORIZED' }
+
+$r = Invoke-EdgeFunction -Authorization "Bearer $anonKey" -Body '{"action":"reveal_card_secret","purchase_id":"00000000-0000-4000-8000-000000000000"}'
+if ($r.StatusCode -ne 401) { $failures += "reveal_card_secret anon token expected 401, got $($r.StatusCode): $($r.Body)" }
+else { Test-Response -Name 'reveal_card_secret anon JWT rejected' -ExpectedStatus 401 -ResponseBody $r.Body -ExpectedSubstring 'UNAUTHORIZED' }
+
 # Positive authorization check: service-role key is accepted, but FCM credentials are
 # intentionally omitted in local Supabase so the function returns credential_required.
 $r = Invoke-EdgeFunction -Authorization "Bearer $serviceRoleKey" -Body '{"action":"dispatch_push","delivery_id":"pos-01","user_id":"00000000-0000-0000-0000-000000000000","token":"pos-token","title_ar":"x","body_ar":"x"}'

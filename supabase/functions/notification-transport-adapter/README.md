@@ -3,7 +3,8 @@
 This Edge Function binds two external-pilot capabilities:
 
 1. **FCM push transport adapter** (`action='dispatch_push'`) — OD-NOTIF-01
-2. **Card secret AES-256-GCM decryption** (`action='decrypt_card_secret'`) — OD-CARD-01
+2. **Internal card secret AES-256-GCM decryption** (`action='decrypt_card_secret'`) — OD-CARD-01
+3. **Authenticated customer card reveal** (`action='reveal_card_secret'`) — validates purchase ownership before server-side decryption
 
 ## Endpoints
 
@@ -11,6 +12,7 @@ This Edge Function binds two external-pilot capabilities:
 |---|---|---|
 | `POST` | `/functions/v1/notification-transport-adapter` | `dispatch_push` |
 | `POST` | `/functions/v1/notification-transport-adapter` | `decrypt_card_secret` |
+| `POST` | `/functions/v1/notification-transport-adapter` | `reveal_card_secret` |
 
 ## Required environment variables
 
@@ -32,9 +34,9 @@ These variables must be configured as Edge Function secrets (never committed):
 - `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, and `FCM_PRIVATE_KEY` may be omitted.
   The function returns `accepted: false, status: 'credential_required'` and does
   **not** fake a successful dispatch.
-- `CARD_MASTER_KEY_v1` may be omitted for local crypto tests. A deterministic
-  `TEST_ONLY` key is derived from a fixed seed and a loud warning is logged.
-  **Never use this fallback in production or the physical pilot.**
+- `CARD_MASTER_KEY_v1` may be omitted only when local crypto tests explicitly
+  set `CARD_CRYPTO_ALLOW_TEST_KEY=true`. Without that explicit flag the function
+  fails closed. **Never set this flag in production or the physical pilot.**
 
 ## Deploy / configure
 
@@ -61,3 +63,5 @@ deno run --allow-env supabase/functions/notification-transport-adapter/test_cryp
 - FCM service-account private keys and card master keys are **server-side only**.
 - No provider secrets are embedded in the Flutter app or repository.
 - Card plaintext is never logged by this function.
+- Customer reveal accepts only a `purchase_id`; encrypted material and key
+  versions are loaded through the ownership-enforcing database RPC.

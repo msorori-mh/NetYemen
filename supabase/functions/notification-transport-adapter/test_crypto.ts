@@ -11,6 +11,8 @@
 
 import { aes256GcmDecrypt, aes256GcmEncrypt, getCardMasterKey } from "./crypto.ts";
 
+Deno.env.set("CARD_CRYPTO_ALLOW_TEST_KEY", "true");
+
 function assertEqual<T>(actual: T, expected: T, message: string): void {
   if (actual !== expected) {
     throw new Error(`${message}: expected ${expected}, got ${actual}`);

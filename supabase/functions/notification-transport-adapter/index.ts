@@ -47,7 +47,15 @@ interface DecryptCardSecretPayload {
   auth_tag_b64: string;
 }
 
-type RequestPayload = DispatchPushPayload | DecryptCardSecretPayload;
+interface RevealCardSecretPayload {
+  action: "reveal_card_secret";
+  purchase_id: string;
+}
+
+type RequestPayload =
+  | DispatchPushPayload
+  | DecryptCardSecretPayload
+  | RevealCardSecretPayload;
 
 interface FcmCredentials {
   projectId: string;
@@ -85,6 +93,8 @@ Deno.serve(async (req) => {
         return await handleDispatchPush(body);
       case "decrypt_card_secret":
         return await handleDecryptCardSecret(body);
+      case "reveal_card_secret":
+        return await handleCustomerCardReveal(req, body);
       default:
         return jsonResponse({ error: "UNKNOWN_ACTION" }, 400);
     }
@@ -201,6 +211,117 @@ async function handleDecryptCardSecret(payload: DecryptCardSecretPayload): Promi
     console.error("Card secret decryption failed:", e.message);
     return jsonResponse({ error: "DECRYPTION_FAILED", status: "forbidden" }, 400);
   }
+}
+
+async function handleCustomerCardReveal(
+  req: Request,
+  payload: RevealCardSecretPayload,
+): Promise<Response> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    payload.purchase_id || "",
+  )) {
+    return jsonResponse({ error: "INVALID_PURCHASE_ID" }, 400);
+  }
+
+  const authHeader = req.headers.get("authorization") || "";
+  if (!/^Bearer\s+.+/i.test(authHeader)) {
+    return jsonResponse({ error: "UNAUTHORIZED", status: "forbidden" }, 401);
+  }
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !anonKey) {
+    console.error("Customer card reveal configuration is incomplete");
+    return jsonResponse({ error: "REVEAL_SERVICE_UNAVAILABLE" }, 503);
+  }
+
+  const customerClient = createClient(url, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: userData, error: userError } = await customerClient.auth.getUser();
+  if (userError || !userData.user) {
+    return jsonResponse({ error: "UNAUTHORIZED", status: "forbidden" }, 401);
+  }
+
+  let revealKey: CryptoKey;
+  try {
+    revealKey = await getCardMasterKey("v1");
+  } catch (error) {
+    console.error(
+      "Customer card reveal key is unavailable",
+      error instanceof Error ? error.message : "unknown",
+    );
+    return jsonResponse({ error: "REVEAL_SERVICE_UNAVAILABLE" }, 503);
+  }
+
+  // Resolve and audit the encrypted payload through the caller's JWT. The RPC
+  // enforces purchase ownership and never accepts ciphertext from the client.
+  const { data: encryptedData, error: revealError } = await customerClient.rpc(
+    "reveal_purchase_card_secret",
+    { p_purchase_id: payload.purchase_id },
+  );
+  if (revealError || !encryptedData) {
+    console.error("Customer card reveal RPC rejected", revealError?.code || "unknown");
+    return jsonResponse({ error: "CARD_REVEAL_DENIED" }, 403);
+  }
+
+  const encrypted = encryptedData as Record<string, unknown>;
+  const keyVersion = encrypted.key_version;
+  const ciphertextB64 = encrypted.ciphertext_b64;
+  const nonce = encrypted.nonce;
+  const authTagB64 = encrypted.auth_tag_b64;
+  if (
+    keyVersion !== "v1" ||
+    typeof ciphertextB64 !== "string" ||
+    typeof nonce !== "string" ||
+    typeof authTagB64 !== "string" ||
+    !ciphertextB64 ||
+    !nonce ||
+    !authTagB64
+  ) {
+    console.error("Customer card reveal payload is incomplete");
+    return jsonResponse({ error: "CARD_SECRET_UNAVAILABLE" }, 409);
+  }
+
+  let plaintext: string;
+  try {
+    plaintext = await aes256GcmDecrypt(
+      revealKey,
+      ciphertextB64,
+      nonce,
+      authTagB64,
+    );
+  } catch (error) {
+    console.error(
+      "Customer card reveal decryption failed",
+      error instanceof Error ? error.message : "unknown",
+    );
+    return jsonResponse({ error: "CARD_DECRYPTION_FAILED" }, 409);
+  }
+  if (!plaintext.trim()) {
+    return jsonResponse({ error: "CARD_SECRET_EMPTY" }, 409);
+  }
+
+  const { data: fulfillment, error: fulfillmentError } = await customerClient
+    .from("card_fulfillment_records")
+    .select("dispute_window_ends_at")
+    .eq("purchase_id", payload.purchase_id)
+    .maybeSingle();
+  if (fulfillmentError) {
+    console.error("Customer reveal deadline lookup failed", fulfillmentError.code);
+  }
+
+  return jsonResponse(
+    {
+      purchase_id: payload.purchase_id,
+      status: "revealed",
+      plaintext,
+      revealed_at: new Date().toISOString(),
+      dispute_deadline: fulfillment?.dispute_window_ends_at || null,
+    },
+    200,
+  );
 }
 
 async function sendFcmMessage(

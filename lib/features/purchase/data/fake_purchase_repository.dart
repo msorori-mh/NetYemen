@@ -102,10 +102,7 @@ class FakePurchaseRepository implements PurchaseRepository {
     return CardRevealResult(
       purchaseId: purchaseId,
       status: 'revealed',
-      keyVersion: 'v1-demo',
-      ciphertextB64: 'ZGVtby1jaXBoZXJ0ZXh0',
-      nonce: 'demo-nonce-123',
-      authTagB64: 'demo-auth-tag',
+      plaintext: 'DEMO-CARD-123456',
       revealedAt: DateTime.now(),
       disputeDeadline: deadline,
     );

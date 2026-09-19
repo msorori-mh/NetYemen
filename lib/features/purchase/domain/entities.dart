@@ -82,20 +82,14 @@ class PurchaseOrder {
 class CardRevealResult {
   final String purchaseId;
   final String status;
-  final String keyVersion;
-  final String ciphertextB64;
-  final String nonce;
-  final String? authTagB64;
+  final String plaintext;
   final DateTime? revealedAt;
   final DateTime? disputeDeadline;
 
   const CardRevealResult({
     required this.purchaseId,
     required this.status,
-    required this.keyVersion,
-    required this.ciphertextB64,
-    required this.nonce,
-    this.authTagB64,
+    required this.plaintext,
     this.revealedAt,
     this.disputeDeadline,
   });
@@ -105,16 +99,13 @@ class CardRevealResult {
     return CardRevealResult(
       purchaseId: json['purchase_id'] as String? ?? '',
       status: json['status'] as String? ?? 'revealed',
-      keyVersion: json['key_version'] as String? ?? 'v1',
-      ciphertextB64: json['ciphertext_b64'] as String? ?? '',
-      nonce: json['nonce'] as String? ?? '',
-      authTagB64: json['auth_tag_b64'] as String?,
+      plaintext: json['plaintext'] as String? ?? '',
       revealedAt: json['revealed_at'] != null
           ? DateTime.parse(json['revealed_at'] as String)
           : now,
       disputeDeadline: json['dispute_deadline'] != null
           ? DateTime.parse(json['dispute_deadline'] as String)
-          : now.add(const Duration(minutes: 30)),
+          : null,
     );
   }
 }

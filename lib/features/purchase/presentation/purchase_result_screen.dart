@@ -45,7 +45,12 @@ class PurchaseResultScreen extends StatelessWidget {
                   'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER',
                 ),
                 Text(
-                  'حالة التسليم: ${_fulfillmentText(purchaseResult!['fulfillment_status'] as String?)}',
+                  'حالة التسليم: ${_fulfillmentText(
+                    purchaseResult!['fulfillment_status'] as String? ??
+                        (purchaseResult!['status'] == 'completed'
+                            ? 'fulfilled'
+                            : null),
+                  )}',
                 ),
                 if (purchaseResult!['replayed'] == true)
                   const Text(
