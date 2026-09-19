@@ -188,7 +188,16 @@ void main() {
       expect(find.text('باقة متوفرة'), findsOneWidget);
       expect(find.text('باقة نافدة'), findsOneWidget);
       expect(find.text('متوفر'), findsOneWidget);
-      expect(find.text('غير متوفر'), findsOneWidget);
+      expect(find.text('غير متوفر'), findsNWidgets(2));
+
+      final purchaseButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'شراء'),
+      );
+      final outOfStockButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'غير متوفر'),
+      );
+      expect(purchaseButton.onPressed, isNotNull);
+      expect(outOfStockButton.onPressed, isNull);
     });
   });
 }

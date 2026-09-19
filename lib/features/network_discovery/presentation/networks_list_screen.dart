@@ -5,13 +5,40 @@ import '../../network_discovery/domain/entities.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import 'network_details_screen.dart';
 
-class NetworksListScreen extends ConsumerWidget {
+class NetworksListScreen extends ConsumerStatefulWidget {
   const NetworksListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NetworksListScreen> createState() =>
+      _NetworksListScreenState();
+}
+
+class _NetworksListScreenState extends ConsumerState<NetworksListScreen> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: ref.read(networkSearchQueryProvider),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final networksAsync = ref.watch(filteredNetworksProvider);
+    final catalogAsync = ref.watch(networkCatalogProvider);
     final searchQuery = ref.watch(networkSearchQueryProvider);
+    final governorates = ref.watch(availableNetworkGovernoratesProvider);
+    final selectedGovernorate = ref.watch(networkGovernorateFilterProvider);
+    final hasActiveFilter =
+        searchQuery.trim().isNotEmpty || selectedGovernorate != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -27,8 +54,10 @@ class NetworksListScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
+              key: const Key('network-search-field'),
+              controller: _searchController,
               onChanged: (v) =>
                   ref.read(networkSearchQueryProvider.notifier).state = v,
               decoration: InputDecoration(
@@ -36,32 +65,60 @@ class NetworksListScreen extends ConsumerWidget {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
+                        key: const Key('network-search-clear'),
                         icon: const Icon(Icons.clear),
-                        onPressed: () => ref
-                            .read(networkSearchQueryProvider.notifier)
-                            .state = '',
+                        onPressed: () {
+                          _searchController.clear();
+                          ref.read(networkSearchQueryProvider.notifier).state =
+                              '';
+                        },
                       )
                     : null,
               ),
             ),
           ),
+          if (governorates.length > 1)
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: FilterChip(
+                      label: const Text('الكل'),
+                      selected: selectedGovernorate == null,
+                      onSelected: (_) => ref
+                          .read(networkGovernorateFilterProvider.notifier)
+                          .state = null,
+                    ),
+                  ),
+                  ...governorates.map(
+                    (governorate) => Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 8),
+                      child: FilterChip(
+                        key: Key('network-governorate-$governorate'),
+                        label: Text(governorate),
+                        selected: selectedGovernorate == governorate,
+                        onSelected: (_) => ref
+                            .read(networkGovernorateFilterProvider.notifier)
+                            .state = governorate,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: networksAsync.when(
               data: (networks) {
                 if (networks.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.wifi_off,
-                          size: 64,
-                          color: AppTheme.textMuted,
-                        ),
-                        SizedBox(height: 16),
-                        Text('لا توجد شبكات'),
-                      ],
-                    ),
+                  final catalogIsEmpty = catalogAsync.valueOrNull?.isEmpty ??
+                      !hasActiveFilter;
+                  return _NetworkEmptyState(
+                    isFiltered: !catalogIsEmpty && hasActiveFilter,
+                    onClear: _clearFilters,
                   );
                 }
                 return RefreshIndicator(
@@ -86,7 +143,13 @@ class NetworksListScreen extends ConsumerWidget {
                       color: AppTheme.error,
                     ),
                     const SizedBox(height: 12),
-                    const Text('حدث خطأ في تحميل الشبكات'),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'تعذر تحميل الشبكات. تحقق من اتصال الإنترنت ثم حاول مجددًا.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () =>
@@ -100,6 +163,53 @@ class NetworksListScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    ref.read(networkSearchQueryProvider.notifier).state = '';
+    ref.read(networkGovernorateFilterProvider.notifier).state = null;
+  }
+}
+
+class _NetworkEmptyState extends StatelessWidget {
+  final bool isFiltered;
+  final VoidCallback onClear;
+
+  const _NetworkEmptyState({
+    required this.isFiltered,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, size: 64, color: AppTheme.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              isFiltered
+                  ? 'لا توجد نتائج مطابقة لبحثك'
+                  : 'لا توجد شبكات معتمدة حاليًا',
+              textAlign: TextAlign.center,
+            ),
+            if (isFiltered) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                key: const Key('network-filters-clear'),
+                onPressed: onClear,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('مسح البحث والفلاتر'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

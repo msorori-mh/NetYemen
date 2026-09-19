@@ -56,6 +56,24 @@ class NetworkCatalogNotifier extends AsyncNotifier<List<NetworkEntity>> {
 }
 
 final networkSearchQueryProvider = StateProvider<String>((ref) => '');
+final networkGovernorateFilterProvider = StateProvider<String?>((ref) => null);
+
+final availableNetworkGovernoratesProvider = Provider<List<String>>((ref) {
+  final networksAsync = ref.watch(networkCatalogProvider);
+  return networksAsync.maybeWhen(
+    data: (networks) {
+      final governorates = networks
+          .map((network) => network.governorate?.trim())
+          .whereType<String>()
+          .where((governorate) => governorate.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+      return governorates;
+    },
+    orElse: () => const [],
+  );
+});
 
 final filteredNetworksProvider = Provider<AsyncValue<List<NetworkEntity>>>((
   ref,
@@ -64,10 +82,15 @@ final filteredNetworksProvider = Provider<AsyncValue<List<NetworkEntity>>>((
   final query = ScanMatcher.normalizeForMatching(
     ref.watch(networkSearchQueryProvider),
   );
+  final selectedGovernorate = ref.watch(networkGovernorateFilterProvider);
 
   return networksAsync.whenData((networks) {
-    if (query.isEmpty) return networks;
-    return networks.where((n) => n.matchesSearch(query)).toList();
+    return networks.where((network) {
+      final matchesQuery = network.matchesSearch(query);
+      final matchesGovernorate = selectedGovernorate == null ||
+          network.governorate == selectedGovernorate;
+      return matchesQuery && matchesGovernorate;
+    }).toList();
   });
 });
 

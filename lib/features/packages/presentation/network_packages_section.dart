@@ -22,7 +22,9 @@ class NetworkPackagesSection extends ConsumerWidget {
     return packagesAsync.when(
       data: (packages) => _buildContent(context, packages),
       loading: () => const _LoadingState(),
-      error: (error, _) => _ErrorState(message: error.toString()),
+      error: (_, __) => _ErrorState(
+        onRetry: () => ref.invalidate(publicPackagesProvider(networkId)),
+      ),
     );
   }
 
@@ -52,14 +54,23 @@ class NetworkPackagesSection extends ConsumerWidget {
   }
 }
 
-class _PackageCard extends StatelessWidget {
+class _PackageCard extends ConsumerWidget {
   final NetworkPackage package;
   final String? networkCommercialName;
 
   const _PackageCard({required this.package, this.networkCommercialName});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final balanceAsync = ref.watch(packageBalanceProvider(package.id));
+    final balance = balanceAsync.valueOrNull;
+    final isAvailable = balance != null && !balance.isOutOfStock;
+    final buttonLabel = balanceAsync.isLoading
+        ? 'التحقق من التوفر...'
+        : isAvailable
+            ? 'شراء'
+            : 'غير متوفر';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -78,7 +89,7 @@ class _PackageCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                _AvailabilityBadge(package: package),
+                _AvailabilityBadge(balanceAsync: balanceAsync),
               ],
             ),
             if (package.description != null &&
@@ -123,15 +134,30 @@ class _PackageCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PurchaseConfirmationScreen(
-                      package: package,
-                      networkName: networkCommercialName ?? 'شبكة',
-                    ),
-                  ),
-                ),
-                child: const Text('شراء'),
+                onPressed: isAvailable
+                    ? () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PurchaseConfirmationScreen(
+                              package: package,
+                              networkName: networkCommercialName ?? 'شبكة',
+                            ),
+                          ),
+                        )
+                    : null,
+                child: balanceAsync.isLoading
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('التحقق من التوفر...'),
+                        ],
+                      )
+                    : Text(buttonLabel),
               ),
             ),
           ],
@@ -142,44 +168,57 @@ class _PackageCard extends StatelessWidget {
 }
 
 class _AvailabilityBadge extends StatelessWidget {
-  final NetworkPackage package;
+  final AsyncValue<PackageInventoryBalance?> balanceAsync;
 
-  const _AvailabilityBadge({required this.package});
+  const _AvailabilityBadge({required this.balanceAsync});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final balanceAsync = ref.watch(packageBalanceProvider(package.id));
-        return balanceAsync.when(
-          data: (balance) {
-            final isAvailable = balance != null && !balance.isOutOfStock;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: isAvailable
-                    ? AppTheme.accent.withValues(alpha: 0.1)
-                    : AppTheme.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                isAvailable ? 'متوفر' : 'غير متوفر',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isAvailable ? AppTheme.accent : AppTheme.error,
-                ),
-              ),
-            );
-          },
-          loading: () => const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          error: (_, __) => const Text('غير متوفر'),
+    return balanceAsync.when(
+      data: (balance) {
+        final isAvailable = balance != null && !balance.isOutOfStock;
+        return _StatusBadge(
+          label: isAvailable ? 'متوفر' : 'غير متوفر',
+          isAvailable: isAvailable,
         );
       },
+      loading: () => const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      error: (_, __) => const _StatusBadge(
+        label: 'تعذر التحقق',
+        isAvailable: false,
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final bool isAvailable;
+
+  const _StatusBadge({required this.label, required this.isAvailable});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isAvailable
+            ? AppTheme.accent.withValues(alpha: 0.1)
+            : AppTheme.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: isAvailable ? AppTheme.accent : AppTheme.error,
+        ),
+      ),
     );
   }
 }
@@ -246,9 +285,9 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  final String message;
+  final VoidCallback onRetry;
 
-  const _ErrorState({required this.message});
+  const _ErrorState({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -259,10 +298,16 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, color: AppTheme.error, size: 40),
             const SizedBox(height: 12),
-            Text(
-              'تعذر تحميل الباقات: $message',
+            const Text(
+              'تعذر تحميل الباقات. تحقق من اتصال الإنترنت ثم حاول مجددًا.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
             ),
           ],
         ),
