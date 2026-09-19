@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import '../../network_discovery/presentation/networks_list_screen.dart';
@@ -126,19 +127,10 @@ class PurchaseHistoryScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('تعذر تحميل سجل المشتريات'),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => ref.invalidate(purchaseHistoryProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ],
-            ),
+          error: (error, _) => CustomerLoadError(
+            error: error,
+            fallbackTitle: 'تعذر تحميل سجل المشتريات',
+            onRetry: () => ref.invalidate(purchaseHistoryProvider),
           ),
         ),
       ),

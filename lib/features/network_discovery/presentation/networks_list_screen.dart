@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../../network_discovery/domain/entities.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import 'network_details_screen.dart';
@@ -132,32 +133,11 @@ class _NetworksListScreenState extends ConsumerState<NetworksListScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: AppTheme.error,
-                    ),
-                    const SizedBox(height: 12),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        'تعذر تحميل الشبكات. تحقق من اتصال الإنترنت ثم حاول مجددًا.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () =>
-                          ref.read(networkCatalogProvider.notifier).refresh(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
+              error: (error, _) => CustomerLoadError(
+                error: error,
+                fallbackTitle: 'تعذر تحميل الشبكات',
+                onRetry: () =>
+                    ref.read(networkCatalogProvider.notifier).refresh(),
               ),
             ),
           ),

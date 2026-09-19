@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import 'wallet_providers.dart';
 
 class DepositHistoryScreen extends ConsumerWidget {
@@ -58,19 +59,10 @@ class DepositHistoryScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('تعذر تحميل سجل الإيداعات'),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => ref.invalidate(depositHistoryProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ],
-            ),
+          error: (error, _) => CustomerLoadError(
+            error: error,
+            fallbackTitle: 'تعذر تحميل سجل الإيداعات',
+            onRetry: () => ref.invalidate(depositHistoryProvider),
           ),
         ),
       ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../domain/entities.dart';
 import 'card_reveal_screen.dart';
 import 'purchase_providers.dart';
@@ -31,20 +32,11 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
         child: purchaseAsync.when(
           data: (purchase) => _buildContent(context, purchase),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('تعذر تحميل تفاصيل عملية الشراء'),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => ref.invalidate(
-                    purchaseDetailProvider(widget.purchaseId),
-                  ),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ],
+          error: (error, _) => CustomerLoadError(
+            error: error,
+            fallbackTitle: 'تعذر تحميل تفاصيل عملية الشراء',
+            onRetry: () => ref.invalidate(
+              purchaseDetailProvider(widget.purchaseId),
             ),
           ),
         ),

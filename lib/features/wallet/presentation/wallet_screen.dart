@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
 import 'wallet_providers.dart';
@@ -83,16 +84,12 @@ class WalletScreen extends ConsumerWidget {
                           ),
                         ),
                         loading: () => const CircularProgressIndicator(),
-                        error: (_, __) => Column(
-                          children: [
-                            const Text('تعذر تحميل الرصيد'),
-                            TextButton.icon(
-                              onPressed: () =>
-                                  ref.invalidate(walletSummaryProvider),
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('إعادة المحاولة'),
-                            ),
-                          ],
+                        error: (error, _) => CustomerLoadError(
+                          error: error,
+                          fallbackTitle: 'تعذر تحميل الرصيد',
+                          compact: true,
+                          onRetry: () =>
+                              ref.invalidate(walletSummaryProvider),
                         ),
                       ),
                     ],
