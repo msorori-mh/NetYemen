@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_requests/domain/entities.dart';
 import '../../network_requests/presentation/network_request_providers.dart';
@@ -41,26 +42,10 @@ class MyRequestsScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: AppTheme.error,
-                ),
-                const SizedBox(height: 12),
-                const Text('حدث خطأ في تحميل الطلبات'),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      ref.read(myRequestsProvider.notifier).refresh(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ],
-            ),
+          error: (error, _) => CustomerLoadError(
+            error: error,
+            fallbackTitle: 'تعذر تحميل طلبات الشبكات',
+            onRetry: () => ref.read(myRequestsProvider.notifier).refresh(),
           ),
         ),
       ),
@@ -78,11 +63,17 @@ class MyRequestsScreen extends ConsumerWidget {
       if (context.mounted) {
         ref.read(myRequestsProvider.notifier).refresh();
       }
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('فشل إلغاء الطلب: $e')));
+        ).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تعذر إلغاء الطلب. تحقق من الاتصال وحالة الطلب ثم أعد المحاولة.',
+            ),
+          ),
+        );
       }
     }
   }

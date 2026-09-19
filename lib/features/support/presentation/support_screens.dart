@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/customer_load_error.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../domain/entities.dart';
 import '../domain/support_operation_policy.dart';
@@ -51,9 +52,10 @@ class MySupportScreen extends ConsumerWidget {
         onRefresh: () async => ref.invalidate(supportCasesProvider),
         child: items.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const _State(
-            icon: Icons.error_outline,
-            text: 'تعذر تحميل التذاكر. حاول مرة أخرى.',
+          error: (error, _) => CustomerLoadError(
+            error: error,
+            fallbackTitle: 'تعذر تحميل تذاكر الدعم',
+            onRetry: () => ref.invalidate(supportCasesProvider),
           ),
           data: (list) => list.isEmpty
               ? const _State(
@@ -296,9 +298,10 @@ class SupportCaseScreen extends ConsumerWidget {
       ),
       body: item.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const _State(
-          icon: Icons.error_outline,
-          text: 'تعذر تحميل حالة الدعم. حاول مرة أخرى.',
+        error: (error, _) => CustomerLoadError(
+          error: error,
+          fallbackTitle: 'تعذر تحميل حالة الدعم',
+          onRetry: () => ref.invalidate(supportCaseProvider(caseId)),
         ),
         data: (c) => ListView(
           padding: const EdgeInsets.all(16),
@@ -377,7 +380,13 @@ class SupportCaseScreen extends ConsumerWidget {
             Text('الرسائل', style: Theme.of(context).textTheme.titleMedium),
             messages.when(
               loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const Text('تعذر تحميل الرسائل.'),
+              error: (error, _) => CustomerLoadError(
+                error: error,
+                fallbackTitle: 'تعذر تحميل رسائل الدعم',
+                compact: true,
+                onRetry: () =>
+                    ref.invalidate(supportMessagesProvider(caseId)),
+              ),
               data: (m) => Column(
                 children: m
                     .map(
@@ -406,7 +415,12 @@ class SupportCaseScreen extends ConsumerWidget {
             Text('السجل', style: Theme.of(context).textTheme.titleMedium),
             events.when(
               loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const Text('تعذر تحميل سجل الحالة.'),
+              error: (error, _) => CustomerLoadError(
+                error: error,
+                fallbackTitle: 'تعذر تحميل سجل الحالة',
+                compact: true,
+                onRetry: () => ref.invalidate(supportEventsProvider(caseId)),
+              ),
               data: (ev) => Column(
                 children: ev
                     .map(
