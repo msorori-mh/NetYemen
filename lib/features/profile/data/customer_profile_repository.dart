@@ -13,10 +13,10 @@ class CustomerProfileUpdate {
   });
 
   Map<String, String> toJson() => {
-    'full_name': fullName.trim(),
-    'default_governorate': governorate.trim(),
-    'default_city': city.trim(),
-  };
+        'full_name': fullName.trim(),
+        'default_governorate': governorate.trim(),
+        'default_city': city.trim(),
+      };
 }
 
 abstract class CustomerProfileRepository {

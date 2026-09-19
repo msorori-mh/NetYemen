@@ -26,18 +26,17 @@ void main() {
           currentUserProvider.overrideWithValue(user),
           appConfigProvider.overrideWithValue(config),
           currentUserRolesProvider.overrideWith((ref) async => roles),
-          userProfileProvider.overrideWith(
-            (ref) async => profile ??
-                (user == null
-                    ? null
-                    : AppUser(
-                        id: user.id,
-                        phone: user.phone ?? '',
-                        fullName: 'أحمد محمد',
-                        governorate: 'مأرب',
-                        city: 'مدينة مأرب',
-                      )),
-          ),
+          userProfileProvider.overrideWith((ref) async {
+            if (profile != null) return profile;
+            if (user == null) return null;
+            return AppUser(
+              id: user.id,
+              phone: user.phone ?? '',
+              fullName: 'أحمد محمد',
+              governorate: 'مأرب',
+              city: 'مدينة مأرب',
+            );
+          }),
         ],
         child: const MaterialApp(home: ProfileScreen()),
       );
