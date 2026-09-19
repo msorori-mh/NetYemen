@@ -31,12 +31,10 @@ class HomeScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final hasCustomerSession = user != null || config.isDemoMode;
     final networksAsync = ref.watch(networkCatalogProvider);
-    final walletAsync = hasCustomerSession
-        ? ref.watch(walletSummaryProvider)
-        : null;
-    final purchasesAsync = hasCustomerSession
-        ? ref.watch(purchaseHistoryProvider)
-        : null;
+    final walletAsync =
+        hasCustomerSession ? ref.watch(walletSummaryProvider) : null;
+    final purchasesAsync =
+        hasCustomerSession ? ref.watch(purchaseHistoryProvider) : null;
 
     return Scaffold(
       appBar: AppBar(
