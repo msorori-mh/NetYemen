@@ -32,6 +32,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('عدن').last);
     await tester.pumpAndSettle();
+    final cityField = tester.widget<TextFormField>(
+      find.byKey(const Key('profile-city-field')),
+    );
+    expect(cityField.controller?.text, isEmpty);
+    expect(find.text('أدخل المدينة أو المديرية داخل عدن'), findsOneWidget);
     await tester.enterText(
       find.byKey(const Key('profile-city-field')),
       '  كريتر  ',

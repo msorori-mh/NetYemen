@@ -85,6 +85,18 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          if (profile?.isActive == false)
+            Card(
+              key: const Key('profile-inactive-warning'),
+              color: AppTheme.error.withValues(alpha: 0.08),
+              child: const ListTile(
+                leading: Icon(Icons.block_outlined, color: AppTheme.error),
+                title: Text('الحساب غير نشط'),
+                subtitle: Text(
+                  'لا يمكن تعديل بيانات الحساب حاليًا. تواصل مع الدعم للمساعدة.',
+                ),
+              ),
+            ),
           const SizedBox(height: 16),
           if (user != null)
             profileAsync.when(
@@ -104,10 +116,10 @@ class ProfileScreen extends ConsumerWidget {
                             : '${profile.governorate ?? 'لم تحدد المحافظة'} — '
                                 '${profile.city ?? 'لم تحدد المدينة'}',
                       ),
-                      trailing: profile == null
+                      trailing: profile == null || !profile.isActive
                           ? null
                           : const Icon(Icons.chevron_left),
-                      onTap: profile == null
+                      onTap: profile == null || !profile.isActive
                           ? null
                           : () async {
                               final updated =

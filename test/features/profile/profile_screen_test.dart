@@ -108,6 +108,37 @@ void main() {
       expect(find.byKey(const Key('account-deletion-entry')), findsNothing);
     });
 
+    testWidgets('inactive account is visible and profile editing is disabled', (
+      tester,
+    ) async {
+      final user = User(
+        id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+      await tester.pumpWidget(
+        buildScreen(
+          user: user,
+          profile: CustomerProfile(
+            id: user.id,
+            fullName: 'حساب موقوف',
+            governorate: 'عدن',
+            city: 'كريتر',
+            isActive: false,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('profile-inactive-warning')), findsOneWidget);
+      final editEntry = tester.widget<ListTile>(
+        find.byKey(const Key('profile-edit-entry')),
+      );
+      expect(editEntry.onTap, isNull);
+    });
+
     testWidgets('privacy entry opens the in-app policy', (tester) async {
       await tester.pumpWidget(buildScreen(user: null));
 

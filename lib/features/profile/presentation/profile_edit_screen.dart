@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/location/yemen_location_catalog.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/customer_profile_repository.dart';
 import '../domain/customer_profile.dart';
@@ -15,31 +16,6 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
-  static const _governorates = <String>[
-    'أمانة العاصمة',
-    'صنعاء',
-    'عدن',
-    'تعز',
-    'الحديدة',
-    'إب',
-    'ذمار',
-    'حضرموت',
-    'مأرب',
-    'الجوف',
-    'صعدة',
-    'حجة',
-    'عمران',
-    'المحويت',
-    'ريمة',
-    'البيضاء',
-    'الضالع',
-    'لحج',
-    'أبين',
-    'شبوة',
-    'المهرة',
-    'سقطرى',
-  ];
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _cityController;
@@ -56,7 +32,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     _cityController = TextEditingController(text: widget.profile.city ?? '');
     _governorate = widget.profile.governorate?.trim().isNotEmpty == true
         ? widget.profile.governorate!.trim()
-        : _governorates.first;
+        : YemenLocationCatalog.governorates.first;
   }
 
   @override
@@ -108,7 +84,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final governorates = <String>{_governorate, ..._governorates}.toList();
+    final governorates = YemenLocationCatalog.optionsIncluding(_governorate);
     return Scaffold(
       appBar: AppBar(title: const Text('تعديل الملف الشخصي')),
       body: SafeArea(
@@ -155,8 +131,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 onChanged: _submitting
                     ? null
                     : (value) {
-                        if (value != null) {
-                          setState(() => _governorate = value);
+                        if (value != null && value != _governorate) {
+                          setState(() {
+                            _governorate = value;
+                            _cityController.clear();
+                          });
                         }
                       },
               ),
@@ -168,11 +147,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 textInputAction: TextInputAction.done,
                 maxLength: 120,
                 onFieldSubmitted: (_) => _save(),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'المدينة أو المديرية',
-                  prefixIcon: Icon(Icons.location_city_outlined),
-                  border: OutlineInputBorder(),
-                  helperText: 'اكتب الموقع كما يُستخدم محليًا في منطقتك',
+                  prefixIcon: const Icon(Icons.location_city_outlined),
+                  border: const OutlineInputBorder(),
+                  helperText: 'أدخل المدينة أو المديرية داخل $_governorate',
                 ),
                 validator: (value) => _validateRequired(
                   value,
