@@ -18,11 +18,13 @@ class PushMessage {
     final data = message.data;
     return PushMessage(
       messageId: message.messageId,
-      title: message.notification?.title ??
+      title:
+          message.notification?.title ??
           data['title_ar']?.toString() ??
           data['title']?.toString() ??
           'إشعار جديد',
-      body: message.notification?.body ??
+      body:
+          message.notification?.body ??
           data['body_ar']?.toString() ??
           data['body']?.toString() ??
           'لديك تحديث جديد في واصل نت.',
