@@ -1,11 +1,11 @@
 // lib/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../app/app_shell.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import '../providers/app_providers.dart';
-import 'main_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -31,7 +31,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => user != null ? const MainScreen() : const LoginScreen(),
+        builder: (_) => user != null ? const AppShell() : const LoginScreen(),
       ),
     );
   }

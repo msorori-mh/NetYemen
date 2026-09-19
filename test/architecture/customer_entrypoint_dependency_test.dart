@@ -145,6 +145,59 @@ void main() {
       reason: 'Features must use canonical auth screens: $legacyImports',
     );
   });
+
+  test('legacy main screen delegates to the canonical customer shell', () {
+    final legacyMain = File('lib/screens/main_screen.dart').readAsStringSync();
+
+    expect(legacyMain, contains("import '../app/app_shell.dart';"));
+    expect(legacyMain, contains('const AppShell()'));
+    expect(legacyMain, isNot(contains("'home/home_screen.dart'")));
+    expect(legacyMain, isNot(contains("'wallet/wallet_screen.dart'")));
+    expect(legacyMain, isNot(contains("'purchases/purchases_screen.dart'")));
+    expect(legacyMain, isNot(contains("'profile/profile_screen.dart'")));
+  });
+
+  test('retired customer screens have no inbound project imports', () {
+    const retiredPaths = <String>{
+      'lib/screens/home/home_screen.dart',
+      'lib/screens/home/network_detail_screen.dart',
+      'lib/screens/home/purchase_success_screen.dart',
+      'lib/screens/wallet/wallet_screen.dart',
+      'lib/screens/wallet/deposit_screen.dart',
+      'lib/screens/purchases/purchases_screen.dart',
+      'lib/screens/profile/profile_screen.dart',
+    };
+    final inboundImports = <String>[];
+
+    final projectFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+    for (final importer in projectFiles) {
+      final importerPath = importer.path.replaceAll('\\', '/');
+      if (retiredPaths.contains(importerPath)) continue;
+
+      final source = importer.readAsStringSync();
+      final directives = RegExp(
+        r'''(?:import|export)\s+['"]([^'"]+)['"]''',
+      );
+      for (final match in directives.allMatches(source)) {
+        final dependency = _resolveProjectDependency(
+          importerPath,
+          match.group(1)!,
+        );
+        if (dependency != null && retiredPaths.contains(dependency)) {
+          inboundImports.add('$importerPath -> $dependency');
+        }
+      }
+    }
+
+    expect(
+      inboundImports,
+      isEmpty,
+      reason: 'Retired screens must remain unreachable: $inboundImports',
+    );
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {
