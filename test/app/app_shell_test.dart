@@ -25,7 +25,7 @@ void main() {
         child: const MaterialApp(home: AppShell()),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.text('الرئيسية'), findsOneWidget);
