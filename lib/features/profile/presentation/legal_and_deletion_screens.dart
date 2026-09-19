@@ -153,13 +153,12 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
 
     late final AccountDeletionReceipt receipt;
     try {
-      receipt = await ref
-          .read(accountDeletionRepositoryProvider)
-          .requestDeletion(
-            reason: _reasonController.text.trim().isEmpty
-                ? null
-                : _reasonController.text.trim(),
-          );
+      receipt =
+          await ref.read(accountDeletionRepositoryProvider).requestDeletion(
+                reason: _reasonController.text.trim().isEmpty
+                    ? null
+                    : _reasonController.text.trim(),
+              );
     } catch (_) {
       if (!mounted) return;
       setState(() {
