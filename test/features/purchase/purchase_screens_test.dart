@@ -25,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       _buildScreen(const PurchaseHistoryScreen(), repository),
     );
-    await tester.pumpAndSettle();
+    await _pumpRepositoryResult(tester);
 
     expect(find.text('باقة تجريبية'), findsOneWidget);
     expect(find.text('مكتمل'), findsOneWidget);
@@ -66,14 +66,14 @@ void main() {
         repository,
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpRepositoryResult(tester);
 
     expect(find.text('المبلغ المدفوع: '), findsOneWidget);
     expect(find.textContaining('نسبة العمولة'), findsNothing);
     expect(find.textContaining('الصافي لصاحب الشبكة'), findsNothing);
 
     await tester.tap(find.byKey(const Key('purchase-reveal-card')));
-    await tester.pumpAndSettle();
+    await _pumpRepositoryResult(tester);
 
     expect(find.text('••••••••••••'), findsOneWidget);
     expect(find.text('DEMO-CARD-123456'), findsNothing);
@@ -159,12 +159,18 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'الكرت لا يعمل');
     await tester.tap(find.text('الكرت غير صالح - فتح نزاع'));
-    await tester.pumpAndSettle();
+    await _pumpRepositoryResult(tester);
 
     expect(find.text('تم فتح النزاع بنجاح'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
     expect(find.text('تم تسجيل بلاغ الكرت غير الصالح.'), findsOneWidget);
   });
+}
+
+Future<void> _pumpRepositoryResult(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump();
 }
 
 Widget _buildScreen(Widget screen, FakePurchaseRepository repository) {
