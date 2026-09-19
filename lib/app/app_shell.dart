@@ -6,6 +6,7 @@ import '../features/profile/presentation/profile_screen.dart';
 import '../features/wallet/presentation/wallet_screen.dart';
 import '../features/purchase/presentation/purchase_history_screen.dart';
 import '../features/notifications/presentation/fcm_token_service.dart';
+import '../features/notifications/presentation/push_message_listener.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -59,20 +60,22 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return FcmTokenInitializer(
-      child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _customerScreens,
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            setState(() => _currentIndex = index);
-          },
-          destinations: _customerDestinations,
-          backgroundColor: AppTheme.surface,
-          indicatorColor: AppTheme.primary.withValues(alpha: 0.12),
+    return PushMessageListener(
+      child: FcmTokenInitializer(
+        child: Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _customerScreens,
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() => _currentIndex = index);
+            },
+            destinations: _customerDestinations,
+            backgroundColor: AppTheme.surface,
+            indicatorColor: AppTheme.primary.withValues(alpha: 0.12),
+          ),
         ),
       ),
     );
