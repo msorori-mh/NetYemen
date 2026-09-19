@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - codex/NY-V1-CUSTOMER-PRODUCT-HARDENING-001
   pull_request:
     branches:
       - main
