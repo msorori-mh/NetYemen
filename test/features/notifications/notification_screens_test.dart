@@ -71,4 +71,113 @@ void main() {
     expect(find.text('حالة الطلبات والمعاملات'), findsOneWidget);
     expect(find.text('شبكات جديدة'), findsOneWidget);
   });
+
+  testWidgets('notification load failure hides backend details and retries', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          notificationRepositoryProvider.overrideWithValue(
+            _FailingInboxRepository(),
+          ),
+        ],
+        child: const MaterialApp(home: NotificationCenterScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('تعذر تحميل الإشعارات'), findsOneWidget);
+    expect(find.text('تحقق من الاتصال ثم أعد المحاولة.'), findsOneWidget);
+    expect(find.textContaining('DATABASE_SECRET_ERROR'), findsNothing);
+    expect(find.text('إعادة المحاولة'), findsOneWidget);
+  });
+
+  testWidgets('mark-read failure still opens the notification destination', (
+    tester,
+  ) async {
+    final repo = _FailingMarkReadRepository()
+      ..seedInbox(
+        InboxNotification(
+          id: 'i2',
+          eventId: 'e2',
+          titleAr: 'تم تحديث الطلب',
+          bodyAr: 'راجع حالة طلبك',
+          deepLink: 'request/r2',
+          category: 'transactional',
+          channelClass: 'request_status',
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          notificationRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: const MaterialApp(home: NotificationCenterScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تم تحديث الطلب'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('طلباتي'), findsOneWidget);
+    expect(find.textContaining('DATABASE_SECRET_ERROR'), findsNothing);
+  });
+
+  testWidgets('preference save failure shows a safe retry message', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          notificationRepositoryProvider.overrideWithValue(
+            _FailingPreferenceRepository(),
+          ),
+        ],
+        child: const MaterialApp(home: NotificationPreferencesScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'شبكات جديدة'));
+    await tester.pump();
+
+    expect(
+      find.text('تعذر حفظ التفضيلات. تحقق من الاتصال ثم أعد المحاولة.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('DATABASE_SECRET_ERROR'), findsNothing);
+  });
+}
+
+class _FailingInboxRepository extends FakeNotificationRepository {
+  @override
+  Future<List<InboxNotification>> listInbox({
+    int limit = 50,
+    bool unreadOnly = false,
+  }) async {
+    throw StateError('DATABASE_SECRET_ERROR');
+  }
+}
+
+class _FailingMarkReadRepository extends FakeNotificationRepository {
+  @override
+  Future<void> markRead(String inboxId) async {
+    throw StateError('DATABASE_SECRET_ERROR');
+  }
+}
+
+class _FailingPreferenceRepository extends FakeNotificationRepository {
+  @override
+  Future<NotificationPreferences> updatePreferences(
+    NotificationPreferences prefs,
+  ) async {
+    throw StateError('DATABASE_SECRET_ERROR');
+  }
 }

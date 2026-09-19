@@ -48,7 +48,16 @@ class NotificationCenterScreen extends ConsumerWidget {
       body: inboxAsync.when(
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('لا توجد إشعارات بعد'));
+            return _NotificationState(
+              icon: Icons.notifications_none_outlined,
+              title: 'لا توجد إشعارات بعد',
+              message: 'ستظهر هنا تحديثات الطلبات والمعاملات والشبكات.',
+              actionLabel: 'تحديث',
+              onAction: () {
+                ref.invalidate(notificationInboxProvider);
+                ref.invalidate(unreadNotificationCountProvider);
+              },
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
@@ -61,7 +70,16 @@ class NotificationCenterScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('تعذر تحميل الإشعارات: $e')),
+        error: (_, __) => _NotificationState(
+          icon: Icons.cloud_off_outlined,
+          title: 'تعذر تحميل الإشعارات',
+          message: 'تحقق من الاتصال ثم أعد المحاولة.',
+          actionLabel: 'إعادة المحاولة',
+          onAction: () {
+            ref.invalidate(notificationInboxProvider);
+            ref.invalidate(unreadNotificationCountProvider);
+          },
+        ),
       ),
     );
   }
@@ -97,13 +115,74 @@ class _InboxTile extends ConsumerWidget {
             : const Icon(Icons.circle, size: 10, color: AppTheme.primary),
         onTap: () async {
           if (!item.isRead) {
-            await ref.read(notificationRepositoryProvider).markRead(item.id);
-            ref.invalidate(notificationInboxProvider);
-            ref.invalidate(unreadNotificationCountProvider);
+            try {
+              await ref.read(notificationRepositoryProvider).markRead(item.id);
+              ref.invalidate(notificationInboxProvider);
+              ref.invalidate(unreadNotificationCountProvider);
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'تعذر تحديث حالة القراءة. يمكنك متابعة فتح الإشعار.',
+                    ),
+                  ),
+                );
+              }
+            }
           }
           if (!context.mounted) return;
           await navigateNotificationDeepLink(context, ref, item.deepLink);
         },
+      ),
+    );
+  }
+}
+
+class _NotificationState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _NotificationState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 52, color: AppTheme.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh),
+              label: Text(actionLabel),
+            ),
+          ],
+        ),
       ),
     );
   }

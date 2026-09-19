@@ -50,11 +50,15 @@ class _NotificationPreferencesScreenState
           const SnackBar(content: Text('تم حفظ تفضيلات الإشعارات')),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تعذر حفظ التفضيلات. تحقق من الاتصال ثم أعد المحاولة.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -149,7 +153,42 @@ class _NotificationPreferencesScreenState
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('تعذر تحميل التفضيلات: $e')),
+        error: (_, __) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.cloud_off_outlined,
+                  size: 52,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'تعذر تحميل تفضيلات الإشعارات',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'تحقق من الاتصال ثم أعد المحاولة.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  key: const Key('notification-preferences-retry'),
+                  onPressed: () {
+                    ref.invalidate(notificationPreferencesProvider);
+                    ref.invalidate(transportStatusProvider);
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
