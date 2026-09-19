@@ -40,12 +40,12 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
     try {
       await ref.read(depositSubmissionProvider.notifier).submit(
-        amount: amount,
-        paymentDestinationId: _selectedDestinationId!,
-        proofReference: _referenceController.text.trim().isEmpty
-            ? null
-            : _referenceController.text.trim(),
-      );
+            amount: amount,
+            paymentDestinationId: _selectedDestinationId!,
+            proofReference: _referenceController.text.trim().isEmpty
+                ? null
+                : _referenceController.text.trim(),
+          );
       if (mounted) {
         setState(() => _message = 'تم إرسال طلب الإيداع بنجاح');
         _amountController.clear();
@@ -76,78 +76,77 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ (ريال يمني)',
-                  border: OutlineInputBorder(),
-                ),
+            TextField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'المبلغ (ريال يمني)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              destinationsAsync.when(
-                data: (destinations) {
-                  if (destinations.isEmpty) {
-                    return const Text(
-                      'لا توجد وجهات دفع مفعلة حالياً (OD-FIN-03).',
-                      style: TextStyle(color: Colors.orange),
-                    );
-                  }
-                  return InputDecorator(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'وجهة الدفع',
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedDestinationId,
-                        hint: const Text('اختر وجهة الدفع'),
-                        isExpanded: true,
-                        items: destinations.map((destination) {
-                          return DropdownMenuItem(
-                            value: destination['id'] as String? ?? '',
-                            child: Text(
-                              destination['display_name'] as String? ?? 'وجهة',
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) =>
-                            setState(() => _selectedDestinationId = value),
-                      ),
-                    ),
+            ),
+            const SizedBox(height: 16),
+            destinationsAsync.when(
+              data: (destinations) {
+                if (destinations.isEmpty) {
+                  return const Text(
+                    'لا توجد وجهات دفع مفعلة حالياً (OD-FIN-03).',
+                    style: TextStyle(color: Colors.orange),
                   );
-                },
-                loading: () => const CircularProgressIndicator(),
-                error: (_, __) => const Text(
-                  'تعذر تحميل وجهات الدفع. تحقق من الاتصال وأعد فتح الصفحة.',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _referenceController,
-                decoration: const InputDecoration(
-                  labelText: 'رقم المرجع / إيصال الدفع',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: isSubmitting ? null : _submit,
-                child: isSubmitting
-                    ? const CircularProgressIndicator()
-                    : const Text('إرسال الطلب'),
-              ),
-              if (_message != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _message!,
-                  style: TextStyle(
-                    color:
-                        _message!.startsWith('تم') ? Colors.green : Colors.red,
+                }
+                return InputDecorator(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'وجهة الدفع',
                   ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedDestinationId,
+                      hint: const Text('اختر وجهة الدفع'),
+                      isExpanded: true,
+                      items: destinations.map((destination) {
+                        return DropdownMenuItem(
+                          value: destination['id'] as String? ?? '',
+                          child: Text(
+                            destination['display_name'] as String? ?? 'وجهة',
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedDestinationId = value),
+                    ),
+                  ),
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const Text(
+                'تعذر تحميل وجهات الدفع. تحقق من الاتصال وأعد فتح الصفحة.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _referenceController,
+              decoration: const InputDecoration(
+                labelText: 'رقم المرجع / إيصال الدفع',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: isSubmitting ? null : _submit,
+              child: isSubmitting
+                  ? const CircularProgressIndicator()
+                  : const Text('إرسال الطلب'),
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _message!,
+                style: TextStyle(
+                  color: _message!.startsWith('تم') ? Colors.green : Colors.red,
                 ),
-              ],
+              ),
             ],
+          ],
         ),
       ),
     );

@@ -60,10 +60,10 @@ class DepositSubmissionNotifier extends AsyncNotifier<String?> {
     String? proofReference,
   }) async {
     final trimmedReference = proofReference?.trim();
-    final normalizedReference = trimmedReference == null ||
-            trimmedReference.isEmpty
-        ? null
-        : trimmedReference;
+    final normalizedReference =
+        trimmedReference == null || trimmedReference.isEmpty
+            ? null
+            : trimmedReference;
     final userId = ref.read(currentUserProvider)?.id ?? '';
     final fingerprint = '$userId|$amount|$paymentDestinationId|'
         '${normalizedReference ?? ''}';
