@@ -88,8 +88,7 @@ class WalletScreen extends ConsumerWidget {
                           error: error,
                           fallbackTitle: 'تعذر تحميل الرصيد',
                           compact: true,
-                          onRetry: () =>
-                              ref.invalidate(walletSummaryProvider),
+                          onRetry: () => ref.invalidate(walletSummaryProvider),
                         ),
                       ),
                     ],
