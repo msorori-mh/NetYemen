@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../providers/app_providers.dart';
 import '../../admin/presentation/admin_access.dart';
 import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../data/admin_auth_repository.dart';
 import 'admin_auth_providers.dart';
+import 'customer_session_providers.dart';
 
 class AdminAuthCoordinator extends ConsumerStatefulWidget {
   const AdminAuthCoordinator({super.key});

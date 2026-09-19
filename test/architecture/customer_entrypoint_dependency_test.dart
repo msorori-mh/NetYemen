@@ -67,6 +67,39 @@ void main() {
       reason: 'Shared configuration must stay in core: $misplacedOwners',
     );
   });
+
+  test('customer session providers are owned by auth feature', () {
+    final sessionSource = File(
+      'lib/features/auth/presentation/customer_session_providers.dart',
+    ).readAsStringSync();
+    expect(sessionSource, contains('final authStateProvider'));
+    expect(sessionSource, contains('final currentUserProvider'));
+    expect(sessionSource, contains('final currentUserRolesProvider'));
+
+    final legacyFacade =
+        File('lib/providers/app_providers.dart').readAsStringSync();
+    expect(legacyFacade, isNot(contains('final authStateProvider =')));
+    expect(legacyFacade, isNot(contains('final currentUserProvider =')));
+    expect(legacyFacade, isNot(contains('final currentUserRolesProvider =')));
+
+    final remainingFeatureImports = Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where(
+          (file) => file
+              .readAsStringSync()
+              .contains("providers/app_providers.dart'"),
+        )
+        .map((file) => file.path.replaceAll('\\', '/'))
+        .toList();
+
+    expect(
+      remainingFeatureImports,
+      equals(['lib/features/profile/presentation/profile_screen.dart']),
+      reason: 'Features must depend on owned providers, not the legacy facade.',
+    );
+  });
 }
 
 String? _resolveProjectDependency(String importerPath, String uri) {

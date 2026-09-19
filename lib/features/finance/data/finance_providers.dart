@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../providers/app_providers.dart';
+import '../../../core/config/app_config_provider.dart';
 import 'fake_finance_repository.dart';
 import 'finance_repository.dart';
 import 'supabase_finance_repository.dart';

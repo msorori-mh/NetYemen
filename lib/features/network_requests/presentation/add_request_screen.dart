@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../providers/app_providers.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_requests/presentation/network_request_providers.dart';

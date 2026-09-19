@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../../../core/widgets/customer_load_error.dart';
-import '../../../providers/app_providers.dart';
 import '../../../screens/auth/login_screen.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import 'wallet_providers.dart';
 import 'deposit_screen.dart';
 import 'deposit_history_screen.dart';

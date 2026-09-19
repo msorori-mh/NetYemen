@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../providers/app_providers.dart';
+import '../../../core/config/app_config_provider.dart';
 import '../data/admin_auth_repository.dart';
 
 final adminAuthRepositoryProvider = Provider<AdminAuthRepository>((ref) {

@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../providers/app_providers.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../data/notification_repository.dart';
 import 'notification_providers.dart';
 

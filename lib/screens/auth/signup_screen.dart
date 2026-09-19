@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_shell.dart';
+import '../../core/providers/supabase_service_provider.dart';
 import '../../features/auth/domain/customer_auth.dart';
-import '../../providers/app_providers.dart';
 import '../../utils/app_theme.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
