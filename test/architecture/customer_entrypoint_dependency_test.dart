@@ -220,9 +220,7 @@ void main() {
           (file) =>
               file.path.replaceAll('\\', '/') !=
                   'lib/providers/app_providers.dart' &&
-              file
-                  .readAsStringSync()
-                  .contains('providers/app_providers.dart'),
+              file.readAsStringSync().contains('providers/app_providers.dart'),
         )
         .map((file) => file.path.replaceAll('\\', '/'))
         .toList();
