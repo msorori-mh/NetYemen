@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../utils/constants.dart';
+import '../../auth/presentation/customer_auth_providers.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
@@ -16,11 +16,18 @@ import 'customer_profile_providers.dart';
 import 'legal_and_deletion_screens.dart';
 import 'profile_edit_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _signingOut = false;
+
+  @override
+  Widget build(BuildContext context) {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
     final profileAsync = ref.watch(userProfileProvider);
@@ -299,16 +306,19 @@ class ProfileScreen extends ConsumerWidget {
             width: double.infinity,
             child: user != null
                 ? OutlinedButton.icon(
+                    key: const Key('profile-sign-out'),
                     onPressed: config.isConfigured
-                        ? () async {
-                            await ref
-                                .read(fcmTokenServiceProvider)
-                                .stop(deactivateToken: true);
-                            await Supabase.instance.client.auth.signOut();
-                          }
+                        ? (_signingOut ? null : _signOut)
                         : null,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('تسجيل الخروج'),
+                    icon: _signingOut
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.logout),
+                    label: Text(
+                      _signingOut ? 'جارٍ تسجيل الخروج...' : 'تسجيل الخروج',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.error,
                       side: const BorderSide(color: AppTheme.error),
@@ -331,5 +341,27 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _signOut() async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+
+    try {
+      await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
+      await ref.read(customerAuthRepositoryProvider).signOut();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تعذر تسجيل الخروج بأمان. تحقق من الاتصال ثم أعد المحاولة.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
+    }
   }
 }

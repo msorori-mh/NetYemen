@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
+import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart';
 import 'package:netyemen/features/profile/domain/customer_profile.dart';
 import 'package:netyemen/features/profile/presentation/profile_screen.dart';
 import 'package:netyemen/features/profile/presentation/legal_and_deletion_screens.dart';
@@ -10,6 +11,8 @@ import 'package:netyemen/features/auth/presentation/customer_session_providers.d
 import 'package:netyemen/features/profile/presentation/customer_profile_providers.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../fakes/fake_customer_auth_repository.dart';
 
 void main() {
   group('ProfileScreen', () {
@@ -23,10 +26,13 @@ void main() {
       AppConfig config = configuredConfig,
       List<String> roles = const [],
       CustomerProfile? profile,
+      FakeCustomerAuthRepository? authRepository,
     }) {
       return ProviderScope(
         overrides: [
           currentUserProvider.overrideWithValue(user),
+          if (authRepository != null)
+            customerAuthRepositoryProvider.overrideWithValue(authRepository),
           appConfigProvider.overrideWithValue(config),
           currentUserRolesProvider.overrideWith((ref) async => roles),
           userProfileProvider.overrideWith((ref) async {
@@ -90,6 +96,66 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.byKey(const Key('account-deletion-entry')), findsOneWidget);
+    });
+
+    testWidgets('sign-out uses the customer auth boundary', (tester) async {
+      final repository = FakeCustomerAuthRepository();
+      await tester.pumpWidget(
+        buildScreen(
+          authRepository: repository,
+          user: User(
+            id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
+            appMetadata: const {},
+            userMetadata: const {},
+            aud: 'authenticated',
+            createdAt: DateTime.now().toIso8601String(),
+          ),
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('profile-sign-out')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('profile-sign-out')));
+      await tester.pumpAndSettle();
+
+      expect(repository.signOutCalled, isTrue);
+    });
+
+    testWidgets('sign-out failure is safe and retryable', (tester) async {
+      final repository = FakeCustomerAuthRepository()
+        ..signOutException = Exception('AUTH_INTERNAL_SECRET');
+      await tester.pumpWidget(
+        buildScreen(
+          authRepository: repository,
+          user: User(
+            id: 'a1a1a1a1-a1a1-4a1a-a1a1-a1a1a1a1a1a1',
+            appMetadata: const {},
+            userMetadata: const {},
+            aud: 'authenticated',
+            createdAt: DateTime.now().toIso8601String(),
+          ),
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('profile-sign-out')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('profile-sign-out')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('تعذر تسجيل الخروج بأمان'), findsOneWidget);
+      expect(find.textContaining('AUTH_INTERNAL_SECRET'), findsNothing);
+      expect(
+        tester.widget<OutlinedButton>(
+          find.byKey(const Key('profile-sign-out')),
+        ).onPressed,
+        isNotNull,
+      );
     });
 
     testWidgets('shows sign-in button for unauthenticated user', (
