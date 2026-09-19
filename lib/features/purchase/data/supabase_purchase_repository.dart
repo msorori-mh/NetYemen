@@ -1,7 +1,6 @@
 // lib/features/purchase/data/supabase_purchase_repository.dart
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/utils/uuid_generator.dart';
 import 'purchase_repository.dart';
 import '../domain/entities.dart';
 
@@ -13,12 +12,13 @@ class SupabasePurchaseRepository implements PurchaseRepository {
   @override
   Future<Map<String, dynamic>> purchasePackage({
     required String packageId,
+    required String idempotencyKey,
   }) async {
     final result = await _client.rpc(
       'purchase_package',
       params: {
         'p_package_id': packageId,
-        'p_idempotency_key': UuidGenerator.generateV4(),
+        'p_idempotency_key': idempotencyKey,
       },
     );
     return result as Map<String, dynamic>;

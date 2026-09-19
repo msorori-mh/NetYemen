@@ -19,6 +19,8 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final submission = ref.watch(purchaseSubmissionProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('تأكيد الشراء')),
       body: Directionality(
@@ -43,9 +45,29 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
+              if (submission.hasError) ...[
+                Text(
+                  _purchaseErrorText(submission.error!),
+                  key: const Key('purchase-submit-error'),
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 12),
+              ],
               ElevatedButton(
-                onPressed: () => _confirmPurchase(context, ref),
-                child: const Text('تأكيد الشراء'),
+                onPressed: submission.isLoading
+                    ? null
+                    : () => _confirmPurchase(context, ref),
+                child: submission.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        submission.hasError
+                            ? 'إعادة المحاولة بأمان'
+                            : 'تأكيد الشراء',
+                      ),
               ),
             ],
           ),
@@ -55,18 +77,12 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmPurchase(BuildContext context, WidgetRef ref) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
     try {
-      final repo = ref.read(purchaseRepositoryProvider);
-      final result = await repo.purchasePackage(packageId: package.id);
+      final result = await ref
+          .read(purchaseSubmissionProvider.notifier)
+          .submit(package.id);
 
       if (context.mounted) {
-        Navigator.of(context).pop();
         ref.invalidate(purchaseHistoryProvider);
         ref.invalidate(fulfillmentRecordsProvider);
         ref.invalidate(walletSummaryProvider);
@@ -80,19 +96,27 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
           ),
         );
       }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => PurchaseResultScreen(
-              success: false,
-              errorMessage: e.toString(),
-              packageName: package.name,
-            ),
-          ),
-        );
-      }
+    } catch (_) {
+      // The provider retains the idempotency key and exposes the error inline.
+      // Retrying this logical purchase cannot create a second debit/order.
     }
+  }
+
+  String _purchaseErrorText(Object error) {
+    final message = error.toString();
+    if (message.contains('INSUFFICIENT_BALANCE')) {
+      return 'رصيد المحفظة غير كافٍ لإتمام الشراء.';
+    }
+    if (message.contains('OUT_OF_STOCK')) {
+      return 'نفدت كروت هذه الباقة حاليًا. اختر باقة أخرى أو حاول لاحقًا.';
+    }
+    if (message.contains('PACKAGE_UNAVAILABLE') ||
+        message.contains('NETWORK_UNAVAILABLE')) {
+      return 'الباقة أو الشبكة غير متاحة حاليًا.';
+    }
+    if (message.contains('UNAUTHENTICATED')) {
+      return 'انتهت جلسة الدخول. سجّل الدخول ثم حاول مجددًا.';
+    }
+    return 'تعذر تأكيد نتيجة العملية. أعد المحاولة بأمان؛ لن يتم الخصم مرتين.';
   }
 }

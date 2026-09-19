@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/utils/uuid_generator.dart';
 import '../../../providers/app_providers.dart';
 import '../data/purchase_repository.dart';
 import '../data/supabase_purchase_repository.dart';
@@ -42,6 +43,88 @@ final purchaseDetailProvider = FutureProvider.family<PurchaseOrder?, String>((
     return null;
   }
 });
+
+class PurchaseIdempotencySession {
+  final String key;
+  final String fingerprint;
+
+  const PurchaseIdempotencySession({
+    required this.key,
+    required this.fingerprint,
+  });
+}
+
+class PurchaseSubmissionNotifier
+    extends AsyncNotifier<Map<String, dynamic>?> {
+  PurchaseIdempotencySession? _pendingSession;
+  Future<Map<String, dynamic>>? _inFlight;
+  String? _inFlightFingerprint;
+
+  @override
+  Future<Map<String, dynamic>?> build() async => null;
+
+  Future<Map<String, dynamic>> submit(String packageId) async {
+    final userId = ref.read(currentUserProvider)?.id ?? '';
+    final fingerprint = '$userId:$packageId';
+
+    final activeRequest = _inFlight;
+    if (activeRequest != null) {
+      if (_inFlightFingerprint == fingerprint) return await activeRequest;
+      throw StateError('PURCHASE_ALREADY_IN_PROGRESS');
+    }
+
+    final request = _submitOnce(
+      packageId: packageId,
+      fingerprint: fingerprint,
+    );
+    _inFlight = request;
+    _inFlightFingerprint = fingerprint;
+    try {
+      return await request;
+    } finally {
+      if (identical(_inFlight, request)) {
+        _inFlight = null;
+        _inFlightFingerprint = null;
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _submitOnce({
+    required String packageId,
+    required String fingerprint,
+  }) async {
+    state = const AsyncValue.loading();
+
+    final session = _pendingSession;
+    final idempotencyKey =
+        session != null && session.fingerprint == fingerprint
+            ? session.key
+            : UuidGenerator.generateV4();
+    _pendingSession = PurchaseIdempotencySession(
+      key: idempotencyKey,
+      fingerprint: fingerprint,
+    );
+
+    try {
+      final repository = ref.read(purchaseRepositoryProvider);
+      final result = await repository.purchasePackage(
+        packageId: packageId,
+        idempotencyKey: idempotencyKey,
+      );
+      _pendingSession = null;
+      state = AsyncValue.data(result);
+      return result;
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+}
+
+final purchaseSubmissionProvider = AsyncNotifierProvider<
+    PurchaseSubmissionNotifier, Map<String, dynamic>?>(
+  PurchaseSubmissionNotifier.new,
+);
 
 class CardRevealNotifier extends AsyncNotifier<CardRevealResult?> {
   @override

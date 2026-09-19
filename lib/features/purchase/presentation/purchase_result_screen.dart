@@ -45,13 +45,13 @@ class PurchaseResultScreen extends StatelessWidget {
                   'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER',
                 ),
                 Text(
-                  'حالة التسليم: ${_fulfillmentText(purchaseResult!['status'] as String?)}',
+                  'حالة التسليم: ${_fulfillmentText(purchaseResult!['fulfillment_status'] as String?)}',
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'التسليم الخارجي غير مربوط في النسخة التجريبية. لا توجد بيانات كرت سرية، ولن يظهر نجاح تسليم وهمي حتى اعتماد OD-CARD-01.',
-                  style: TextStyle(color: Colors.orange),
-                ),
+                if (purchaseResult!['replayed'] == true)
+                  const Text(
+                    'تم استرجاع نتيجة العملية السابقة بأمان دون خصم جديد.',
+                    style: TextStyle(color: Colors.green),
+                  ),
               ],
               if (!success && errorMessage != null)
                 Text(
@@ -74,7 +74,7 @@ class PurchaseResultScreen extends StatelessWidget {
   String _fulfillmentText(String? status) {
     switch (status) {
       case 'completed':
-        return 'بانتظار مزود تسليم آمن — غير مربوط';
+        return 'اكتملت العملية';
       case 'pending_secret':
         return 'بانتظار إعداد بيانات الكرت الآمنة';
       case 'fulfilled':

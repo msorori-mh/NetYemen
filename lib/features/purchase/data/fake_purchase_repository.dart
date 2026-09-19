@@ -7,12 +7,26 @@ import '../domain/entities.dart';
 class FakePurchaseRepository implements PurchaseRepository {
   final List<PurchaseOrder> _orders = [];
   final List<FulfillmentRecord> _fulfillments = [];
+  final Map<String, ({String packageId, Map<String, dynamic> result})>
+      _idempotentResults = {};
+
+  List<PurchaseOrder> get orders => List.unmodifiable(_orders);
 
   @override
   Future<Map<String, dynamic>> purchasePackage({
     required String packageId,
+    required String idempotencyKey,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
+
+    final existing = _idempotentResults[idempotencyKey];
+    if (existing != null) {
+      if (existing.packageId != packageId) {
+        throw StateError('IDEMPOTENCY_CONFLICT');
+      }
+      return {...existing.result, 'replayed': true};
+    }
+
     final purchaseId = UuidGenerator.generateV4();
     final fulfillmentId = UuidGenerator.generateV4();
     final now = DateTime.now();
@@ -54,7 +68,7 @@ class FakePurchaseRepository implements PurchaseRepository {
       ),
     );
 
-    return {
+    final result = <String, dynamic>{
       'purchase_id': purchaseId,
       'fulfillment_id': fulfillmentId,
       'status': 'completed',
@@ -62,6 +76,11 @@ class FakePurchaseRepository implements PurchaseRepository {
       'new_balance': 4000,
       'fulfillment_status': 'pending_secret',
     };
+    _idempotentResults[idempotencyKey] = (
+      packageId: packageId,
+      result: result,
+    );
+    return result;
   }
 
   @override
