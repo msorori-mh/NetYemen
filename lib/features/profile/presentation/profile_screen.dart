@@ -12,6 +12,7 @@ import '../../network_requests/presentation/my_requests_screen.dart';
 import '../../support/presentation/support_screens.dart';
 import '../../wallet/presentation/deposit_history_screen.dart';
 import 'legal_and_deletion_screens.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,6 +21,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final profile = profileAsync.asData?.value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('الحساب')),
@@ -40,7 +43,11 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  user != null ? 'مستخدم مسجل' : 'غير مسجل',
+                  user != null
+                      ? (profile?.fullName?.trim().isNotEmpty == true
+                          ? profile!.fullName!
+                          : 'مستخدم واصل نت')
+                      : 'غير مسجل',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -49,7 +56,7 @@ class ProfileScreen extends ConsumerWidget {
                 if (user != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    user.email ?? user.phone ?? '---',
+                    user.phone ?? user.email ?? '---',
                     style: const TextStyle(color: AppTheme.textSecondary),
                   ),
                 ],
@@ -77,6 +84,74 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
+          if (user != null)
+            profileAsync.when(
+              data: (profile) => Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      key: const Key('profile-edit-entry'),
+                      leading: const Icon(
+                        Icons.manage_accounts_outlined,
+                        color: AppTheme.primary,
+                      ),
+                      title: const Text('تعديل الملف الشخصي'),
+                      subtitle: Text(
+                        profile == null
+                            ? 'تعذر العثور على بيانات الملف الشخصي'
+                            : '${profile.governorate ?? 'لم تحدد المحافظة'} — '
+                                '${profile.city ?? 'لم تحدد المدينة'}',
+                      ),
+                      trailing: profile == null
+                          ? null
+                          : const Icon(Icons.chevron_left),
+                      onTap: profile == null
+                          ? null
+                          : () async {
+                              final updated =
+                                  await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      ProfileEditScreen(profile: profile),
+                                ),
+                              );
+                              if (updated == true) {
+                                ref.invalidate(userProfileProvider);
+                              }
+                            },
+                    ),
+                  ],
+                ),
+              ),
+              loading: () => const Card(
+                child: ListTile(
+                  key: Key('profile-loading'),
+                  leading: SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  title: Text('جارٍ تحميل الملف الشخصي...'),
+                ),
+              ),
+              error: (_, __) => Card(
+                child: ListTile(
+                  key: const Key('profile-load-error'),
+                  leading: const Icon(
+                    Icons.error_outline,
+                    color: AppTheme.error,
+                  ),
+                  title: const Text('تعذر تحميل الملف الشخصي'),
+                  subtitle: const Text('تحقق من الاتصال ثم أعد المحاولة.'),
+                  trailing: IconButton(
+                    key: const Key('profile-retry-button'),
+                    tooltip: 'إعادة المحاولة',
+                    onPressed: () => ref.invalidate(userProfileProvider),
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
+              ),
+            ),
+          if (user != null) const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(
