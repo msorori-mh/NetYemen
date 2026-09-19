@@ -9,7 +9,8 @@ import 'package:netyemen/features/purchase/presentation/purchase_providers.dart'
 
 void main() {
   group('PurchaseSubmissionNotifier', () {
-    test('reuses the same idempotency key after an ambiguous failure', () async {
+    test('reuses the same idempotency key after an ambiguous failure',
+        () async {
       final repository = _RecordingPurchaseRepository(failFirstAttempt: true);
       final container = _container(repository);
       addTearDown(container.dispose);
@@ -65,7 +66,8 @@ void main() {
     });
   });
 
-  test('fake repository replays a key without creating a second order', () async {
+  test('fake repository replays a key without creating a second order',
+      () async {
     final repository = FakePurchaseRepository();
 
     final first = await repository.purchasePackage(

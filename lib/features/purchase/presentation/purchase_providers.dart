@@ -54,8 +54,7 @@ class PurchaseIdempotencySession {
   });
 }
 
-class PurchaseSubmissionNotifier
-    extends AsyncNotifier<Map<String, dynamic>?> {
+class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   PurchaseIdempotencySession? _pendingSession;
   Future<Map<String, dynamic>>? _inFlight;
   String? _inFlightFingerprint;
@@ -96,10 +95,9 @@ class PurchaseSubmissionNotifier
     state = const AsyncValue.loading();
 
     final session = _pendingSession;
-    final idempotencyKey =
-        session != null && session.fingerprint == fingerprint
-            ? session.key
-            : UuidGenerator.generateV4();
+    final idempotencyKey = session != null && session.fingerprint == fingerprint
+        ? session.key
+        : UuidGenerator.generateV4();
     _pendingSession = PurchaseIdempotencySession(
       key: idempotencyKey,
       fingerprint: fingerprint,
@@ -121,8 +119,8 @@ class PurchaseSubmissionNotifier
   }
 }
 
-final purchaseSubmissionProvider = AsyncNotifierProvider<
-    PurchaseSubmissionNotifier, Map<String, dynamic>?>(
+final purchaseSubmissionProvider =
+    AsyncNotifierProvider<PurchaseSubmissionNotifier, Map<String, dynamic>?>(
   PurchaseSubmissionNotifier.new,
 );
 
