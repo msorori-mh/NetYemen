@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../finance/presentation/finance_providers.dart';
+import '../../finance/data/finance_providers.dart';
 import '../../finance/presentation/settlement_detail_screen.dart';
 
 class OwnerSettlementsScreen extends ConsumerWidget {

@@ -14,12 +14,16 @@ void main() {
       supabasePublishableKey: 'test-publishable-key',
     );
 
-    Widget buildScreen({required User? user}) {
+    Widget buildScreen({
+      required User? user,
+      AppConfig config = configuredConfig,
+      List<String> roles = const [],
+    }) {
       return ProviderScope(
         overrides: [
           currentUserProvider.overrideWithValue(user),
-          appConfigProvider.overrideWithValue(configuredConfig),
-          currentUserRolesProvider.overrideWith((ref) async => const []),
+          appConfigProvider.overrideWithValue(config),
+          currentUserRolesProvider.overrideWith((ref) async => roles),
         ],
         child: const MaterialApp(home: ProfileScreen()),
       );
@@ -102,6 +106,28 @@ void main() {
 
       expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
       expect(find.text('خصوصيتك في واصل نت'), findsOneWidget);
+    });
+
+    testWidgets('does not expose privileged dashboards to customer users', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildScreen(
+          user: null,
+          config: AppConfig.demo,
+          roles: const ['platform_admin', 'network_owner'],
+        ),
+      );
+
+      await tester.dragUntilVisible(
+        find.text('عن التطبيق'),
+        find.byType(Scrollable).first,
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('عمليات الشبكة'), findsNothing);
+      expect(find.text('لوحة الإدارة'), findsNothing);
     });
   });
 }

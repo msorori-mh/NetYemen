@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../finance/presentation/finance_providers.dart';
+import '../../finance/data/finance_providers.dart';
 import 'wallet_providers.dart';
 
 class DepositScreen extends ConsumerStatefulWidget {

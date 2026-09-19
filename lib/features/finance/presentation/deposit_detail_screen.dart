@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'finance_providers.dart';
+import '../data/finance_providers.dart';
 
 class DepositDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> deposit;

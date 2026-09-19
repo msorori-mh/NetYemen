@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../data/finance_providers.dart';
 import '../domain/finance_operation_policy.dart';
-import 'finance_providers.dart';
 import 'settlement_detail_screen.dart';
 
 class SettlementBatchesScreen extends ConsumerStatefulWidget {

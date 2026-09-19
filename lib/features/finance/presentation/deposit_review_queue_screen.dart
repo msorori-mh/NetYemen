@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'finance_providers.dart';
+import '../data/finance_providers.dart';
 import 'deposit_detail_screen.dart';
 
 class DepositReviewQueueScreen extends ConsumerWidget {

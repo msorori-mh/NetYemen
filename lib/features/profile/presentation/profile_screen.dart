@@ -5,12 +5,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../providers/app_providers.dart';
 import '../../../utils/constants.dart';
 import '../../../screens/auth/login_screen.dart';
-import '../../admin/presentation/admin_dashboard_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 import '../../notifications/presentation/notification_preferences_screen.dart';
 import '../../notifications/presentation/fcm_token_service.dart';
 import '../../network_requests/presentation/my_requests_screen.dart';
-import '../../packages/presentation/owner_dashboard_screen.dart';
 import '../../support/presentation/support_screens.dart';
 import '../../wallet/presentation/deposit_history_screen.dart';
 import 'legal_and_deletion_screens.dart';
@@ -159,9 +157,6 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const _OwnerDashboardEntryCard(),
-          const SizedBox(height: 12),
-          const _AdminDashboardEntryCard(),
           const Card(
             child: ListTile(
               leading: Icon(Icons.info_outline, color: AppTheme.primary),
@@ -245,75 +240,6 @@ class ProfileScreen extends ConsumerWidget {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _OwnerDashboardEntryCard extends ConsumerWidget {
-  const _OwnerDashboardEntryCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(appConfigProvider);
-    final roles = ref.watch(currentUserRolesProvider).value ?? const <String>[];
-    if (!config.isDemoMode &&
-        !roles.contains('network_owner') &&
-        !roles.contains('network_operator')) {
-      return const SizedBox.shrink();
-    }
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.dashboard_outlined, color: AppTheme.primary),
-        title: const Text('عمليات الشبكة'),
-        subtitle: const Text('الشبكات المملوكة والباقات والمخزون والملخصات'),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const OwnerDashboardScreen())),
-      ),
-    );
-  }
-}
-
-class _AdminDashboardEntryCard extends ConsumerWidget {
-  const _AdminDashboardEntryCard();
-
-  static const _adminRoles = {
-    'platform_admin',
-    'finance_officer',
-    'support_agent',
-    'system_auditor',
-  };
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(appConfigProvider);
-    final rolesAsync = ref.watch(currentUserRolesProvider);
-
-    final isVisible = config.isDemoMode ||
-        rolesAsync.when(
-          data: (roles) => roles.any(_adminRoles.contains),
-          loading: () => false,
-          error: (_, __) => false,
-        );
-
-    if (!isVisible) return const SizedBox.shrink();
-
-    return Card(
-      child: ListTile(
-        leading: const Icon(
-          Icons.admin_panel_settings_outlined,
-          color: AppTheme.primary,
-        ),
-        title: const Text('لوحة الإدارة'),
-        subtitle: const Text('إدارة الشبكات والطلبات والمستخدمين'),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-          );
-        },
       ),
     );
   }

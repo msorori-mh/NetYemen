@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../finance/presentation/finance_providers.dart';
+import '../../finance/data/finance_providers.dart';
 import 'owner_packages_screen.dart';
 import 'owner_settlements_screen.dart';
 import 'package_providers.dart';

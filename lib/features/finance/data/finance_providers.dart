@@ -1,11 +1,10 @@
-// lib/features/finance/presentation/finance_providers.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../providers/app_providers.dart';
-import '../data/finance_repository.dart';
-import '../data/supabase_finance_repository.dart';
-import '../data/fake_finance_repository.dart';
+import 'fake_finance_repository.dart';
+import 'finance_repository.dart';
+import 'supabase_finance_repository.dart';
 
 final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
   final config = ref.watch(appConfigProvider);
@@ -30,12 +29,12 @@ final activePaymentDestinationsProvider =
   return await repo.getActivePaymentDestinations();
 });
 
-final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>((
-  ref,
-) async {
-  final repo = ref.watch(financeRepositoryProvider);
-  return await repo.getPaymentDestinations();
-});
+final paymentDestinationsProvider = FutureProvider<List<Map<String, dynamic>>>(
+  (ref) async {
+    final repo = ref.watch(financeRepositoryProvider);
+    return await repo.getPaymentDestinations();
+  },
+);
 
 final settlementBatchesProvider =
     FutureProvider.family<List<Map<String, dynamic>>, String?>((
