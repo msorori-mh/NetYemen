@@ -43,7 +43,10 @@ async function importAes256GcmKeyFromBase64(b64: string): Promise<CryptoKey> {
   if (raw.length !== 32) {
     throw new Error("INVALID_KEY_LENGTH: CARD_MASTER_KEY_v1 must decode to 32 bytes for AES-256.");
   }
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", toArrayBuffer(raw), "AES-GCM", false, [
+    "encrypt",
+    "decrypt",
+  ]);
 }
 
 async function deriveTestMasterKey(): Promise<CryptoKey> {
@@ -91,7 +94,11 @@ export async function aes256GcmDecrypt(
   combined.set(ciphertext, 0);
   combined.set(authTag, ciphertext.length);
 
-  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, combined);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: toArrayBuffer(iv) },
+    key,
+    toArrayBuffer(combined),
+  );
   return new TextDecoder().decode(decrypted);
 }
 
@@ -127,4 +134,10 @@ function base64ToUint8Array(b64: string): Uint8Array {
 function uint8ArrayToBase64(bytes: Uint8Array): string {
   const binary = String.fromCharCode(...bytes);
   return btoa(binary);
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }

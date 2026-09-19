@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
   let body: RequestPayload;
   try {
     body = await req.json();
-  } catch (e) {
-    return jsonResponse({ error: "INVALID_JSON", message: e.message }, 400);
+  } catch (_) {
+    return jsonResponse({ error: "INVALID_JSON" }, 400);
   }
 
   // Sensitive actions are restricted to server-side/service-role callers.
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error("Unhandled error in notification-transport-adapter:", e);
-    return jsonResponse({ error: "INTERNAL_ERROR", message: e.message }, 500);
+    return jsonResponse({ error: "INTERNAL_ERROR" }, 500);
   }
 });
 
@@ -165,7 +165,7 @@ async function handleDispatchPush(payload: DispatchPushPayload): Promise<Respons
     console.error("FCM OAuth token exchange failed:", e);
     await recordDeliveryResponse(payload.delivery_id, "failed", null, "transient_failure");
     return jsonResponse(
-      { accepted: false, status: "transient_failure", error: e.message },
+      { accepted: false, status: "transient_failure", error: errorMessage(e) },
       502,
     );
   }
@@ -208,7 +208,7 @@ async function handleDecryptCardSecret(payload: DecryptCardSecretPayload): Promi
     // Plaintext is never logged.
     return jsonResponse({ plaintext }, 200);
   } catch (e) {
-    console.error("Card secret decryption failed:", e.message);
+    console.error("Card secret decryption failed:", errorMessage(e));
     return jsonResponse({ error: "DECRYPTION_FAILED", status: "forbidden" }, 400);
   }
 }
@@ -543,4 +543,8 @@ function jsonResponse(body: object, status: number): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
 }
