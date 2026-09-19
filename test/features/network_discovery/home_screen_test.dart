@@ -6,7 +6,6 @@ import 'package:netyemen/features/network_discovery/presentation/home_screen.dar
 import 'package:netyemen/core/config/app_config_provider.dart';
 import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
 
-
 void main() {
   testWidgets('home summarizes the main customer tasks in demo mode', (
     tester,

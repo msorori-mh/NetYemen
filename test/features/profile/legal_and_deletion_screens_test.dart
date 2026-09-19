@@ -9,7 +9,6 @@ import 'package:netyemen/features/profile/presentation/legal_and_deletion_screen
 import 'package:netyemen/core/config/app_config_provider.dart';
 import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart';
 
-
 import '../../fakes/fake_customer_auth_repository.dart';
 
 void main() {

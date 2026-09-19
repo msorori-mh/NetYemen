@@ -19,7 +19,8 @@ void main() {
       supabasePublishableKey: 'test-publishable-key',
     );
 
-    Widget buildScreen({required FakeCustomerAuthRepository service, User? user}) {
+    Widget buildScreen(
+        {required FakeCustomerAuthRepository service, User? user}) {
       return ProviderScope(
         overrides: [
           customerAuthRepositoryProvider.overrideWithValue(service),
