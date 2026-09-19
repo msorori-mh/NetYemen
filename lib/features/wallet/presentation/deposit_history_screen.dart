@@ -20,9 +20,9 @@ class DepositHistoryScreen extends ConsumerWidget {
             if (deposits.isEmpty) {
               return RefreshIndicator(
                 onRefresh: () => _refresh(ref),
-                child: const ListView(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  children: [
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
                     SizedBox(height: 220),
                     Icon(Icons.receipt_long_outlined, size: 52),
                     SizedBox(height: 12),
