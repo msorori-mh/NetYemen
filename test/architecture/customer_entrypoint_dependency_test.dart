@@ -55,9 +55,8 @@ void main() {
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
         .where(
-          (file) => file
-              .readAsStringSync()
-              .contains('final appConfigProvider ='),
+          (file) =>
+              file.readAsStringSync().contains('final appConfigProvider ='),
         )
         .map((file) => file.path)
         .toList();
