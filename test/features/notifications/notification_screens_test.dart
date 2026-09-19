@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
+import 'package:netyemen/features/network_discovery/presentation/network_details_screen.dart';
 import 'package:netyemen/features/network_discovery/presentation/network_discovery_providers.dart';
 import 'package:netyemen/features/notifications/data/fake_notification_repository.dart';
 import 'package:netyemen/features/notifications/domain/entities.dart';
@@ -127,6 +128,66 @@ void main() {
 
     expect(find.text('طلباتي'), findsOneWidget);
     expect(find.textContaining('DATABASE_SECRET_ERROR'), findsNothing);
+  });
+
+  testWidgets('cold network deep link fetches and opens its details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appConfigProvider.overrideWithValue(AppConfig.demo)],
+        child: MaterialApp(
+          home: Consumer(
+            builder: (context, ref, _) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => navigateNotificationDeepLink(
+                  context,
+                  ref,
+                  'network/demo-net-1',
+                ),
+                child: const Text('فتح الشبكة'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('فتح الشبكة'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NetworkDetailsScreen), findsOneWidget);
+    expect(find.text('شبكة يمن نت'), findsWidgets);
+  });
+
+  testWidgets('package deep link resolves its customer network', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appConfigProvider.overrideWithValue(AppConfig.demo)],
+        child: MaterialApp(
+          home: Consumer(
+            builder: (context, ref, _) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => navigateNotificationDeepLink(
+                  context,
+                  ref,
+                  'package/demo-pkg-1',
+                ),
+                child: const Text('فتح الباقة'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('فتح الباقة'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NetworkDetailsScreen), findsOneWidget);
+    expect(find.text('باقة يومية'), findsOneWidget);
   });
 
   testWidgets('preference save failure shows a safe retry message', (

@@ -5,6 +5,8 @@ import '../../network_discovery/presentation/network_details_screen.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
 import '../../network_discovery/presentation/networks_list_screen.dart';
 import '../../network_requests/presentation/my_requests_screen.dart';
+import '../../packages/presentation/package_providers.dart';
+import '../../profile/presentation/profile_screen.dart';
 import '../deep_link/deep_link_parser.dart';
 import '../domain/entities.dart';
 import 'notification_providers.dart';
@@ -132,7 +134,12 @@ class _InboxTile extends ConsumerWidget {
             }
           }
           if (!context.mounted) return;
-          await navigateNotificationDeepLink(context, ref, item.deepLink);
+          await navigateNotificationDeepLink(
+            context,
+            ref,
+            item.deepLink,
+            openNotificationCenter: false,
+          );
         },
       ),
     );
@@ -191,36 +198,29 @@ class _NotificationState extends StatelessWidget {
 Future<void> navigateNotificationDeepLink(
   BuildContext context,
   WidgetRef ref,
-  String? deepLink,
-) async {
+  String? deepLink, {
+  bool openNotificationCenter = true,
+}) async {
   final target = ref.read(deepLinkParserProvider).parse(deepLink);
   switch (target.kind) {
     case DeepLinkKind.network:
-      final networks = ref.read(networkCatalogProvider).valueOrNull ?? const [];
-      final match = networks.where((n) => n.id == target.id).toList();
-      if (match.isNotEmpty) {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => NetworkDetailsScreen(network: match.first),
-          ),
-        );
-      } else {
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const NetworksListScreen()));
-      }
+      await _openNetworkDestination(context, ref, target.id);
       break;
     case DeepLinkKind.package:
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => _DeepLinkInfoScreen(
-            title: 'باقة',
-            message: target.id == null
-                ? 'تعذر تحديد الباقة'
-                : 'افتح كتالوج الشبكات للاطلاع على الباقة.',
-          ),
-        ),
-      );
+      final packageId = target.id;
+      String? networkId;
+      if (packageId != null && packageId.isNotEmpty) {
+        try {
+          final package = await ref
+              .read(packageRepositoryProvider)
+              .fetchPackage(packageId);
+          networkId = package?.networkId;
+        } catch (_) {
+          networkId = null;
+        }
+      }
+      if (!context.mounted) return;
+      await _openNetworkDestination(context, ref, networkId);
       break;
     case DeepLinkKind.request:
       await Navigator.of(
@@ -228,43 +228,51 @@ Future<void> navigateNotificationDeepLink(
       ).push(MaterialPageRoute(builder: (_) => const MyRequestsScreen()));
       break;
     case DeepLinkKind.notifications:
+      if (openNotificationCenter) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NotificationCenterScreen()),
+        );
+      }
       break;
     case DeepLinkKind.profile:
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      );
       break;
     case DeepLinkKind.unknown:
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('تعذر فتح وجهة الإشعار.')),
+      );
       break;
   }
 }
 
-class _DeepLinkInfoScreen extends StatelessWidget {
-  final String title;
-  final String message;
+Future<void> _openNetworkDestination(
+  BuildContext context,
+  WidgetRef ref,
+  String? networkId,
+) async {
+  final cachedNetworks =
+      ref.read(networkCatalogProvider).valueOrNull ?? const [];
+  final cached = cachedNetworks.where((network) => network.id == networkId);
+  var network = cached.isEmpty ? null : cached.first;
 
-  const _DeepLinkInfoScreen({required this.title, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(message, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const NetworksListScreen()),
-                );
-              },
-              child: const Text('عرض الشبكات'),
-            ),
-          ],
-        ),
-      ),
-    );
+  if (network == null && networkId != null && networkId.isNotEmpty) {
+    try {
+      network = await ref
+          .read(networkCatalogRepositoryProvider)
+          .fetchNetworkDetail(networkId);
+    } catch (_) {
+      network = null;
+    }
   }
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => network == null
+          ? const NetworksListScreen()
+          : NetworkDetailsScreen(network: network!),
+    ),
+  );
 }

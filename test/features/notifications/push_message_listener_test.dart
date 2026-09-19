@@ -7,6 +7,7 @@ import 'package:netyemen/core/config/app_config.dart';
 import 'package:netyemen/features/notifications/data/fake_notification_repository.dart';
 import 'package:netyemen/features/notifications/data/push_message_source.dart';
 import 'package:netyemen/features/notifications/presentation/notification_providers.dart';
+import 'package:netyemen/features/notifications/presentation/notification_center_screen.dart';
 import 'package:netyemen/features/notifications/presentation/push_message_listener.dart';
 import 'package:netyemen/providers/app_providers.dart';
 
@@ -113,6 +114,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(observer.pushCount, pushesAfterInitialMessage);
+    await source.close();
+  });
+
+  testWidgets('notification-center push opens the operational inbox', (
+    tester,
+  ) async {
+    final source = _FakePushMessageSource(
+      initialMessage: const PushMessage(
+        messageId: 'opened-notifications',
+        title: 'إشعار جديد',
+        body: 'راجع مركز الإشعارات',
+        deepLink: 'notifications',
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          notificationRepositoryProvider.overrideWithValue(
+            FakeNotificationRepository(),
+          ),
+          pushMessageSourceProvider.overrideWithValue(source),
+        ],
+        child: const MaterialApp(
+          home: PushMessageListener(
+            child: Scaffold(body: Text('الرئيسية')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationCenterScreen), findsOneWidget);
+    expect(find.text('الإشعارات'), findsOneWidget);
     await source.close();
   });
 }
