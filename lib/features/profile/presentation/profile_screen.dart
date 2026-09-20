@@ -348,7 +348,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _signingOut = true);
 
     try {
-      await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
+      try {
+        await ref.read(fcmTokenServiceProvider).stop(deactivateToken: true);
+      } catch (_) {
+        // Token cleanup is best-effort and must never block account sign-out.
+      }
       await ref.read(customerAuthRepositoryProvider).signOut();
     } catch (_) {
       if (mounted) {
