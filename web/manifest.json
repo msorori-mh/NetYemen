@@ -1,0 +1,10 @@
+{
+  "name": "واصل نت — لوحة الإدارة",
+  "short_name": "واصل نت إدارة",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F5F7FA",
+  "theme_color": "#155B75",
+  "description": "لوحة إدارة واصل نت",
+  "orientation": "any"
+}

@@ -15,3 +15,11 @@ android/key.properties
 *.keystore
 .env
 .env.*
+
+# Local Supabase runtime state
+supabase/.temp/
+supabase/.branches/
+
+# Android build outputs
+android/.kotlin/
+android/.gradle/

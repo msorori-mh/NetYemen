@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src {{SUPABASE_URL}}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  >
+  <meta name="robots" content="index,follow">
+  <title>حذف الحساب | واصل نت</title>
+  <style>
+    :root{color-scheme:light;font-family:Tahoma,Arial,sans-serif;background:#f3f7f9;color:#142b38}
+    body{margin:0;padding:24px}.card{max-width:760px;margin:32px auto;background:#fff;border:1px solid #d9e3e8;border-radius:20px;padding:28px;box-shadow:0 10px 30px #163c4f12}
+    h1{color:#155574}p{line-height:1.9}a{color:#087faa}label{display:block;margin:14px 0 6px;font-weight:700}
+    input,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #aebfc8;border-radius:10px;font:inherit}.check{width:auto}button{margin-top:18px;width:100%;padding:13px;border:0;border-radius:10px;background:#b42318;color:#fff;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.error{color:#b42318}.success{color:#067647}.muted{color:#5e7079;font-size:.92rem}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>طلب حذف حساب واصل نت</h1>
+    <p>هذه الصفحة تتيح طلب حذف الحساب دون الحاجة إلى تثبيت التطبيق. سيُغلق الحساب فورًا وتبدأ مهلة تسوية مدتها 30 يومًا.</p>
+    <form id="deletion-form" autocomplete="off">
+      <label for="phone">رقم الهاتف</label>
+      <input id="phone" name="phone" inputmode="tel" autocomplete="username" required placeholder="+9677XXXXXXXX">
+      <label for="password">كلمة المرور</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <label for="reason">سبب الحذف (اختياري)</label>
+      <textarea id="reason" name="reason" maxlength="500" rows="3"></textarea>
+      <label><input id="confirm" class="check" type="checkbox" required> أفهم أن الحساب سيُغلق فورًا</label>
+      <button id="submit" type="submit">طلب حذف الحساب</button>
+    </form>
+    <p id="result" role="status" aria-live="polite"></p>
+    <p class="muted"><a href="{{PUBLIC_ORIGIN}}/legal/privacy.html">قراءة سياسة الخصوصية</a></p>
+  </main>
+  <script src="delete-account.js" defer></script>
+</body>
+</html>
