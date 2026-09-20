@@ -24,6 +24,11 @@ class FakeCustomerAuthRepository implements CustomerAuthRepository {
   Exception? signOutException;
 
   @override
+  Future<void> signInWithGoogle() async {
+    // No-op for tests unless mocked
+  }
+
+  @override
   Future<void> signInWithPhone(String phone) async {
     phoneOtpRequest = phone;
     if (phoneOtpException != null) throw phoneOtpException!;
