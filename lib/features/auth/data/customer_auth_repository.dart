@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/customer_auth.dart';
 
 abstract interface class CustomerAuthRepository {
+  Future<void> signInWithGoogle();
   Future<void> signInWithPhone(String phone);
 
   Future<AuthResponse> signInWithPhonePassword({
@@ -21,6 +22,15 @@ abstract interface class CustomerAuthRepository {
 
 class SupabaseCustomerAuthRepository implements CustomerAuthRepository {
   SupabaseClient get _client => Supabase.instance.client;
+
+  @override
+  Future<void> signInWithGoogle() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'com.netyemen.customer://login-callback',
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+  }
 
   @override
   Future<void> signInWithPhone(String phone) async {

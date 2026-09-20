@@ -53,6 +53,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(customerAuthRepositoryProvider).signInWithGoogle();
+      // Auth state change will be handled by the deep link handler
+    } catch (_) {
+      _showError('تعذر بدء تسجيل الدخول بحساب Google.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _sendOtp() async {
     String phone;
     try {
@@ -177,6 +189,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               )
                             : const Text('دخول'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: OutlinedButton.icon(
+                        key: const Key('login-google'),
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text('المتابعة بحساب Google'),
                       ),
                     ),
                     const SizedBox(height: 12),
