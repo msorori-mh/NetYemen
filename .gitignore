@@ -23,3 +23,20 @@ supabase/.branches/
 # Android build outputs
 android/.kotlin/
 android/.gradle/
+
+# Hive orchestration workspace (separate git repo) + roster state
+hive/
+roster.json
+roster-backups/
+
+# Build deliverables (signed APK/AAB) — never commit binaries
+dist/
+
+# Admin dashboard runtime config (holds project URL + publishable key)
+admin/config.js
+
+# Vercel local project links
+.vercel/
+
+# Local schema dumps
+schema_ssid.sql

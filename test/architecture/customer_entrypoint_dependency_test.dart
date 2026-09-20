@@ -300,5 +300,5 @@ String? _resolveProjectDependency(String importerPath, String uri) {
     return null;
   }
 
-  return absolutePath.substring(projectRoot.length + 1);
+  return absolutePath.substring(projectRoot.length + 1).replaceAll('\\', '/');
 }
