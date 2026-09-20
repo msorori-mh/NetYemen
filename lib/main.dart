@@ -9,9 +9,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app_shell.dart';
 import 'app/unconfigured_screen.dart';
 import 'core/config/app_config.dart';
+import 'core/config/app_constants.dart';
 import 'core/config/app_environment.dart';
 import 'core/theme/app_theme.dart';
-import 'utils/constants.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage _) async {

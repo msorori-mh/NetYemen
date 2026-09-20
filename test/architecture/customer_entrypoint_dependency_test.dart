@@ -108,7 +108,6 @@ void main() {
     for (final name in screenNames) {
       final canonical =
           File('lib/features/auth/presentation/${name}_screen.dart');
-      final compatibility = File('lib/screens/auth/${name}_screen.dart');
 
       expect(
         canonical.existsSync(),
@@ -116,10 +115,9 @@ void main() {
         reason: 'Missing ${canonical.path}',
       );
       expect(
-        compatibility.readAsStringSync(),
-        contains(
-          "export '../../features/auth/presentation/${name}_screen.dart';",
-        ),
+        File('lib/screens/auth/${name}_screen.dart').existsSync(),
+        isFalse,
+        reason: 'Retired compatibility screen must stay deleted: $name',
       );
     }
 
@@ -138,15 +136,24 @@ void main() {
     );
   });
 
-  test('legacy main screen delegates to the canonical customer shell', () {
-    final legacyMain = File('lib/screens/main_screen.dart').readAsStringSync();
+  test('legacy shell, splash, and utility facades stay retired', () {
+    const retiredPaths = [
+      'lib/screens/main_screen.dart',
+      'lib/screens/splash_screen.dart',
+      'lib/utils/app_theme.dart',
+      'lib/utils/constants.dart',
+    ];
 
-    expect(legacyMain, contains("import '../app/app_shell.dart';"));
-    expect(legacyMain, contains('const AppShell()'));
-    expect(legacyMain, isNot(contains("'home/home_screen.dart'")));
-    expect(legacyMain, isNot(contains("'wallet/wallet_screen.dart'")));
-    expect(legacyMain, isNot(contains("'purchases/purchases_screen.dart'")));
-    expect(legacyMain, isNot(contains("'profile/profile_screen.dart'")));
+    for (final path in retiredPaths) {
+      expect(
+        File(path).existsSync(),
+        isFalse,
+        reason: 'Retired facade must stay deleted: $path',
+      );
+    }
+
+    expect(File('lib/core/theme/app_theme.dart').existsSync(), isTrue);
+    expect(File('lib/core/config/app_constants.dart').existsSync(), isTrue);
   });
 
   test('retired customer screens stay deleted and unreferenced', () {

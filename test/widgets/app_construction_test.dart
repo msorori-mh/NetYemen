@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:netyemen/utils/app_theme.dart';
+import 'package:netyemen/core/theme/app_theme.dart';
 
 void main() {
   group('Basic Application Construction Test', () {

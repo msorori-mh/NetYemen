@@ -5,10 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/unconfigured_screen.dart';
 import 'core/config/app_config.dart';
+import 'core/config/app_constants.dart';
 import 'core/config/app_environment.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/admin_auth_screen.dart';
-import 'utils/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

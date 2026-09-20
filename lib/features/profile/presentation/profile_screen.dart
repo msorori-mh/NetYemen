@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_constants.dart';
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../utils/constants.dart';
 import '../../auth/presentation/customer_auth_providers.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
