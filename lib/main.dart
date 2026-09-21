@@ -14,6 +14,7 @@ import 'core/config/app_config.dart';
 import 'core/config/app_constants.dart';
 import 'core/config/app_environment.dart';
 import 'core/theme/app_theme.dart';
+import 'features/security/presentation/pin_gate.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage _) async {
@@ -161,6 +162,7 @@ class _WaselNetAppState extends State<WaselNetApp> {
   Widget _buildHome() {
     switch (widget.environment.state) {
       case AppBootstrapState.configured:
+        return const PinGate();
       case AppBootstrapState.unconfiguredDebug:
         return const AppShell();
       case AppBootstrapState.unconfiguredRelease:
