@@ -82,10 +82,17 @@ jobs:
         run: |
           npx --yes supabase@2.109.1 db reset --no-seed
 
-      - name: Run Full SQL Contract and E2E Suite (001-020)
+      - name: Run WASEL One SQL Contract (020)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/020_wasel_one_access_federation.sql
+
+      - name: Run Legacy SQL Contract and E2E Suite (001-019)
         run: |
           set -euo pipefail
-          for test_file in supabase/tests/{001..020}_*.sql; do
+          for test_file in supabase/tests/{001..019}_*.sql; do
             echo "Running $test_file"
             PGPASSWORD=postgres psql \
               "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
