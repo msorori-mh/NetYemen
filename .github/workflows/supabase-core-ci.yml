@@ -82,6 +82,13 @@ jobs:
         run: |
           npx --yes supabase@2.109.1 db reset --no-seed
 
+      - name: Configure Disposable Card Vault Test Key
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -c "select vault.create_secret('TEST_ONLY_CI_CARD_KEY_DO_NOT_USE', 'card_master_key', 'Disposable CI-only card key');"
+
       - name: Run WASEL One SQL Contract (020)
         run: |
           PGPASSWORD=postgres psql \
