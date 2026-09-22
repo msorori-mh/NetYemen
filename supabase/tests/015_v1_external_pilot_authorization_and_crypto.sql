@@ -109,8 +109,7 @@ BEGIN
   v_result := public.admin_ingest_card_vault_batch(
     v_network,
     v_package,
-    ARRAY[jsonb_build_object('ciphertext',v_cipher_b64,'nonce','TEST_ONLY_NONCE_AUTH_001','auth_tag','TEST_ONLY_TAG_AUTH_001')]::jsonb[],
-    'v1-test'
+    ARRAY[jsonb_build_object('pin',v_plaintext)]::jsonb[]
   );
 
   -- customer_a purchases and reveals the card.

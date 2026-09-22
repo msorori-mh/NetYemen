@@ -142,10 +142,9 @@ BEGIN
     v_network,
     v_package,
     ARRAY[
-      jsonb_build_object('ciphertext',v_ciphertext_b64,'nonce','TEST_ONLY_NONCE_001','auth_tag','TEST_ONLY_TAG_001'),
-      jsonb_build_object('ciphertext',encode('TEST_ONLY_SECRET_002'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_002','auth_tag','TEST_ONLY_TAG_002')
-    ]::jsonb[],
-    'v1-test'
+      jsonb_build_object('pin',v_plaintext),
+      jsonb_build_object('pin','TEST_ONLY_SECRET_002')
+    ]::jsonb[]
   );
   IF COALESCE((v_result->>'ingested_count')::integer,0)<>2 THEN
     RAISE EXCEPTION 'E2E-20 FAIL: card ingestion returned %',v_result;
