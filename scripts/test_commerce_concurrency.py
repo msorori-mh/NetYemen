@@ -79,10 +79,19 @@ BEGIN
     PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner_id::text, 'role', 'authenticated')::text, true);
     PERFORM public.adjust_package_inventory(v_pkg_id, 1, 'Single unit for concurrency test', gen_random_uuid());
 
-    -- Seed exactly 1 encrypted card in the vault for the package (as postgres to bypass RLS)
+    -- Seed exactly 1 pgcrypto-encrypted card for the package (postgres test setup).
     EXECUTE 'SET LOCAL ROLE postgres';
-    INSERT INTO public.card_vault (network_id, package_id, batch_id, state, ciphertext, nonce, auth_tag, key_version)
-    VALUES (v_net_id, v_pkg_id, 'conc-batch-1', 'available', decode('VEVTVF9PTkxZX0VOQ1JZUFRFRF9DQVJEX1NFQ1JFVF9GT1JfQ09OQ1VSUkVOQ1lfVEVTVA==', 'base64'), 'conc-nonce-1', 'conc-tag-1', 'v1-test')
+    INSERT INTO public.card_vault (network_id, package_id, batch_id, state, ciphertext)
+    VALUES (
+        v_net_id,
+        v_pkg_id,
+        'conc-batch-1',
+        'available',
+        extensions.pgp_sym_encrypt(
+            'TEST_ONLY_CARD_SECRET_FOR_CONCURRENCY_TEST',
+            public.get_card_master_key()
+        )
+    )
     ON CONFLICT DO NOTHING;
 END $$;
 """
