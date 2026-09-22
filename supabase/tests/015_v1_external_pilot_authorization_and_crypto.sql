@@ -28,9 +28,6 @@ DECLARE
   v_failed      BOOLEAN;
   v_plaintext   TEXT := 'TEST_ONLY_SECRET_AUTH_001';
   v_plaintext2  TEXT := 'TEST_ONLY_SECRET_AUTH_002';
-  v_key         TEXT := 'TEST_ONLY_AESKEY_32BYTES_LONG!!';
-  v_cipher_b64  TEXT;
-  v_cipher_b64_dup TEXT;
   v_reveal      JSONB;
   v_meta        JSONB;
 BEGIN
@@ -102,10 +99,9 @@ BEGIN
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_finance,'role','authenticated')::text,true);
   PERFORM public.review_wallet_deposit_request(v_deposit,'approve');
 
-  -- Ingest one encrypted card using a real AES payload.
+  -- Ingest one card; the RPC encrypts the PIN with pgcrypto before storage.
   PERFORM set_config('request.jwt.claim.sub',v_admin::text,true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
-  v_cipher_b64 := encode(encrypt(v_plaintext::bytea, v_key::bytea, 'aes'),'base64');
   v_result := public.admin_ingest_card_vault_batch(
     v_network,
     v_package,
@@ -157,8 +153,8 @@ BEGIN
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_customer_a,'role','authenticated')::text,true);
   v_failed:=false;
   BEGIN
-    INSERT INTO public.card_vault(network_id,package_id,batch_id,state,ciphertext,nonce,key_version)
-    VALUES(v_network,v_package,'TEST_BATCH','available',decode(v_cipher_b64,'base64'),'TEST_NONCE','v1-test');
+    INSERT INTO public.card_vault(network_id,package_id,batch_id,state,ciphertext)
+    VALUES(v_network,v_package,'TEST_BATCH','available',decode('00','hex'));
   EXCEPTION WHEN OTHERS THEN v_failed:=true; END;
   IF NOT v_failed THEN RAISE EXCEPTION 'AUTH-CUST-01 FAIL: customer inserted card directly'; END IF;
   RAISE NOTICE 'AUTH-CUST-01 PASS: customer direct card insert denied';
@@ -284,21 +280,27 @@ BEGIN
   -- CRYPTO-02: plaintext absent from card_vault after ingestion.
   SELECT count(*) INTO v_count
   FROM public.card_vault
-  WHERE encode(ciphertext,'base64') ILIKE '%'||v_plaintext||'%'
-     OR nonce ILIKE '%'||v_plaintext||'%'
-     OR auth_tag ILIKE '%'||v_plaintext||'%';
+  WHERE encode(ciphertext,'base64') ILIKE '%'||v_plaintext||'%';
   IF v_count>0 THEN RAISE EXCEPTION 'CRYPTO-02 FAIL: plaintext leaked in card_vault'; END IF;
 
-  -- CRYPTO-03: two rows with same plaintext have different nonces.
-  v_cipher_b64_dup := encode(encrypt(v_plaintext2::bytea, v_key::bytea, 'aes'),'base64');
-  INSERT INTO public.card_vault(network_id,package_id,batch_id,state,ciphertext,nonce,key_version)
-  VALUES
-    (v_network,v_package,'TEST_BATCH_DUP','available',decode(v_cipher_b64_dup,'base64'),'TEST_NONCE_DUP_001','v1-test'),
-    (v_network,v_package,'TEST_BATCH_DUP','available',decode(v_cipher_b64_dup,'base64'),'TEST_NONCE_DUP_002','v1-test');
-  SELECT count(DISTINCT nonce) INTO v_count
-  FROM public.card_vault WHERE batch_id='TEST_BATCH_DUP';
-  IF v_count<>2 THEN RAISE EXCEPTION 'CRYPTO-03 FAIL: duplicate nonces for same plaintext'; END IF;
-  RAISE NOTICE 'CRYPTO-01/02/03 PASS: ciphertext != plaintext, no plaintext leak, nonce unique';
+  -- CRYPTO-03: pgcrypto randomizes two encryptions of the same plaintext.
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM set_config('request.jwt.claim.sub',v_admin::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
+  PERFORM public.admin_ingest_card_vault_batch(
+    v_network,
+    v_package,
+    ARRAY[
+      jsonb_build_object('pin',v_plaintext2),
+      jsonb_build_object('pin',v_plaintext2)
+    ]::jsonb[]
+  );
+  EXECUTE 'SET LOCAL ROLE postgres';
+  SELECT count(DISTINCT ciphertext) INTO v_count
+  FROM public.card_vault
+  WHERE pgp_sym_decrypt(ciphertext, public.get_card_master_key())=v_plaintext2;
+  IF v_count<>2 THEN RAISE EXCEPTION 'CRYPTO-03 FAIL: pgcrypto ciphertext was not randomized'; END IF;
+  RAISE NOTICE 'CRYPTO-01/02/03 PASS: ciphertext != plaintext, no plaintext leak, randomized encryption';
 
   -- CRYPTO-04: plaintext absent from audit_events and notification_events.
   SELECT count(*) INTO v_count FROM public.audit_events WHERE metadata::text ILIKE '%'||v_plaintext||'%';
@@ -319,14 +321,15 @@ BEGIN
   IF NOT v_failed THEN RAISE EXCEPTION 'CRYPTO-05 FAIL: customer direct card_vault SELECT allowed'; END IF;
   RAISE NOTICE 'CRYPTO-05 PASS: card_vault direct SELECT denied for customer';
 
-  -- CRYPTO-06: reveal returns the encrypted payload, never plaintext.
+  -- CRYPTO-06: only the authorized purchaser receives the decrypted PIN;
+  -- internal ciphertext is never returned.
   PERFORM set_config('request.jwt.claim.sub',v_customer_a::text,true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_customer_a,'role','authenticated')::text,true);
   v_reveal := public.reveal_purchase_card_secret(v_purchase_a);
-  IF (v_reveal->>'ciphertext_b64') IS NULL OR (v_reveal->>'ciphertext_b64')=v_plaintext THEN
-    RAISE EXCEPTION 'CRYPTO-06 FAIL: reveal did not return encrypted payload';
+  IF (v_reveal->>'card_pin')<>v_plaintext OR v_reveal ? 'ciphertext_b64' THEN
+    RAISE EXCEPTION 'CRYPTO-06 FAIL: reveal contract mismatch or ciphertext leaked';
   END IF;
-  RAISE NOTICE 'CRYPTO-06 PASS: reveal returns ciphertext payload, not plaintext';
+  RAISE NOTICE 'CRYPTO-06 PASS: purchaser receives PIN without internal ciphertext';
 
   RAISE NOTICE 'NY_V1_EXTERNAL_PILOT_AUTHORIZATION_AND_CRYPTO_PASS';
 END $$;
