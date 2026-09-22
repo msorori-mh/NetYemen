@@ -14,15 +14,25 @@ if (-not $status.DB_URL -or $status.DB_URL -notmatch '127\.0\.0\.1|localhost') {
     throw 'LOCAL_ONLY guard failed: refusing to run without loopback Supabase.'
 }
 
-$expectedTests = 1..19 | ForEach-Object { '{0:D3}' -f $_ }
+$expectedTests = 1..20 | ForEach-Object { '{0:D3}' -f $_ }
 $tests = Get-ChildItem 'supabase/tests/*.sql' | Sort-Object Name
 $actualTests = $tests | ForEach-Object { $_.BaseName.Substring(0,3) }
 if (Compare-Object $expectedTests $actualTests) {
-    throw "SQL suite numbering must be unique and contiguous 001..019: $($actualTests -join ', ')"
+    throw "SQL suite numbering must be unique and contiguous 001..020: $($actualTests -join ', ')"
 }
 
 npx supabase db reset --no-seed 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Fresh local migration reset failed.' }
+
+@"
+SELECT vault.create_secret(
+  'TEST_ONLY_LOCAL_CARD_KEY_DO_NOT_USE',
+  'card_master_key',
+  'Disposable local-test-only card key'
+);
+"@ |
+    docker exec -i supabase_db_netyemen-local psql -U postgres -d postgres -v ON_ERROR_STOP=1
+if ($LASTEXITCODE -ne 0) { throw 'Disposable card vault test key setup failed.' }
 
 foreach ($test in $tests) {
     Write-Host "RUN $($test.Name)" -ForegroundColor Cyan
