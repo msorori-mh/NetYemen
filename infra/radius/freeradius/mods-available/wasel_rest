@@ -1,6 +1,11 @@
 rest wasel_rest {
     connect_uri = "$ENV{WASEL_CONTROL_URL}"
 
+    tls {
+        check_cert = yes
+        check_cert_cn = yes
+    }
+
     authorize {
         uri = "${..connect_uri}"
         method = "post"
@@ -17,11 +22,6 @@ rest wasel_rest {
         data = '{"action":"accounting","session_id":"%{jsonquote:%{Class}}","nas_identifier":"%{jsonquote:%{NAS-Identifier}}","event_key":"%{jsonquote:%{Acct-Session-Id}}:%{Acct-Status-Type}:%{Acct-Session-Time}:%{Acct-Input-Gigawords}:%{Acct-Input-Octets}:%{Acct-Output-Gigawords}:%{Acct-Output-Octets}","event_type":"%{tolower:%{Acct-Status-Type}}","event_at":"%{Event-Timestamp}","input_bytes":%{integer:Acct-Input-Octets},"output_bytes":%{integer:Acct-Output-Octets},"input_gigawords":%{integer:Acct-Input-Gigawords},"output_gigawords":%{integer:Acct-Output-Gigawords},"session_seconds":%{integer:Acct-Session-Time}}'
         header = "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
         tls = ${..tls}
-    }
-
-    tls {
-        check_cert = yes
-        check_cert_cn = yes
     }
 
     pool {
