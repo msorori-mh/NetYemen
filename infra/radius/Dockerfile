@@ -9,7 +9,9 @@ RUN chmod 0555 /usr/local/bin/docker-entrypoint-wasel \
     && ln -sf /etc/freeradius/mods-available/wasel_rest /etc/freeradius/mods-enabled/wasel_rest \
     && rm -f /etc/freeradius/mods-enabled/eap \
     && rm -f /etc/freeradius/sites-enabled/default /etc/freeradius/sites-enabled/inner-tunnel \
-    && ln -sf /etc/freeradius/sites-available/wasel /etc/freeradius/sites-enabled/wasel
+    && ln -sf /etc/freeradius/sites-available/wasel /etc/freeradius/sites-enabled/wasel \
+    && chgrp -R freerad /etc/freeradius \
+    && chmod -R g+rX,o-rwx /etc/freeradius
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-wasel"]
 CMD ["freeradius", "-f"]
