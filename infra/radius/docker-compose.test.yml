@@ -26,7 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      WASEL_CONTROL_URL: http://radius-control-mock:8787
+      WASEL_CONTROL_URL: http://radius-control-mock:8787/
       WASEL_RADIUS_INTERNAL_KEY: E2E_ONLY_INTERNAL_KEY_32_BYTES_SAFE
       WASEL_RADIUS_SHARED_SECRET: E2E_ONLY_RADIUS_SECRET_32_BYTES_SAFE
       WASEL_NAS_NETWORK: 127.0.0.1/32
