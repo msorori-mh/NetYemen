@@ -17,6 +17,9 @@ server wasel {
         if (!&User-Name || !&User-Password || !&NAS-Identifier || !&Acct-Session-Id) {
             reject
         }
+        update control {
+            REST-HTTP-Header := "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
+        }
         wasel_rest
         if (updated) {
             update control {
@@ -37,6 +40,9 @@ server wasel {
     accounting {
         if (!&Class || !&NAS-Identifier || !&Acct-Session-Id || !&Acct-Status-Type) {
             reject
+        }
+        update control {
+            REST-HTTP-Header := "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
         }
         wasel_rest
     }
