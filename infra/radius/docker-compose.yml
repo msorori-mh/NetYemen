@@ -1,0 +1,24 @@
+services:
+  freeradius:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      WASEL_CONTROL_URL: ${WASEL_CONTROL_URL:?set WASEL_CONTROL_URL}
+      WASEL_RADIUS_INTERNAL_KEY: ${WASEL_RADIUS_INTERNAL_KEY:?set WASEL_RADIUS_INTERNAL_KEY}
+      WASEL_RADIUS_SHARED_SECRET: ${WASEL_RADIUS_SHARED_SECRET:?set WASEL_RADIUS_SHARED_SECRET}
+      WASEL_NAS_NETWORK: ${WASEL_NAS_NETWORK:?set WASEL_NAS_NETWORK}
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

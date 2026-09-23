@@ -65,7 +65,19 @@ jobs:
         run: |
           deno check supabase/functions/public-legal/index.ts
           deno check supabase/functions/notification-transport-adapter/index.ts
+          deno check supabase/functions/radius-control/index.ts
+          deno test supabase/functions/radius-control/protocol_test.ts
           deno run --allow-env supabase/functions/notification-transport-adapter/test_crypto.ts
+
+      - name: Validate WASEL One FreeRADIUS Configuration
+        run: |
+          docker build -t wasel-radius-ci infra/radius
+          docker run --rm --entrypoint freeradius \
+            -e WASEL_CONTROL_URL=https://radius-control.example.test \
+            -e WASEL_RADIUS_INTERNAL_KEY=TEST_ONLY_CI_INTERNAL_KEY_32_BYTES \
+            -e WASEL_RADIUS_SHARED_SECRET=TEST_ONLY_CI_RADIUS_SECRET_32_BYTES \
+            -e WASEL_NAS_NETWORK=192.0.2.0/24 \
+            wasel-radius-ci -XC
 
       - name: Disable Analytics in Local Supabase Config
         run: |
@@ -95,6 +107,13 @@ jobs:
             "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/020_wasel_one_access_federation.sql
+
+      - name: Run WASEL One RADIUS SQL Contract (021)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/021_wasel_one_radius_control.sql
 
       - name: Run Legacy SQL Contract and E2E Suite (001-019)
         run: |
