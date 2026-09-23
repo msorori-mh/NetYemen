@@ -18,7 +18,7 @@ rest wasel_rest {
         uri = "${..connect_uri}"
         method = "post"
         body = "json"
-        data = '{"action":"accounting","session_id":"%{jsonquote:%{Class}}","nas_identifier":"%{jsonquote:%{NAS-Identifier}}","event_key":"%{jsonquote:%{Acct-Session-Id}}:%{Acct-Status-Type}:%{Acct-Session-Time}:%{Acct-Input-Gigawords}:%{Acct-Input-Octets}:%{Acct-Output-Gigawords}:%{Acct-Output-Octets}","event_type":"%{tolower:%{Acct-Status-Type}}","event_at":"%{Event-Timestamp}","input_bytes":%{integer:Acct-Input-Octets},"output_bytes":%{integer:Acct-Output-Octets},"input_gigawords":%{integer:Acct-Input-Gigawords},"output_gigawords":%{integer:Acct-Output-Gigawords},"session_seconds":%{integer:Acct-Session-Time}}'
+        data = '{"action":"accounting","session_id":"%{jsonquote:%{string:&Class}}","nas_identifier":"%{jsonquote:%{NAS-Identifier}}","event_key":"%{jsonquote:%{Acct-Session-Id}}:%{Acct-Status-Type}:%{Acct-Session-Time}:%{Acct-Input-Gigawords}:%{Acct-Input-Octets}:%{Acct-Output-Gigawords}:%{Acct-Output-Octets}","event_type":"%{tolower:%{Acct-Status-Type}}","event_at":"%S","input_bytes":%{integer:Acct-Input-Octets},"output_bytes":%{integer:Acct-Output-Octets},"input_gigawords":%{integer:Acct-Input-Gigawords},"output_gigawords":%{integer:Acct-Output-Gigawords},"session_seconds":%{integer:Acct-Session-Time}}'
         tls = ${..tls}
     }
 
