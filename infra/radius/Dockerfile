@@ -13,5 +13,8 @@ RUN chmod 0555 /usr/local/bin/docker-entrypoint-wasel \
     && chgrp -R freerad /etc/freeradius \
     && chmod -R g+rX,o-rwx /etc/freeradius
 
+# Start only the bootstrap/config parser as root. radiusd.conf immediately drops
+# the daemon to the unprivileged freerad user after protected config is read.
+USER root
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-wasel"]
 CMD ["freeradius", "-f"]
