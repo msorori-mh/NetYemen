@@ -9,7 +9,18 @@ radius_secret="E2E_ONLY_RADIUS_SECRET_32_BYTES_SAFE"
 cleanup() {
   docker compose -p "$project_name" -f "$compose_file" down --volumes --remove-orphans >/dev/null 2>&1 || true
 }
-trap cleanup EXIT INT TERM
+
+finish() {
+  status=$?
+  trap - EXIT INT TERM
+  if [ "$status" -ne 0 ]; then
+    echo "RADIUS E2E failed; disposable container logs follow:" >&2
+    docker compose -p "$project_name" -f "$compose_file" logs --no-color >&2 || true
+  fi
+  cleanup
+  exit "$status"
+}
+trap finish EXIT INT TERM
 
 cleanup
 docker compose -p "$project_name" -f "$compose_file" up --build --detach --wait
