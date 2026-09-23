@@ -31,6 +31,7 @@ services:
       WASEL_RADIUS_SHARED_SECRET: E2E_ONLY_RADIUS_SECRET_32_BYTES_SAFE
       WASEL_NAS_NETWORK: 127.0.0.1/32
       WASEL_ALLOW_INSECURE_LOCAL: "true"
+    command: ["freeradius", "-f", "-X"]
     depends_on:
       radius-control-mock:
         condition: service_healthy
