@@ -79,6 +79,9 @@ jobs:
             -e WASEL_NAS_NETWORK=192.0.2.0/24 \
             wasel-radius-ci -XC
 
+      - name: Run WASEL One RADIUS Packet E2E
+        run: sh infra/radius/test/run-radius-e2e.sh
+
       - name: Disable Analytics in Local Supabase Config
         run: |
           if ! grep -q "\[analytics\]" supabase/config.toml; then
@@ -100,6 +103,13 @@ jobs:
             "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -c "select vault.create_secret('TEST_ONLY_CI_CARD_KEY_DO_NOT_USE', 'card_master_key', 'Disposable CI-only card key');"
+
+      - name: Run WASEL One RADIUS Read-Only Preflight
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/verification/021_wasel_one_radius_pilot_preflight.sql
 
       - name: Run WASEL One SQL Contract (020)
         run: |

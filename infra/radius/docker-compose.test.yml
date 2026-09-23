@@ -1,0 +1,45 @@
+services:
+  radius-control-mock:
+    image: node:20-alpine
+    command: ["node", "/test/mock-radius-control.mjs"]
+    environment:
+      WASEL_RADIUS_INTERNAL_KEY: E2E_ONLY_INTERNAL_KEY_32_BYTES_SAFE
+    volumes:
+      - ./test:/test:ro
+    ports:
+      - "127.0.0.1:18787:8787"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      interval: 1s
+      timeout: 1s
+      retries: 20
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  freeradius:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      WASEL_CONTROL_URL: http://radius-control-mock:8787
+      WASEL_RADIUS_INTERNAL_KEY: E2E_ONLY_INTERNAL_KEY_32_BYTES_SAFE
+      WASEL_RADIUS_SHARED_SECRET: E2E_ONLY_RADIUS_SECRET_32_BYTES_SAFE
+      WASEL_NAS_NETWORK: 127.0.0.1/32
+      WASEL_ALLOW_INSECURE_LOCAL: "true"
+    depends_on:
+      radius-control-mock:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+      - /var/log/freeradius
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

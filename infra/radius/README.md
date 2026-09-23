@@ -20,6 +20,16 @@ Generate secrets outside the repository, for example:
 openssl rand -base64 32
 ```
 
+## Packet-level test
+
+The disposable harness sends one accepted login, one rejected login, and one
+accounting packet through a real FreeRADIUS process and a local control-plane
+mock. It never contacts Supabase or a live router:
+
+```bash
+sh infra/radius/test/run-radius-e2e.sh
+```
+
 ## Fail-closed controls
 
 - Startup refuses unset and placeholder secrets.
@@ -38,3 +48,6 @@ openssl rand -base64 32
 Run `mikrotik/rollback-wasel-one-pilot.rsc` to disable only the tagged RADIUS
 entry. Restore the Hotspot profile from the configuration export captured before
 the change. The rollback deliberately does not guess or overwrite prior values.
+
+The complete gate order and database verification commands are documented in
+`docs/WASEL-ONE-PILOT-RUNBOOK.md`.
