@@ -11,7 +11,7 @@ RUN chmod 0555 /usr/local/bin/docker-entrypoint-wasel \
     && rm -f /etc/freeradius/sites-enabled/default /etc/freeradius/sites-enabled/inner-tunnel \
     && ln -sf /etc/freeradius/sites-available/wasel /etc/freeradius/sites-enabled/wasel \
     && chgrp -R freerad /etc/freeradius \
-    && chmod -R g+rX,o-rwx /etc/freeradius
+    && chmod -R a+rX,go-w /etc/freeradius
 
 # Start only the bootstrap/config parser as root. radiusd.conf immediately drops
 # the daemon to the unprivileged freerad user after protected config is read.
