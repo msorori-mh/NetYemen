@@ -38,8 +38,10 @@ sh infra/radius/test/run-radius-e2e.sh
 - The Hotspot login profile is HTTPS-only; the template refuses to proceed
   without an explicit certificate name.
 - Non-local control-plane URLs must use HTTPS.
-- The container is read-only, drops Linux capabilities, and does not retain
-  credentials or raw RADIUS packets.
+- The container is read-only and drops all Linux capabilities except the three
+  needed to initialize directories and switch to the unprivileged `freerad`
+  user (`CHOWN`, `SETGID`, `SETUID`). It does not retain credentials or raw
+  RADIUS packets.
 - PAP is accepted only for this encrypted pilot path. A public rollout requires
   a private tunnel or RadSec and a separate production gate.
 
