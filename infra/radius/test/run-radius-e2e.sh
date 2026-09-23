@@ -47,6 +47,7 @@ printf '%s\n' "$auth_accept" | grep -q 'Class = 0x39393030303030302d303030302d34
 printf '%s\n' "$auth_accept" | grep -q "Session-Timeout = 3600"
 printf '%s\n' "$auth_accept" | grep -q 'Mikrotik-Rate-Limit = "4096k/4096k"'
 
+set +e
 auth_reject=$(docker exec -i "$radius_container" sh -c \
   "radclient -x -r 1 -t 3 127.0.0.1:1812 auth '$radius_secret'" <<'EOF'
 User-Name = "w1-0123456789abcdef01234567"
@@ -56,6 +57,7 @@ Acct-Session-Id = "hs-e2e-000001"
 Message-Authenticator = 0x00
 EOF
 )
+set -e
 printf '%s\n' "$auth_reject" | grep -q "Access-Reject"
 
 accounting=$(docker exec -i "$radius_container" sh -c \
