@@ -15,6 +15,7 @@ android/key.properties
 *.keystore
 .env
 .env.*
+!infra/radius/.env.example
 
 # Local Supabase runtime state
 supabase/.temp/
