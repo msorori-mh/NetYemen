@@ -119,13 +119,12 @@ BEGIN
         v_net_id,
         v_pkg_id,
         ARRAY[
-            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_001'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_001','auth_tag','TEST_ONLY_TAG_CC_001'),
-            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_002'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_002','auth_tag','TEST_ONLY_TAG_CC_002'),
-            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_003'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_003','auth_tag','TEST_ONLY_TAG_CC_003'),
-            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_004'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_004','auth_tag','TEST_ONLY_TAG_CC_004'),
-            jsonb_build_object('ciphertext',encode('TEST_ONLY_CC_005'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_CC_005','auth_tag','TEST_ONLY_TAG_CC_005')
-        ]::jsonb[],
-        'v1-test'
+            jsonb_build_object('pin','TEST_ONLY_CC_001'),
+            jsonb_build_object('pin','TEST_ONLY_CC_002'),
+            jsonb_build_object('pin','TEST_ONLY_CC_003'),
+            jsonb_build_object('pin','TEST_ONLY_CC_004'),
+            jsonb_build_object('pin','TEST_ONLY_CC_005')
+        ]::jsonb[]
     );
 
     -- ------------------------------------------------------------------------

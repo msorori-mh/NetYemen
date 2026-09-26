@@ -69,3 +69,9 @@ verify_jwt = false
 
 [functions.public-legal]
 verify_jwt = false
+
+# Private machine-to-machine endpoint. JWT verification is intentionally
+# disabled because FreeRADIUS authenticates with WASEL_RADIUS_INTERNAL_KEY;
+# the function rejects every request without that dedicated secret.
+[functions.radius-control]
+verify_jwt = false

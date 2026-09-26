@@ -31,7 +31,6 @@ DECLARE
   v_failed        BOOLEAN;
   v_key           UUID := '97000000-0000-4000-8000-000000000001';
   v_plaintext     TEXT := 'TEST_ONLY_SECRET_001';
-  v_ciphertext_b64 TEXT;
   v_reveal        JSONB;
 BEGIN
   EXECUTE 'SET LOCAL ROLE postgres';
@@ -137,15 +136,13 @@ BEGIN
   -- Ingest encrypted cards for E2E-20/21/22/23/24
   PERFORM set_config('request.jwt.claim.sub',v_admin::text,true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
-  v_ciphertext_b64 := encode(v_plaintext::bytea,'base64');
   v_result := public.admin_ingest_card_vault_batch(
     v_network,
     v_package,
     ARRAY[
-      jsonb_build_object('ciphertext',v_ciphertext_b64,'nonce','TEST_ONLY_NONCE_001','auth_tag','TEST_ONLY_TAG_001'),
-      jsonb_build_object('ciphertext',encode('TEST_ONLY_SECRET_002'::bytea,'base64'),'nonce','TEST_ONLY_NONCE_002','auth_tag','TEST_ONLY_TAG_002')
-    ]::jsonb[],
-    'v1-test'
+      jsonb_build_object('pin',v_plaintext),
+      jsonb_build_object('pin','TEST_ONLY_SECRET_002')
+    ]::jsonb[]
   );
   IF COALESCE((v_result->>'ingested_count')::integer,0)<>2 THEN
     RAISE EXCEPTION 'E2E-20 FAIL: card ingestion returned %',v_result;
@@ -202,11 +199,11 @@ BEGIN
   v_reveal := public.reveal_purchase_card_secret(v_purchase);
   IF (v_reveal->>'purchase_id')::uuid<>v_purchase THEN RAISE EXCEPTION 'E2E-21 FAIL: reveal mismatch'; END IF;
   IF (v_reveal->>'status')<>'revealed' THEN RAISE EXCEPTION 'E2E-21 FAIL: reveal status'; END IF;
-  IF (v_reveal->>'ciphertext_b64') IS NULL OR length(v_reveal->>'ciphertext_b64')=0 THEN
-    RAISE EXCEPTION 'E2E-21 FAIL: no ciphertext returned';
+  IF (v_reveal->>'card_pin') IS NULL OR (v_reveal->>'card_pin')<>v_plaintext THEN
+    RAISE EXCEPTION 'E2E-21 FAIL: authorized purchaser did not receive the expected card PIN';
   END IF;
-  IF (v_reveal->>'ciphertext_b64')<>v_ciphertext_b64 THEN
-    RAISE EXCEPTION 'E2E-21 FAIL: returned ciphertext does not match ingested payload';
+  IF v_reveal ? 'ciphertext_b64' THEN
+    RAISE EXCEPTION 'E2E-21 FAIL: internal ciphertext leaked through reveal RPC';
   END IF;
   EXECUTE 'SET LOCAL ROLE postgres';
   IF NOT EXISTS (SELECT 1 FROM public.card_vault WHERE purchase_id=v_purchase AND reveal_count=1 AND dispute_deadline>NOW()) THEN
