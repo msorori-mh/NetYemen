@@ -49,5 +49,5 @@ class WaselOneCredentialNotifier
 
 final waselOneCredentialProvider =
     AsyncNotifierProvider<WaselOneCredentialNotifier, RadiusAccessCredential?>(
-      WaselOneCredentialNotifier.new,
-    );
+  WaselOneCredentialNotifier.new,
+);
