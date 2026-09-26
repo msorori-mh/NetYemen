@@ -618,12 +618,12 @@ class _HowItWorks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'كيف تستخدم واصل ون؟',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
