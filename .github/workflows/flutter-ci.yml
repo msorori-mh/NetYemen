@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - codex/NY-V1-CUSTOMER-PRODUCT-HARDENING-001
+      - codex/WASEL-ONE-APK-PILOT-001
   pull_request:
     branches:
       - main
@@ -74,6 +75,17 @@ jobs:
 
       - name: Run Tests
         run: timeout 4m flutter test --timeout 2m --reporter expanded
+
+      - name: Build WASEL One Pilot APK
+        run: flutter build apk --debug
+
+      - name: Upload WASEL One Pilot APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WASEL-NET-ONE-PILOT-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Create Ephemeral CI Upload Key
         run: |

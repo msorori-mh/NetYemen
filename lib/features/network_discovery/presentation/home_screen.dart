@@ -14,6 +14,7 @@ import '../../purchase/presentation/purchase_providers.dart';
 import '../../wallet/domain/entities.dart';
 import '../../wallet/presentation/wallet_providers.dart';
 import '../../wallet/presentation/wallet_screen.dart';
+import '../../wasel_one/presentation/wasel_one_screen.dart';
 import '../domain/entities.dart';
 import 'network_details_screen.dart';
 import 'network_discovery_providers.dart';
@@ -31,10 +32,12 @@ class HomeScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final hasCustomerSession = user != null || config.isDemoMode;
     final networksAsync = ref.watch(networkCatalogProvider);
-    final walletAsync =
-        hasCustomerSession ? ref.watch(walletSummaryProvider) : null;
-    final purchasesAsync =
-        hasCustomerSession ? ref.watch(purchaseHistoryProvider) : null;
+    final walletAsync = hasCustomerSession
+        ? ref.watch(walletSummaryProvider)
+        : null;
+    final purchasesAsync = hasCustomerSession
+        ? ref.watch(purchaseHistoryProvider)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,6 +65,8 @@ class HomeScreen extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   ),
                 ),
+              const SizedBox(height: 12),
+              const _WaselOneLaunchCard(),
               const SizedBox(height: 12),
               _QuickActions(
                 onNetworks: () => _openDestination(context, 1),
@@ -129,9 +134,8 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _openLogin(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 }
 
@@ -146,10 +150,7 @@ class _WelcomeCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppTheme.primary,
-            AppTheme.primary.withValues(alpha: 0.78),
-          ],
+          colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.78)],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -181,10 +182,7 @@ class _WalletOverviewCard extends StatelessWidget {
   final AsyncValue<WalletSummary> walletAsync;
   final VoidCallback onOpen;
 
-  const _WalletOverviewCard({
-    required this.walletAsync,
-    required this.onOpen,
-  });
+  const _WalletOverviewCard({required this.walletAsync, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -251,9 +249,71 @@ class _SignInCard extends StatelessWidget {
         leading: const Icon(Icons.lock_outline, color: AppTheme.primary),
         title: const Text('سجّل الدخول للشراء والمحفظة'),
         subtitle: const Text('يمكنك تصفح الشبكات والباقات دون تسجيل.'),
-        trailing: TextButton(
-          onPressed: onSignIn,
-          child: const Text('دخول'),
+        trailing: TextButton(onPressed: onSignIn, child: const Text('دخول')),
+      ),
+    );
+  }
+}
+
+class _WaselOneLaunchCard extends StatelessWidget {
+  const _WaselOneLaunchCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [Color(0xFF0E7490), Color(0xFF0F4C81)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('home-open-wasel-one'),
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const WaselOneScreen())),
+          child: const Padding(
+            padding: EdgeInsets.all(17),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Color(0xFF0F4C81),
+                  child: Text(
+                    'ONE',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'واصل ون',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'دخول واحد يعمل لدى الشبكات الشريكة',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -425,10 +485,7 @@ class _NetworkPreview extends StatelessWidget {
   final AsyncValue<List<NetworkEntity>> networksAsync;
   final VoidCallback onRetry;
 
-  const _NetworkPreview({
-    required this.networksAsync,
-    required this.onRetry,
-  });
+  const _NetworkPreview({required this.networksAsync, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
