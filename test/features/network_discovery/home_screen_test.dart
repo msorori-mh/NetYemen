@@ -29,10 +29,6 @@ void main() {
 
     expect(find.text('مرحبًا بك في واصل نت'), findsOneWidget);
     expect(find.text('5000 YER'), findsOneWidget);
-    expect(find.text('شبكات مقترحة'), findsOneWidget);
-    expect(find.text('شبكة يمن نت'), findsOneWidget);
-    expect(find.text('شبكة عدن للاتصالات'), findsOneWidget);
-    expect(find.text('شبكة تعز السريعة'), findsOneWidget);
     expect(find.text('واصل ون'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('home-open-wasel-one')));
@@ -40,6 +36,12 @@ void main() {
     expect(find.byKey(const Key('wasel-one-screen')), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('شبكة يمن نت'), 300);
+    expect(find.text('شبكات مقترحة'), findsOneWidget);
+    expect(find.text('شبكة يمن نت'), findsOneWidget);
+    expect(find.text('شبكة عدن للاتصالات'), findsOneWidget);
+    expect(find.text('شبكة تعز السريعة'), findsOneWidget);
 
     final networksButton = find.byKey(const Key('home-open-networks'));
     await tester.ensureVisible(networksButton);
