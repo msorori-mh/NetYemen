@@ -494,6 +494,35 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
+    -- NEG-15: A requester holding the support role cannot review their own refund
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_customer_a_id, 'support_agent')
+    ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_refund_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'SELF_REVIEW_FORBIDDEN%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-15): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_customer_a_id AND role = 'support_agent';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-15): Requester could approve their own refund.';
+    END IF;
+
+    -- NEG-16: Re-submitting for the same purchase returns the live request
+    v_result := public.submit_refund_request(v_purchase_id, 'Second attempt');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-16): Duplicate refund request was created.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
     -- POS-09: Support approves refund with compensating credit
     -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_support_id::text, true);
@@ -511,6 +540,59 @@ BEGIN
     IF v_balance != 4000 THEN
         RAISE EXCEPTION 'TEST_FAIL (POS-09): Balance after refund is %, expected 4000.', v_balance;
     END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-17: A refunded purchase cannot be refunded again
+    -- ------------------------------------------------------------------------
+    v_result := public.review_refund_request((v_result->>'id')::UUID, 'approve');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Re-approval was not treated as a replay.';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_customer_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_a_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.submit_refund_request(v_purchase_id, 'Third attempt');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Refunded purchase accepted a new refund request.';
+    END IF;
+
+    -- Direct writes and vault reads below need the table owner.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.refund_requests (purchase_id, user_id, reason, status)
+        VALUES (v_purchase_id, v_customer_a_id, 'Direct duplicate', 'submitted');
+    EXCEPTION WHEN unique_violation THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Second live refund request was stored.';
+    END IF;
+
+    SELECT count(*) INTO v_count
+    FROM public.customer_wallet_ledger
+    WHERE reference_type = 'REFUND'
+      AND metadata->>'purchase_id' = v_purchase_id::TEXT;
+    IF v_count != 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Expected exactly one refund credit, found %.', v_count;
+    END IF;
+
+    SELECT cached_balance INTO v_balance
+    FROM public.wallet_accounts
+    WHERE user_id = v_customer_a_id;
+    IF v_balance != 4000 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Balance changed after duplicate attempts: %.', v_balance;
+    END IF;
+
+    -- NEG-18: The refunded card is quarantined (and therefore not revealable)
+    SELECT count(*) INTO v_count
+    FROM public.card_vault
+    WHERE purchase_id = v_purchase_id
+      AND state <> 'quarantined';
+    IF v_count != 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-18): Refunded card was not quarantined.';
+    END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
     RAISE NOTICE 'SUCCESS: All Commerce Core Tests Passed.';
 END $$;
