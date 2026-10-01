@@ -118,7 +118,11 @@
 <!-- Non-blocking Toasts -->
 <div id="toast-container" class="toast-container"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- Pinned file shipped in the npm tarball (not a CDN-generated .min.js), so the
+     SRI hash is stable. Update the CSP in vercel.json together with this URL. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+        integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="./config.js?v=20260914b"></script>
 <script src="./app.js?v=20260914b"></script>
 
