@@ -60,7 +60,11 @@ createServer(async (request, response) => {
     });
   }
 
-  if (body.action === "accounting" && body.session_id === sessionId) {
+  const counters = ["input_bytes", "output_bytes", "input_gigawords", "output_gigawords", "session_seconds"];
+  if (
+    body.action === "accounting" && body.session_id === sessionId &&
+    counters.every((name) => Number.isSafeInteger(body[name]) && body[name] >= 0)
+  ) {
     stats.accounting += 1;
     response.writeHead(204, { "cache-control": "no-store" });
     return response.end();

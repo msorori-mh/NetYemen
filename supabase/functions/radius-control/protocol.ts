@@ -40,6 +40,17 @@ export interface RpcAuthorizeResult {
   remaining_bytes: number | null;
 }
 
+/** Parses a raw request body; malformed JSON is a client error (INVALID_BODY). */
+export function parseRadiusRequestBody(raw: string): RadiusRequest {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new Error("INVALID_BODY");
+  }
+  return parseRadiusRequest(value);
+}
+
 export function parseRadiusRequest(value: unknown): RadiusRequest {
   if (!isRecord(value)) throw new Error("INVALID_BODY");
   if (value.action === "authorize") return parseAuthorize(value);

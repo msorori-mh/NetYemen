@@ -3,6 +3,7 @@ import {
   authorizationRequestId,
   freeRadiusAccept,
   parseRadiusRequest,
+  parseRadiusRequestBody,
 } from "./protocol.ts";
 
 function assert(condition: boolean, message: string): void {
@@ -184,4 +185,33 @@ Deno.test("a NAS identifier not bound to the RADIUS client is rejected", () => {
     rejectionOf(accounting) === "INVALID_NAS_BINDING",
     "accounting binding comparison must be exact",
   );
+});
+
+Deno.test("malformed JSON bodies are client errors, not internal failures", () => {
+  // index.ts maps every INVALID_* error to HTTP 400.
+  let message = "";
+  try {
+    parseRadiusRequestBody('{"action":"accounting","input_bytes":,"output_bytes":}');
+  } catch (error) {
+    message = error instanceof Error ? error.message : "";
+  }
+  assert(message === "INVALID_BODY", "invalid JSON must map to INVALID_BODY");
+});
+
+Deno.test("accounting body with defaulted zero counters parses", () => {
+  const request = parseRadiusRequestBody(JSON.stringify({
+    action: "accounting",
+    session_id: "99000000-0000-4000-8000-000000000001",
+    nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
+    event_key: "hs-1:Start::::",
+    event_type: "start",
+    event_at: "2026-10-01 10:00:00",
+    input_bytes: 0,
+    output_bytes: 0,
+    input_gigawords: 0,
+    output_gigawords: 0,
+    session_seconds: 0,
+  }));
+  assert(request.action === "accounting", "accounting action expected");
 });

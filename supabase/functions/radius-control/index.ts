@@ -3,7 +3,7 @@ import {
   authorizationRequestId,
   authorizeRpcBody,
   freeRadiusAccept,
-  parseRadiusRequest,
+  parseRadiusRequestBody,
 } from "./protocol.ts";
 import type { RpcAuthorizeResult } from "./protocol.ts";
 
@@ -35,7 +35,8 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const body = parseRadiusRequest(JSON.parse(raw));
+    // Malformed JSON maps to 400 INVALID_BODY via the INVALID_ branch below.
+    const body = parseRadiusRequestBody(raw);
     if (body.action === "authorize") {
       const requestId = await authorizationRequestId(body);
       const result = await callRpc(
