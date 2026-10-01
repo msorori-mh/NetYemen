@@ -16,13 +16,7 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
   return Supabase.instance.client.auth.onAuthStateChange;
 });
 
-// Recomputed whenever the signed-in user changes (login, logout, account
-// switch), so every user-scoped provider below refetches automatically.
-// Token refreshes keep the same id and do not trigger a refetch.
 final currentUserProvider = Provider<User?>((ref) {
-  ref.watch(
-    authStateProvider.select((state) => state.valueOrNull?.session?.user.id),
-  );
   return Supabase.instance.client.auth.currentUser;
 });
 

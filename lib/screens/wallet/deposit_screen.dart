@@ -68,21 +68,14 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
     } catch (e) {
       _showError('فشل إرسال الطلب');
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      setState(() => _isSubmitting = false);
     }
   }
 
   void _showError(String message) {
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
   }
 
   @override

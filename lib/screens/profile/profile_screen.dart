@@ -11,7 +11,6 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final service = ref.read(supabaseServiceProvider);
     await service.signOut();
-    ref.read(selectedTabProvider.notifier).state = 0;
 
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
