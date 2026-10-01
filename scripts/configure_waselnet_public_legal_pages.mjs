@@ -47,7 +47,26 @@ const supabaseUrl = httpsOrigin(
 );
 const publishableKey = requiredEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
-if (!publishableKey.startsWith('sb_publishable_') && !publishableKey.startsWith('eyJ')) {
+// A legacy service_role key is also a JWT starting with "eyJ", so a prefix
+// check is not enough: decode the payload and require role === "anon".
+function isLegacyAnonJwt(key) {
+  const parts = key.split('.');
+  if (parts.length !== 3 || !key.startsWith('eyJ')) return false;
+  try {
+    const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    return claims !== null && typeof claims === 'object' && claims.role === 'anon';
+  } catch {
+    return false;
+  }
+}
+
+function isClientSafeKey(key) {
+  if (key.startsWith('sb_secret_')) return false;
+  if (key.startsWith('sb_publishable_')) return true;
+  return isLegacyAnonJwt(key);
+}
+
+if (!isClientSafeKey(publishableKey)) {
   throw new Error(
     'HOLD: Supabase publishable key is not a client-safe publishable or legacy anon key.',
   );
