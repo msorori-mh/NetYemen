@@ -8,9 +8,12 @@ services:
       WASEL_RADIUS_INTERNAL_KEY: ${WASEL_RADIUS_INTERNAL_KEY:?set WASEL_RADIUS_INTERNAL_KEY}
       WASEL_RADIUS_SHARED_SECRET: ${WASEL_RADIUS_SHARED_SECRET:?set WASEL_RADIUS_SHARED_SECRET}
       WASEL_NAS_NETWORK: ${WASEL_NAS_NETWORK:?set WASEL_NAS_NETWORK}
+    # Publish only on one explicit host IPv4 address (never 0.0.0.0). Docker's
+    # published ports bypass UFW, so source filtering to the router CIDR is
+    # enforced by the DOCKER-USER rules installed by staging/cloud-init.
     ports:
-      - "1812:1812/udp"
-      - "1813:1813/udp"
+      - "${WASEL_RADIUS_BIND_IP:?set WASEL_RADIUS_BIND_IP to the server IPv4 address}:1812:1812/udp"
+      - "${WASEL_RADIUS_BIND_IP:?set WASEL_RADIUS_BIND_IP to the server IPv4 address}:1813:1813/udp"
     restart: unless-stopped
     read_only: true
     tmpfs:
