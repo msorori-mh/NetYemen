@@ -6,6 +6,7 @@ import '../../../app/app_shell.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import 'pin_providers.dart';
+import 'pin_sign_out_button.dart';
 
 /// شاشة إنشاء الرمز السري (6 أرقام) — تظهر عند أول تسجيل دخول.
 ///
@@ -258,6 +259,10 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
                         ),
                       ),
                     ),
+                  ],
+                  if (!_loading) ...[
+                    const SizedBox(height: 4),
+                    const PinSignOutButton(),
                   ],
                 ],
               ),

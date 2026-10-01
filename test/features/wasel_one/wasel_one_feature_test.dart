@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
@@ -6,6 +9,7 @@ import 'package:netyemen/core/config/app_config_provider.dart';
 import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
 import 'package:netyemen/features/wasel_one/data/fake_wasel_one_repository.dart';
 import 'package:netyemen/features/wasel_one/domain/entities.dart';
+import 'package:netyemen/features/wasel_one/presentation/wasel_one_providers.dart';
 import 'package:netyemen/features/wasel_one/presentation/wasel_one_screen.dart';
 
 void main() {
@@ -73,4 +77,127 @@ void main() {
     expect(find.text('w1-0123456789abcdef01234567'), findsOneWidget);
     expect(find.text('TEST-ONLY-482731'), findsOneWidget);
   });
+
+  testWidgets('copied WASEL One password is wiped after a minute', (
+    tester,
+  ) async {
+    String? clipboardText;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        clipboardText =
+            (call.arguments as Map<dynamic, dynamic>)['text'] as String?;
+        return null;
+      }
+      if (call.method == 'Clipboard.getData') {
+        return <String, dynamic>{'text': clipboardText};
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          currentUserProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(home: WaselOneScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final issueButton = find.byKey(const Key('wasel-one-issue-credential'));
+    await tester.ensureVisible(issueButton);
+    await tester.tap(issueButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('نسخ').last);
+    await tester.pump();
+    expect(clipboardText, 'TEST-ONLY-482731');
+
+    await tester.pump(const Duration(seconds: 59));
+    expect(clipboardText, 'TEST-ONLY-482731');
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(clipboardText, anyOf(isNull, isEmpty));
+    await tester.pumpAndSettle();
+  });
+
+  test('issue ignores re-entrant calls while one is in flight', () async {
+    final gate = Completer<void>();
+    final repository = _CountingWaselOneRepository(gate: gate);
+    final container = ProviderContainer(
+      overrides: [waselOneRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    await container.read(waselOneCredentialProvider.future);
+
+    final notifier = container.read(waselOneCredentialProvider.notifier);
+    final first = notifier.issue('demo-entitlement-001');
+    final second = notifier.issue('demo-entitlement-001');
+    gate.complete();
+
+    expect(await second, isNull);
+    expect((await first)?.username, startsWith('w1-'));
+    expect(repository.issueCalls, 1);
+
+    // Once settled, a new issue goes through again.
+    await notifier.issue('demo-entitlement-001');
+    expect(repository.issueCalls, 2);
+  });
+
+  testWidgets('issue button is disabled while a credential is in flight', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final repository = _CountingWaselOneRepository(gate: gate);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          currentUserProvider.overrideWithValue(null),
+          waselOneRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: const MaterialApp(home: WaselOneScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final issueButton = find.byKey(const Key('wasel-one-issue-credential'));
+    await tester.ensureVisible(issueButton);
+    await tester.tap(issueButton);
+    await tester.pump();
+
+    final button = tester.widget<ButtonStyleButton>(issueButton);
+    expect(button.onPressed, isNull);
+    await tester.tap(issueButton, warnIfMissed: false);
+    await tester.pump();
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(repository.issueCalls, 1);
+    expect(find.text('بيانات الدخول المؤقتة'), findsOneWidget);
+  });
+}
+
+class _CountingWaselOneRepository extends FakeWaselOneRepository {
+  final Completer<void> gate;
+  int issueCalls = 0;
+
+  _CountingWaselOneRepository({required this.gate});
+
+  @override
+  Future<RadiusAccessCredential> issueAccessCredential(
+    String entitlementId,
+  ) async {
+    issueCalls++;
+    await gate.future;
+    return super.issueAccessCredential(entitlementId);
+  }
 }

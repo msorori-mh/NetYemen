@@ -79,6 +79,29 @@ void main() {
         isNot(repository.idempotencyKeys[0]),
       );
     });
+
+    test('refreshes deposit history and wallet after success', () async {
+      final repository = _RecordingWalletRepository();
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      container.listen(depositHistoryProvider, (_, __) {});
+      container.listen(walletSummaryProvider, (_, __) {});
+      await container.read(depositHistoryProvider.future);
+      await container.read(walletSummaryProvider.future);
+
+      // No widget is involved: the refresh must not depend on the screen
+      // still being mounted when the request completes.
+      await container.read(depositSubmissionProvider.notifier).submit(
+            amount: 1000,
+            paymentDestinationId: 'destination-1',
+            proofReference: 'REF-1',
+          );
+      await container.read(depositHistoryProvider.future);
+      await container.read(walletSummaryProvider.future);
+
+      expect(repository.historyReads, 2);
+      expect(repository.summaryReads, 2);
+    });
   });
 
   test('fake repository replays a request without adding another deposit',
@@ -111,6 +134,8 @@ class _RecordingWalletRepository implements WalletRepository {
   final bool failFirstAttempt;
   final Completer<void>? gate;
   final List<String> idempotencyKeys = [];
+  int historyReads = 0;
+  int summaryReads = 0;
 
   _RecordingWalletRepository({
     this.failFirstAttempt = false,
@@ -136,13 +161,19 @@ class _RecordingWalletRepository implements WalletRepository {
   Future<List<DepositChannel>> getActiveDepositChannels() async => const [];
 
   @override
-  Future<List<DepositRequest>> getMyDepositRequests() async => const [];
+  Future<List<DepositRequest>> getMyDepositRequests() async {
+    historyReads++;
+    return const [];
+  }
 
   @override
-  Future<WalletSummary> getMyWalletSummary() async => const WalletSummary(
-        userId: 'user-1',
-        balance: 0,
-        currency: 'YER',
-        accountStatus: 'active',
-      );
+  Future<WalletSummary> getMyWalletSummary() async {
+    summaryReads++;
+    return const WalletSummary(
+      userId: 'user-1',
+      balance: 0,
+      currency: 'YER',
+      accountStatus: 'active',
+    );
+  }
 }

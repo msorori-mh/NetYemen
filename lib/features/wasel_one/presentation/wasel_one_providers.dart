@@ -37,7 +37,14 @@ class WaselOneCredentialNotifier
     return null;
   }
 
-  Future<RadiusAccessCredential> issue(String entitlementId) async {
+  bool _issuing = false;
+
+  /// Issues a credential, or returns null without calling the server when
+  /// another issue is still in flight: every issue revokes the previous
+  /// credential, so a double tap must not mint two.
+  Future<RadiusAccessCredential?> issue(String entitlementId) async {
+    if (_issuing) return null;
+    _issuing = true;
     state = const AsyncValue.loading();
     try {
       final credential = await ref
@@ -48,6 +55,8 @@ class WaselOneCredentialNotifier
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
+    } finally {
+      _issuing = false;
     }
   }
 

@@ -6,8 +6,15 @@ import '../domain/entities.dart';
 
 class SupabaseWalletRepository implements WalletRepository {
   final SupabaseClient _client;
+  final String? Function()? _currentUserId;
 
-  const SupabaseWalletRepository(this._client);
+  /// [currentUserId] overrides the signed-in user lookup (tests only).
+  const SupabaseWalletRepository(
+    this._client, {
+    String? Function()? currentUserId,
+  }) : _currentUserId = currentUserId;
+
+  String? get _userId => _currentUserId?.call() ?? _client.auth.currentUser?.id;
 
   @override
   Future<WalletSummary> getMyWalletSummary() async {
@@ -17,9 +24,14 @@ class SupabaseWalletRepository implements WalletRepository {
 
   @override
   Future<List<DepositRequest>> getMyDepositRequests() async {
+    // RLS also lets finance/admin read other customers' deposits, so "my
+    // deposits" must filter by the signed-in user explicitly.
+    final userId = _userId;
+    if (userId == null) return const [];
     final result = await _client
         .from('wallet_deposit_requests')
         .select()
+        .eq('user_id', userId)
         .order('created_at', ascending: false);
     final list = result as List<dynamic>;
     return list
@@ -51,9 +63,12 @@ class SupabaseWalletRepository implements WalletRepository {
       'create_wallet_deposit_request',
       params: {
         'p_amount': amount,
+        // The server rejects an empty reference with INVALID_REFERENCE; the
+        // deposit form requires it. No proof file upload exists yet, so the
+        // storage path stays null rather than echoing the reference.
         'p_reference_number': proofReference ?? '',
         'p_payment_destination_id': paymentDestinationId,
-        'p_proof_storage_path': proofReference,
+        'p_proof_storage_path': null,
         'p_idempotency_key': idempotencyKey,
       },
     );

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/utils/uuid_generator.dart';
 import '../../auth/presentation/customer_session_providers.dart';
+import '../../wallet/presentation/wallet_providers.dart';
 import '../data/purchase_repository.dart';
 import '../data/supabase_purchase_repository.dart';
 import '../data/fake_purchase_repository.dart';
@@ -61,11 +62,18 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   PurchaseIdempotencySession? _pendingSession;
   Future<Map<String, dynamic>>? _inFlight;
   String? _inFlightFingerprint;
+  String? _statePackageId;
+
+  /// The package the current loading/error/result state belongs to. The
+  /// provider is global, so screens must only show an error for their own
+  /// package; the idempotency session itself is kept per fingerprint.
+  String? get statePackageId => _statePackageId;
 
   @override
   Future<Map<String, dynamic>?> build() async {
     // Reset any result or error left by a previous account.
     ref.watch(currentUserIdProvider);
+    _statePackageId = null;
     return null;
   }
 
@@ -99,6 +107,7 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
     required String packageId,
     required String fingerprint,
   }) async {
+    _statePackageId = packageId;
     state = const AsyncValue.loading();
 
     final session = _pendingSession;
@@ -117,6 +126,12 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
         idempotencyKey: idempotencyKey,
       );
       _pendingSession = null;
+      // Refresh balance and history here rather than in the screen so they
+      // update even if the user left the confirmation screen mid-request.
+      ref.invalidate(walletSummaryProvider);
+      ref.invalidate(purchaseHistoryProvider);
+      ref.invalidate(purchaseDetailProvider);
+      ref.invalidate(fulfillmentRecordsProvider);
       state = AsyncValue.data(result);
       return result;
     } catch (error, stackTrace) {

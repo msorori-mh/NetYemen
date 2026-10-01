@@ -125,6 +125,10 @@ class DepositSubmissionNotifier extends AsyncNotifier<String?> {
         proofReference: proofReference,
       );
       _pendingSession = null;
+      // Refresh here rather than in the screen so the lists update even if
+      // the user left the deposit screen mid-request.
+      ref.invalidate(depositHistoryProvider);
+      ref.invalidate(walletSummaryProvider);
       state = AsyncValue.data(requestId);
       return requestId;
     } catch (error, stackTrace) {
