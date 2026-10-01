@@ -117,6 +117,9 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'متابعة'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    // The PIN gate resolves after its first frame, then routes to the shell.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(AppShell), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });

@@ -2,6 +2,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const NAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const USERNAME_PATTERN = /^w1-[0-9a-f]{24}$/;
+const GIGAWORD = 4_294_967_296;
 
 export interface AuthorizeRequest {
   action: "authorize";
@@ -68,8 +69,8 @@ export function authorizeRpcBody(request: AuthorizeRequest, requestId: string): 
 }
 
 export function accountingRpcBody(request: AccountingRequest): Record<string, unknown> {
-  const inputBytes = request.input_bytes + (request.input_gigawords ?? 0) * 4_294_967_296;
-  const outputBytes = request.output_bytes + (request.output_gigawords ?? 0) * 4_294_967_296;
+  const inputBytes = request.input_bytes + (request.input_gigawords ?? 0) * GIGAWORD;
+  const outputBytes = request.output_bytes + (request.output_gigawords ?? 0) * GIGAWORD;
   if (!Number.isSafeInteger(inputBytes) || !Number.isSafeInteger(outputBytes)) {
     throw new Error("INVALID_COUNTER_RANGE");
   }
@@ -96,6 +97,15 @@ export function freeRadiusAccept(result: RpcAuthorizeResult): Record<string, unk
   if (result.speed_limit_kbps !== null) {
     const kbps = positiveInt(result.speed_limit_kbps, "speed_limit_kbps");
     reply["reply:Mikrotik-Rate-Limit"] = `${kbps}k/${kbps}k`;
+  }
+  if (result.remaining_bytes !== null) {
+    // Cap the session at the data left on the entitlement: MikroTik ends it
+    // when upload + download reach the limit. Total-Limit is 32-bit; the
+    // gigawords attribute carries the high part. A non-positive remainder
+    // fails closed (INVALID_REMAINING_BYTES -> 400 -> no Access-Accept).
+    const remaining = positiveInt(result.remaining_bytes, "remaining_bytes");
+    reply["reply:Mikrotik-Total-Limit"] = remaining % GIGAWORD;
+    reply["reply:Mikrotik-Total-Limit-Gigawords"] = Math.floor(remaining / GIGAWORD);
   }
   return reply;
 }

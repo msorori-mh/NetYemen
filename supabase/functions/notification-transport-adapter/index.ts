@@ -21,6 +21,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 import { aes256GcmDecrypt, CardKeyVersion, getCardMasterKey } from "./crypto.ts";
+import { extractRevealedCardPin } from "./reveal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -244,63 +245,21 @@ async function handleCustomerCardReveal(
     return jsonResponse({ error: "UNAUTHORIZED", status: "forbidden" }, 401);
   }
 
-  let revealKey: CryptoKey;
-  try {
-    revealKey = await getCardMasterKey("v1");
-  } catch (error) {
-    console.error(
-      "Customer card reveal key is unavailable",
-      error instanceof Error ? error.message : "unknown",
-    );
-    return jsonResponse({ error: "REVEAL_SERVICE_UNAVAILABLE" }, 503);
-  }
-
-  // Resolve and audit the encrypted payload through the caller's JWT. The RPC
-  // enforces purchase ownership and never accepts ciphertext from the client.
-  const { data: encryptedData, error: revealError } = await customerClient.rpc(
+  // The RPC enforces purchase ownership, audits the reveal and decrypts the
+  // card inside Postgres (pgcrypto). It returns the PIN as `card_pin`.
+  const { data: revealData, error: revealError } = await customerClient.rpc(
     "reveal_purchase_card_secret",
     { p_purchase_id: payload.purchase_id },
   );
-  if (revealError || !encryptedData) {
+  if (revealError || !revealData) {
     console.error("Customer card reveal RPC rejected", revealError?.code || "unknown");
     return jsonResponse({ error: "CARD_REVEAL_DENIED" }, 403);
   }
 
-  const encrypted = encryptedData as Record<string, unknown>;
-  const keyVersion = encrypted.key_version;
-  const ciphertextB64 = encrypted.ciphertext_b64;
-  const nonce = encrypted.nonce;
-  const authTagB64 = encrypted.auth_tag_b64;
-  if (
-    keyVersion !== "v1" ||
-    typeof ciphertextB64 !== "string" ||
-    typeof nonce !== "string" ||
-    typeof authTagB64 !== "string" ||
-    !ciphertextB64 ||
-    !nonce ||
-    !authTagB64
-  ) {
+  const plaintext = extractRevealedCardPin(revealData);
+  if (!plaintext) {
     console.error("Customer card reveal payload is incomplete");
     return jsonResponse({ error: "CARD_SECRET_UNAVAILABLE" }, 409);
-  }
-
-  let plaintext: string;
-  try {
-    plaintext = await aes256GcmDecrypt(
-      revealKey,
-      ciphertextB64,
-      nonce,
-      authTagB64,
-    );
-  } catch (error) {
-    console.error(
-      "Customer card reveal decryption failed",
-      error instanceof Error ? error.message : "unknown",
-    );
-    return jsonResponse({ error: "CARD_DECRYPTION_FAILED" }, 409);
-  }
-  if (!plaintext.trim()) {
-    return jsonResponse({ error: "CARD_SECRET_EMPTY" }, 409);
   }
 
   const { data: fulfillment, error: fulfillmentError } = await customerClient

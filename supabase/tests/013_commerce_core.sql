@@ -173,6 +173,60 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
+    -- NEG-19: The same transfer reference cannot be credited twice
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_customer_b_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_b_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(5000, ' ref-0001 ', v_destination_id, NULL, gen_random_uuid());
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'DUPLICATE_REFERENCE%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-19): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-19): Duplicate transfer reference was credited.';
+    END IF;
+    PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'reject', 'Duplicate reference');
+
+    -- ------------------------------------------------------------------------
+    -- NEG-20: A reviewer cannot approve their own deposit
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_customer_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_a_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(1000, 'REF-SELF-0001', v_destination_id, NULL, gen_random_uuid());
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_customer_a_id, 'finance_officer')
+    ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'SELF_REVIEW_FORBIDDEN%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-20): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_customer_a_id AND role = 'finance_officer';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-20): Reviewer approved their own deposit.';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'reject', 'Test cleanup');
+
+    -- ------------------------------------------------------------------------
     -- NEG-01: Anon wallet denied
     -- ------------------------------------------------------------------------
     EXECUTE 'SET LOCAL ROLE anon';
@@ -494,6 +548,35 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
+    -- NEG-15: A requester holding the support role cannot review their own refund
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_customer_a_id, 'support_agent')
+    ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_refund_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'SELF_REVIEW_FORBIDDEN%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-15): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_customer_a_id AND role = 'support_agent';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-15): Requester could approve their own refund.';
+    END IF;
+
+    -- NEG-16: Re-submitting for the same purchase returns the live request
+    v_result := public.submit_refund_request(v_purchase_id, 'Second attempt');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-16): Duplicate refund request was created.';
+    END IF;
+
+    -- ------------------------------------------------------------------------
     -- POS-09: Support approves refund with compensating credit
     -- ------------------------------------------------------------------------
     PERFORM set_config('request.jwt.claim.sub', v_support_id::text, true);
@@ -510,6 +593,101 @@ BEGIN
     -- After initial 5000, spent 1000, spent another 1000 (replay), refunded first 1000 -> 4000
     IF v_balance != 4000 THEN
         RAISE EXCEPTION 'TEST_FAIL (POS-09): Balance after refund is %, expected 4000.', v_balance;
+    END IF;
+
+    -- ------------------------------------------------------------------------
+    -- NEG-17: A refunded purchase cannot be refunded again
+    -- ------------------------------------------------------------------------
+    v_result := public.review_refund_request((v_result->>'id')::UUID, 'approve');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Re-approval was not treated as a replay.';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_customer_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_a_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.submit_refund_request(v_purchase_id, 'Third attempt');
+    IF COALESCE((v_result->>'replayed')::BOOLEAN, FALSE) IS NOT TRUE THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Refunded purchase accepted a new refund request.';
+    END IF;
+
+    -- Direct writes and vault reads below need the table owner.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    v_err_occurred := FALSE;
+    BEGIN
+        INSERT INTO public.refund_requests (purchase_id, user_id, reason, status)
+        VALUES (v_purchase_id, v_customer_a_id, 'Direct duplicate', 'submitted');
+    EXCEPTION WHEN unique_violation THEN
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Second live refund request was stored.';
+    END IF;
+
+    SELECT count(*) INTO v_count
+    FROM public.customer_wallet_ledger
+    WHERE reference_type = 'REFUND'
+      AND metadata->>'purchase_id' = v_purchase_id::TEXT;
+    IF v_count != 1 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Expected exactly one refund credit, found %.', v_count;
+    END IF;
+
+    SELECT cached_balance INTO v_balance
+    FROM public.wallet_accounts
+    WHERE user_id = v_customer_a_id;
+    IF v_balance != 4000 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-17): Balance changed after duplicate attempts: %.', v_balance;
+    END IF;
+
+    -- NEG-18: The refunded card is quarantined (and therefore not revealable)
+    SELECT count(*) INTO v_count
+    FROM public.card_vault
+    WHERE purchase_id = v_purchase_id
+      AND state <> 'quarantined';
+    IF v_count != 0 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-18): Refunded card was not quarantined.';
+    END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    -- ------------------------------------------------------------------------
+    -- NEG-21: Large deposits need two different approvers (THR-23)
+    -- (kept last: it credits customer B, which earlier balance checks avoid)
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    SELECT cached_balance INTO v_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_customer_b_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_b_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(60000, 'REF-LARGE-0001', v_destination_id, NULL, gen_random_uuid());
+    v_deposit_id := (v_result->>'id')::UUID;
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'under_review' OR NOT (v_result->>'requires_second_approval')::BOOLEAN THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): first approval of a large deposit credited directly: %', v_result;
+    END IF;
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'under_review' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): the same reviewer completed the second approval.';
+    END IF;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    IF (SELECT cached_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id) <> v_balance THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): balance changed before the second approval.';
+    END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'approved' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): second approver could not approve: %', v_result;
+    END IF;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    IF (SELECT cached_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id) <> v_balance + 60000 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): large deposit was not credited exactly once.';
     END IF;
 
     RAISE NOTICE 'SUCCESS: All Commerce Core Tests Passed.';

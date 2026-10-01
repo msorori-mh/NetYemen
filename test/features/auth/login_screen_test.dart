@@ -8,8 +8,22 @@ import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart
 import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
 
 import 'package:netyemen/features/auth/presentation/login_screen.dart';
+import 'package:netyemen/features/security/domain/pin_status.dart';
+import 'package:netyemen/features/security/presentation/pin_entry_screen.dart';
+import 'package:netyemen/features/security/presentation/pin_providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../fakes/fake_customer_auth_repository.dart';
+import '../../fakes/fake_pin_repository.dart';
+
+/// Minimal stand-in so the PIN gate sees a signed-in user.
+class _FakeUser implements User {
+  @override
+  String get id => 'user-1';
+
+  @override
+  noSuchMethod(Invocation invocation) => null;
+}
 
 void main() {
   const configuredConfig = AppConfig(
@@ -68,5 +82,36 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('internal auth provider'), findsNothing);
+  });
+
+  testWidgets('sign-in on an untrusted device must pass the PIN gate', (
+    tester,
+  ) async {
+    final service = FakeCustomerAuthRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          customerAuthRepositoryProvider.overrideWithValue(service),
+          appConfigProvider.overrideWithValue(configuredConfig),
+          currentUserProvider.overrideWithValue(_FakeUser()),
+          currentUserRolesProvider.overrideWith((ref) async => const []),
+          pinRepositoryProvider.overrideWithValue(
+            FakePinRepository(status: PinStatus.setAndUntrusted),
+          ),
+        ],
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
+
+    await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.enterText(
+      find.byKey(const Key('login-password')),
+      'Pilot1234',
+    );
+    await tester.tap(find.byKey(const Key('login-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PinEntryScreen), findsOneWidget);
+    expect(find.byType(AppShell), findsNothing);
   });
 }

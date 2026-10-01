@@ -370,7 +370,7 @@
         btn.disabled = true;
         p.then(function (res) {
           if (res === false) return; // user cancelled modal
-          toast(successText); 
+          toast(typeof successText === 'function' ? successText(res) : successText); 
           route(); 
         }).catch(function (e) { console.error('NetYemen admin action failed:', e); toast(errText(e), true); btn.disabled = false; });
       };
@@ -798,7 +798,12 @@
           if(!ok) return false;
           return rpc('review_wallet_deposit_request', { p_deposit_id: id, p_action: 'approve', p_rejection_reason: null });
         });
-      }, 'تم قبول الطلب وإضافة الرصيد');
+      }, function (res) {
+        // Large deposits need a second, different approver before crediting.
+        return res && res.requires_second_approval
+          ? 'تم تسجيل موافقتك — يحتاج الطلب موافقة موظف آخر قبل إضافة الرصيد'
+          : 'تم قبول الطلب وإضافة الرصيد';
+      });
 
       bindActionAsync('reject-dep', function (id) {
         return asyncPrompt('سبب الرفض:').then(function(reason) {

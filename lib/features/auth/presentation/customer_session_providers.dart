@@ -24,6 +24,14 @@ final currentUserProvider = Provider<User?>((ref) {
   );
 });
 
+/// The signed-in user's id. Providers that hold per-user data watch this so
+/// they rebuild, dropping the previous account's cached data, whenever the
+/// account changes (sign-out, sign-in, switching accounts on one device).
+/// Token refreshes keep the same id and do not trigger a rebuild.
+final currentUserIdProvider = Provider<String?>((ref) {
+  return ref.watch(currentUserProvider.select((user) => user?.id));
+});
+
 /// Current user's platform roles. In demo mode returns [platform_admin] so the
 /// admin section remains reachable for preview; otherwise queries Supabase.
 final currentUserRolesProvider = FutureProvider<List<String>>((ref) async {

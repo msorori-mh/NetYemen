@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../security/data/pin_repository.dart';
 import '../domain/customer_auth.dart';
 
 abstract interface class CustomerAuthRepository {
@@ -94,5 +95,9 @@ class SupabaseCustomerAuthRepository implements CustomerAuthRepository {
   }
 
   @override
-  Future<void> signOut() => _client.auth.signOut();
+  Future<void> signOut() async {
+    // A later sign-in on this device must pass the PIN gate again.
+    await clearPinDeviceTrust();
+    await _client.auth.signOut();
+  }
 }
