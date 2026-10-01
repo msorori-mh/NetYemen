@@ -5,7 +5,7 @@ repo_dir=${1:-/opt/wasel-radius/src}
 compose_file="$repo_dir/infra/radius/docker-compose.yml"
 env_file="$repo_dir/infra/radius/.env"
 
-for command in docker git openssl ufw; do
+for command in docker git iptables openssl ufw; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "HOLD: missing command: $command" >&2
     exit 1
@@ -43,6 +43,28 @@ systemctl is-active --quiet docker || {
 }
 ufw status | grep -q 'Status: active' || {
   echo "HOLD: UFW is not active." >&2
+  exit 1
+}
+
+# Docker-published ports bypass UFW; require the explicit bind address and the
+# DOCKER-USER source filter installed by cloud-init.
+bind_ip=$(sed -n 's/^WASEL_RADIUS_BIND_IP=//p' "$env_file" | tail -n 1)
+case "$bind_ip" in
+  ''|0.0.0.0|::|'[::]')
+    echo "HOLD: WASEL_RADIUS_BIND_IP must be the server's specific IPv4 address." >&2
+    exit 1
+    ;;
+esac
+grep -q 'BEGIN WASEL DOCKER-USER' /etc/ufw/after.rules || {
+  echo "HOLD: WASEL DOCKER-USER block is missing from /etc/ufw/after.rules." >&2
+  exit 1
+}
+docker_user_rules=$(iptables -S DOCKER-USER 2>/dev/null) || {
+  echo "HOLD: cannot read the DOCKER-USER chain (run preflight with sudo)." >&2
+  exit 1
+}
+printf '%s\n' "$docker_user_rules" | grep -q -- '--dports 1812,1813 -j DROP' || {
+  echo "HOLD: DOCKER-USER does not drop non-router RADIUS traffic." >&2
   exit 1
 }
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-for variable in WASEL_CONTROL_URL WASEL_RADIUS_INTERNAL_KEY WASEL_RADIUS_SHARED_SECRET WASEL_NAS_NETWORK; do
+for variable in WASEL_CONTROL_URL WASEL_RADIUS_INTERNAL_KEY WASEL_RADIUS_SHARED_SECRET WASEL_NAS_NETWORK WASEL_NAS_IDENTIFIER; do
   eval "value=\${$variable:-}"
   case "$value" in
     ""|TEST_ONLY_*|*REPLACE*)
@@ -10,6 +10,12 @@ for variable in WASEL_CONTROL_URL WASEL_RADIUS_INTERNAL_KEY WASEL_RADIUS_SHARED_
       ;;
   esac
 done
+
+# Must match radius-control's NAS pattern and the router's NAS-Identifier.
+if ! printf '%s\n' "$WASEL_NAS_IDENTIFIER" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'; then
+  echo "ERROR: WASEL_NAS_IDENTIFIER must match ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$." >&2
+  exit 78
+fi
 
 case "$WASEL_CONTROL_URL" in
   https://*|http://host.docker.internal:*) ;;

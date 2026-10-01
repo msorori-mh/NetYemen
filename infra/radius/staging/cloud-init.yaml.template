@@ -40,6 +40,22 @@ write_files:
       maxretry = 5
       findtime = 10m
       bantime = 1h
+  # Docker publishes container ports via DNAT in the FORWARD path, which UFW's
+  # INPUT rules never see. This block is appended to /etc/ufw/after.rules so
+  # UFW (re)installs it at every boot/reload: RADIUS traffic to published
+  # containers is accepted only from the pilot router CIDR.
+  - path: /etc/wasel-radius/ufw-docker-user.rules
+    permissions: '0644'
+    content: |
+      # BEGIN WASEL DOCKER-USER
+      *filter
+      :DOCKER-USER - [0:0]
+      -A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
+      -A DOCKER-USER -s __ROUTER_CIDR__ -p udp -m multiport --dports 1812,1813 -j RETURN
+      -A DOCKER-USER -p udp -m multiport --dports 1812,1813 -j DROP
+      -A DOCKER-USER -j RETURN
+      COMMIT
+      # END WASEL DOCKER-USER
 
 runcmd:
   - install -d -m 0750 -o wasel -g wasel /opt/wasel-radius
@@ -51,7 +67,9 @@ runcmd:
   - ufw allow from __ADMIN_CIDR__ to any port 22 proto tcp comment 'WASEL admin SSH'
   - ufw allow from __ROUTER_CIDR__ to any port 1812 proto udp comment 'WASEL RADIUS auth'
   - ufw allow from __ROUTER_CIDR__ to any port 1813 proto udp comment 'WASEL RADIUS accounting'
+  - grep -q 'BEGIN WASEL DOCKER-USER' /etc/ufw/after.rules || cat /etc/wasel-radius/ufw-docker-user.rules >> /etc/ufw/after.rules
   - ufw --force enable
+  - ufw reload
   - touch /opt/wasel-radius/CLOUD_INIT_COMPLETE
   - chown wasel:wasel /opt/wasel-radius/CLOUD_INIT_COMPLETE
 

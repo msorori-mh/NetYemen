@@ -34,6 +34,9 @@ sh infra/radius/test/run-radius-e2e.sh
 
 - Startup refuses unset and placeholder secrets.
 - Only the configured NAS network is accepted.
+- The router's `NAS-Identifier` must equal the RADIUS client `shortname`
+  (`WASEL_NAS_IDENTIFIER`); the claimed identity is otherwise rejected both in
+  FreeRADIUS and in `radius-control`.
 - Message-Authenticator is required.
 - The Hotspot login profile is HTTPS-only; the template refuses to proceed
   without an explicit certificate name.

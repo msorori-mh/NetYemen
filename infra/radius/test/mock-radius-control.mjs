@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 const port = 8787;
 const expectedKey = process.env.WASEL_RADIUS_INTERNAL_KEY;
 const sessionId = "99000000-0000-4000-8000-000000000001";
-const stats = { authorizeAccepted: 0, authorizeDenied: 0, accounting: 0 };
+const stats = { authorizeAccepted: 0, authorizeDenied: 0, accounting: 0, bindingRejected: 0 };
 
 if (!expectedKey || expectedKey.startsWith("REPLACE")) {
   throw new Error("WASEL_RADIUS_INTERNAL_KEY is required");
@@ -30,6 +30,15 @@ createServer(async (request, response) => {
     return sendJson(response, 400, { error: "INVALID_BODY" });
   }
 
+  // Mirror radius-control: the NAS identity must be bound to the RADIUS client.
+  if (
+    typeof body.client_shortname !== "string" ||
+    body.client_shortname !== body.nas_identifier
+  ) {
+    stats.bindingRejected += 1;
+    return sendJson(response, 400, { error: "INVALID_NAS_BINDING" });
+  }
+
   if (body.action === "authorize") {
     const valid = body.nas_identifier === "wasel-e2e-nas-01" &&
       body.username === "w1-0123456789abcdef01234567" &&
@@ -51,7 +60,11 @@ createServer(async (request, response) => {
     });
   }
 
-  if (body.action === "accounting" && body.session_id === sessionId) {
+  const counters = ["input_bytes", "output_bytes", "input_gigawords", "output_gigawords", "session_seconds"];
+  if (
+    body.action === "accounting" && body.session_id === sessionId &&
+    counters.every((name) => Number.isSafeInteger(body[name]) && body[name] >= 0)
+  ) {
     stats.accounting += 1;
     response.writeHead(204, { "cache-control": "no-store" });
     return response.end();

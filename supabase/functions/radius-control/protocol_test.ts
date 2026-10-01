@@ -3,6 +3,7 @@ import {
   authorizationRequestId,
   freeRadiusAccept,
   parseRadiusRequest,
+  parseRadiusRequestBody,
 } from "./protocol.ts";
 
 function assert(condition: boolean, message: string): void {
@@ -13,6 +14,7 @@ Deno.test("authorize parsing and request id are deterministic", async () => {
   const request = parseRadiusRequest({
     action: "authorize",
     nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
     username: "w1-0123456789abcdef01234567",
     password: "TEST_ONLY_PASSWORD",
     request_key: "hs-a-000001",
@@ -107,6 +109,7 @@ Deno.test("accounting counters must be safe non-negative integers", () => {
       action: "accounting",
       session_id: "99000000-0000-4000-8000-000000000001",
       nas_identifier: "wasel-pilot-nas-01",
+      client_shortname: "wasel-pilot-nas-01",
       event_key: "event-1",
       event_type: "interim_update",
       event_at: new Date().toISOString(),
@@ -125,6 +128,7 @@ Deno.test("RADIUS gigawords extend counters beyond 32 bits", () => {
     action: "accounting",
     session_id: "99000000-0000-4000-8000-000000000001",
     nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
     event_key: "event-large",
     event_type: "interim-update",
     event_at: new Date().toISOString(),
@@ -138,4 +142,76 @@ Deno.test("RADIUS gigawords extend counters beyond 32 bits", () => {
   const body = accountingRpcBody(request);
   assert(body.p_input_bytes === 4_294_967_306, "input gigaword conversion mismatch");
   assert(body.p_output_bytes === 8_589_934_612, "output gigaword conversion mismatch");
+});
+
+function rejectionOf(value: unknown): string | null {
+  try {
+    parseRadiusRequest(value);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : "UNKNOWN";
+  }
+}
+
+Deno.test("a NAS identifier not bound to the RADIUS client is rejected", () => {
+  const authorize = {
+    action: "authorize",
+    nas_identifier: "wasel-pilot-nas-01",
+    username: "w1-0123456789abcdef01234567",
+    password: "TEST_ONLY_PASSWORD",
+    request_key: "hs-a-000001",
+  };
+  assert(
+    rejectionOf({ ...authorize, client_shortname: "wasel-pilot-nas-02" }) === "INVALID_NAS_BINDING",
+    "authorize with a mismatched client shortname must be rejected",
+  );
+  assert(
+    rejectionOf(authorize) === "INVALID_CLIENT_SHORTNAME",
+    "authorize without a client shortname must be rejected",
+  );
+  const accounting = {
+    action: "accounting",
+    session_id: "99000000-0000-4000-8000-000000000001",
+    nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "WASEL-PILOT-NAS-01",
+    event_key: "event-1",
+    event_type: "start",
+    event_at: new Date().toISOString(),
+    input_bytes: 0,
+    output_bytes: 0,
+    session_seconds: 0,
+  };
+  assert(
+    rejectionOf(accounting) === "INVALID_NAS_BINDING",
+    "accounting binding comparison must be exact",
+  );
+});
+
+Deno.test("malformed JSON bodies are client errors, not internal failures", () => {
+  // index.ts maps every INVALID_* error to HTTP 400.
+  let message = "";
+  try {
+    parseRadiusRequestBody('{"action":"accounting","input_bytes":,"output_bytes":}');
+  } catch (error) {
+    message = error instanceof Error ? error.message : "";
+  }
+  assert(message === "INVALID_BODY", "invalid JSON must map to INVALID_BODY");
+});
+
+Deno.test("accounting body with defaulted zero counters parses", () => {
+  const request = parseRadiusRequestBody(JSON.stringify({
+    action: "accounting",
+    session_id: "99000000-0000-4000-8000-000000000001",
+    nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
+    event_key: "hs-1:Start::::",
+    event_type: "start",
+    event_at: "2026-10-01 10:00:00",
+    input_bytes: 0,
+    output_bytes: 0,
+    input_gigawords: 0,
+    output_gigawords: 0,
+    session_seconds: 0,
+  }));
+  assert(request.action === "accounting", "accounting action expected");
 });
