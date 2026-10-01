@@ -27,7 +27,7 @@ These variables must be configured as Edge Function secrets (never committed):
 | `FCM_PROJECT_ID` | Firebase project ID for FCM HTTP v1. |
 | `FCM_CLIENT_EMAIL` | FCM service account client email. |
 | `FCM_PRIVATE_KEY` | FCM service account PEM private key (RS256). |
-| `CARD_MASTER_KEY_v1` | Base64-encoded 32-byte AES-256 key for card vault v1. |
+| `CARD_MASTER_KEY_v1` | Base64-encoded 32-byte AES-256 key for the legacy `decrypt_card_secret` action. Customer reveal does not use it: cards are decrypted in Postgres (pgcrypto) with the Vault secret `card_master_key`. |
 
 ### Local / source-only builds
 
@@ -63,5 +63,6 @@ deno run --allow-env supabase/functions/notification-transport-adapter/test_cryp
 - FCM service-account private keys and card master keys are **server-side only**.
 - No provider secrets are embedded in the Flutter app or repository.
 - Card plaintext is never logged by this function.
-- Customer reveal accepts only a `purchase_id`; encrypted material and key
-  versions are loaded through the ownership-enforcing database RPC.
+- Customer reveal accepts only a `purchase_id`. The ownership-enforcing RPC
+  `reveal_purchase_card_secret` decrypts in Postgres and returns `card_pin`,
+  which this function passes to the app as `plaintext`.
