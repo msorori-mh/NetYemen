@@ -173,6 +173,60 @@ BEGIN
     END IF;
 
     -- ------------------------------------------------------------------------
+    -- NEG-19: The same transfer reference cannot be credited twice
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_customer_b_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_b_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(5000, ' ref-0001 ', v_destination_id, NULL, gen_random_uuid());
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'DUPLICATE_REFERENCE%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-19): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-19): Duplicate transfer reference was credited.';
+    END IF;
+    PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'reject', 'Duplicate reference');
+
+    -- ------------------------------------------------------------------------
+    -- NEG-20: A reviewer cannot approve their own deposit
+    -- ------------------------------------------------------------------------
+    PERFORM set_config('request.jwt.claim.sub', v_customer_a_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_a_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(1000, 'REF-SELF-0001', v_destination_id, NULL, gen_random_uuid());
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_customer_a_id, 'finance_officer')
+    ON CONFLICT (user_id, role) DO NOTHING;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    v_err_occurred := FALSE;
+    BEGIN
+        PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'approve');
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'SELF_REVIEW_FORBIDDEN%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (NEG-20): Unexpected error: %', SQLERRM;
+        END IF;
+        v_err_occurred := TRUE;
+    END;
+    EXECUTE 'SET LOCAL ROLE postgres';
+    DELETE FROM public.user_roles WHERE user_id = v_customer_a_id AND role = 'finance_officer';
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    IF NOT v_err_occurred THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-20): Reviewer approved their own deposit.';
+    END IF;
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    PERFORM public.review_wallet_deposit_request((v_result->>'id')::UUID, 'reject', 'Test cleanup');
+
+    -- ------------------------------------------------------------------------
     -- NEG-01: Anon wallet denied
     -- ------------------------------------------------------------------------
     EXECUTE 'SET LOCAL ROLE anon';
