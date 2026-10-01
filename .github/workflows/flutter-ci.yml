@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/WASEL-ONE-APK-PILOT-001
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
