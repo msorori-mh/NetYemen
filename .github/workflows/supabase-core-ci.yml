@@ -144,6 +144,20 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/023_access_grant_trusted_identity.sql
 
+      - name: Run Settlement Refund Integrity Contract (024)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/024_settlement_refund_integrity.sql
+
+      - name: Run Card PIN Uniqueness Contract (025)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/025_card_pin_uniqueness.sql
+
       - name: Run Legacy SQL Contract and E2E Suite (001-019)
         run: |
           set -euo pipefail
