@@ -21,6 +21,7 @@ class WaselOneScreen extends ConsumerWidget {
     final entitlements = hasSession
         ? ref.watch(waselOneEntitlementsProvider)
         : const AsyncValue<List<AccessEntitlement>>.data([]);
+    final issuing = ref.watch(waselOneCredentialProvider).isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('واصل ون')),
@@ -52,8 +53,10 @@ class WaselOneScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _EntitlementsSection(
                 entitlements: entitlements,
-                onIssue: (entitlement) =>
-                    _issueCredential(context, ref, entitlement),
+                onIssue: issuing
+                    ? null
+                    : (entitlement) =>
+                        _issueCredential(context, ref, entitlement),
               ),
             ],
             const SizedBox(height: 22),
@@ -77,23 +80,30 @@ class WaselOneScreen extends ConsumerWidget {
     WidgetRef ref,
     AccessEntitlement entitlement,
   ) async {
+    final notifier = ref.read(waselOneCredentialProvider.notifier);
+    final RadiusAccessCredential? credential;
     try {
-      final credential = await ref
-          .read(waselOneCredentialProvider.notifier)
-          .issue(entitlement.id);
+      credential = await notifier.issue(entitlement.id);
+    } catch (error) {
+      notifier.clear();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_friendlyError(error))));
+      return;
+    }
+    // Null: a double tap while another issue was in flight; that call owns
+    // the sheet and the state, so leave both alone.
+    if (credential == null) return;
+    try {
       if (!context.mounted) return;
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (_) => _CredentialSheet(credential: credential),
+        builder: (_) => _CredentialSheet(credential: credential!),
       );
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(_friendlyError(error))));
     } finally {
-      ref.read(waselOneCredentialProvider.notifier).clear();
+      notifier.clear();
     }
   }
 }
@@ -304,7 +314,7 @@ class _SignInRequired extends StatelessWidget {
 
 class _EntitlementsSection extends StatelessWidget {
   final AsyncValue<List<AccessEntitlement>> entitlements;
-  final ValueChanged<AccessEntitlement> onIssue;
+  final ValueChanged<AccessEntitlement>? onIssue;
 
   const _EntitlementsSection({
     required this.entitlements,
@@ -329,7 +339,7 @@ class _EntitlementsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _EntitlementCard(
                     entitlement: item,
-                    onIssue: () => onIssue(item),
+                    onIssue: onIssue == null ? null : () => onIssue!(item),
                   ),
                 ),
               )
@@ -342,7 +352,8 @@ class _EntitlementsSection extends StatelessWidget {
 
 class _EntitlementCard extends StatelessWidget {
   final AccessEntitlement entitlement;
-  final VoidCallback onIssue;
+  // Null while a credential is being issued, which disables the button.
+  final VoidCallback? onIssue;
 
   const _EntitlementCard({required this.entitlement, required this.onIssue});
 
