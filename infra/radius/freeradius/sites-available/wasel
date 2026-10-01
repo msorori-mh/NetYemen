@@ -17,6 +17,10 @@ server wasel {
         if (!&User-Name || !&User-Password || !&NAS-Identifier || !&Acct-Session-Id) {
             reject
         }
+        # Bind the claimed NAS identity to the authenticated RADIUS client.
+        if (&NAS-Identifier != "%{client:shortname}") {
+            reject
+        }
         update control {
             REST-HTTP-Header := "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
         }
@@ -39,6 +43,9 @@ server wasel {
 
     accounting {
         if (!&Class || !&NAS-Identifier || !&Acct-Session-Id || !&Acct-Status-Type) {
+            reject
+        }
+        if (&NAS-Identifier != "%{client:shortname}") {
             reject
         }
         update control {

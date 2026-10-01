@@ -53,7 +53,8 @@ chmod 0600 .env
 ```
 
 Replace every placeholder in `.env`. Set `WASEL_RADIUS_BIND_IP` to the
-server's own public IPv4 address (the address the router targets). Generate independent values for the
+server's own public IPv4 address (the address the router targets), and
+`WASEL_NAS_IDENTIFIER` to the pilot router's exact `/system identity` name. Generate independent values for the
 internal key and RADIUS shared secret:
 
 ```bash

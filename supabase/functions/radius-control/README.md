@@ -13,6 +13,11 @@ The endpoint accepts only `POST`, limits bodies to 8 KiB, authenticates the
 `x-wasel-radius-key` header, validates every field, never logs credentials, and
 maps database policy failures to a generic `ACCESS_REJECT` response.
 
+Every request must carry `client_shortname` (FreeRADIUS `%{client:shortname}`,
+derived from the RADIUS client matched by source address and shared secret).
+It must equal `nas_identifier` exactly, otherwise the request is rejected with
+400 `INVALID_NAS_BINDING`, so a router cannot claim another NAS's identity.
+
 Local protocol tests:
 
 ```bash

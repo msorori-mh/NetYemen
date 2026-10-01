@@ -5,6 +5,9 @@
 :if ([:len "{{RADIUS_SHARED_SECRET}}"] < 24) do={ :error "Set a strong RADIUS_SHARED_SECRET" }
 :if ([:len "{{HOTSPOT_PROFILE}}"] = 0) do={ :error "Set HOTSPOT_PROFILE" }
 :if ([:len "{{HOTSPOT_SSL_CERTIFICATE}}"] = 0) do={ :error "Set HOTSPOT_SSL_CERTIFICATE" }
+# RouterOS sends /system identity as NAS-Identifier; FreeRADIUS accepts it only
+# when it equals WASEL_NAS_IDENTIFIER (the RADIUS client shortname).
+:if ([/system identity get name] != "{{NAS_IDENTIFIER}}") do={ :error "System identity must equal NAS_IDENTIFIER (WASEL_NAS_IDENTIFIER)" }
 
 /radius add service=hotspot address={{RADIUS_IP}} secret="{{RADIUS_SHARED_SECRET}}" \
     authentication-port=1812 accounting-port=1813 timeout=1s \

@@ -13,6 +13,7 @@ Deno.test("authorize parsing and request id are deterministic", async () => {
   const request = parseRadiusRequest({
     action: "authorize",
     nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
     username: "w1-0123456789abcdef01234567",
     password: "TEST_ONLY_PASSWORD",
     request_key: "hs-a-000001",
@@ -107,6 +108,7 @@ Deno.test("accounting counters must be safe non-negative integers", () => {
       action: "accounting",
       session_id: "99000000-0000-4000-8000-000000000001",
       nas_identifier: "wasel-pilot-nas-01",
+      client_shortname: "wasel-pilot-nas-01",
       event_key: "event-1",
       event_type: "interim_update",
       event_at: new Date().toISOString(),
@@ -125,6 +127,7 @@ Deno.test("RADIUS gigawords extend counters beyond 32 bits", () => {
     action: "accounting",
     session_id: "99000000-0000-4000-8000-000000000001",
     nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "wasel-pilot-nas-01",
     event_key: "event-large",
     event_type: "interim-update",
     event_at: new Date().toISOString(),
@@ -138,4 +141,47 @@ Deno.test("RADIUS gigawords extend counters beyond 32 bits", () => {
   const body = accountingRpcBody(request);
   assert(body.p_input_bytes === 4_294_967_306, "input gigaword conversion mismatch");
   assert(body.p_output_bytes === 8_589_934_612, "output gigaword conversion mismatch");
+});
+
+function rejectionOf(value: unknown): string | null {
+  try {
+    parseRadiusRequest(value);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : "UNKNOWN";
+  }
+}
+
+Deno.test("a NAS identifier not bound to the RADIUS client is rejected", () => {
+  const authorize = {
+    action: "authorize",
+    nas_identifier: "wasel-pilot-nas-01",
+    username: "w1-0123456789abcdef01234567",
+    password: "TEST_ONLY_PASSWORD",
+    request_key: "hs-a-000001",
+  };
+  assert(
+    rejectionOf({ ...authorize, client_shortname: "wasel-pilot-nas-02" }) === "INVALID_NAS_BINDING",
+    "authorize with a mismatched client shortname must be rejected",
+  );
+  assert(
+    rejectionOf(authorize) === "INVALID_CLIENT_SHORTNAME",
+    "authorize without a client shortname must be rejected",
+  );
+  const accounting = {
+    action: "accounting",
+    session_id: "99000000-0000-4000-8000-000000000001",
+    nas_identifier: "wasel-pilot-nas-01",
+    client_shortname: "WASEL-PILOT-NAS-01",
+    event_key: "event-1",
+    event_type: "start",
+    event_at: new Date().toISOString(),
+    input_bytes: 0,
+    output_bytes: 0,
+    session_seconds: 0,
+  };
+  assert(
+    rejectionOf(accounting) === "INVALID_NAS_BINDING",
+    "accounting binding comparison must be exact",
+  );
 });
