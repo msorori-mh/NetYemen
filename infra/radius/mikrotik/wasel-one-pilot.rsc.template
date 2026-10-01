@@ -1,0 +1,17 @@
+# WASEL One RouterOS pilot template. Replace every {{...}} value offline.
+# Export the current configuration before applying this file.
+
+:if ([:len "{{RADIUS_IP}}"] = 0 || "{{RADIUS_IP}}" = "RADIUS_IP") do={ :error "Set RADIUS_IP" }
+:if ([:len "{{RADIUS_SHARED_SECRET}}"] < 24) do={ :error "Set a strong RADIUS_SHARED_SECRET" }
+:if ([:len "{{HOTSPOT_PROFILE}}"] = 0) do={ :error "Set HOTSPOT_PROFILE" }
+:if ([:len "{{HOTSPOT_SSL_CERTIFICATE}}"] = 0) do={ :error "Set HOTSPOT_SSL_CERTIFICATE" }
+
+/radius add service=hotspot address={{RADIUS_IP}} secret="{{RADIUS_SHARED_SECRET}}" \
+    authentication-port=1812 accounting-port=1813 timeout=1s \
+    require-message-auth=yes-for-request-resp comment="WASEL_ONE_PILOT"
+
+/ip hotspot profile set [find where name="{{HOTSPOT_PROFILE}}"] \
+    use-radius=yes radius-accounting=yes radius-interim-update=1m \
+    login-by=https,cookie ssl-certificate="{{HOTSPOT_SSL_CERTIFICATE}}"
+
+:put "WASEL One pilot RADIUS enabled. Verify with /radius monitor [find where comment=\"WASEL_ONE_PILOT\"]"

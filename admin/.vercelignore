@@ -1,0 +1,4 @@
+# Deploy the admin dashboard as-is. config.js holds ONLY public values
+# (Supabase URL + publishable anon key), safe to ship. Exclude only the template.
+config.example.js
+.vercelignore

@@ -35,3 +35,17 @@ Welcome to the official technical, business, and security documentation reposito
 
 * 🧪 [Acceptance & Adversarial Test Catalog](NETYEMEN-ACCEPTANCE-TEST-CATALOG-01.md) — 32 detailed `#### TEST-` sections across 12 domain groups with automation layer targets.
 * 🚀 [Multi-Agent Implementation Backlog](NETYEMEN-MULTI-AGENT-IMPLEMENTATION-BACKLOG-01.md) — 14 delivery tasks decomposed across 7 waves for Codex, Cursor, K3, Antigravity, and Human Approval.
+
+---
+
+## 5. Core Backend Governance & Foundation (`NY-GOV-BE-001`)
+
+* ✅ [Governance Approval Package](NETYEMEN-GOVERNANCE-APPROVAL-PACKAGE-01.md) — Dependency closure for 11 open decisions with safe boundaries for core identity/network/audit foundation.
+* 🗺️ [Core Backend Migration Manifest](NETYEMEN-CORE-BACKEND-MIGRATION-MANIFEST-01.md) — Ordered source migrations, object inventory, and remote-apply status `NOT_AUTHORIZED`.
+* 📘 [Core Backend Foundation Report](NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md) — Readiness decision, object counts, verification evidence, and security confirmations.
+* 🗂️ Architecture Decision Records:
+  * [ADR-001 Supabase Core Domain Boundary](adr/ADR-001-SUPABASE-CORE-DOMAIN-BOUNDARY.md)
+  * [ADR-002 Role and RLS Foundation](adr/ADR-002-ROLE-AND-RLS-FOUNDATION.md)
+  * [ADR-003 Network Membership and SSID Aliases](adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md)
+  * [ADR-004 Immutable Audit Foundation](adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md)
+  * [ADR-005 Migration and Environment Governance](adr/ADR-005-MIGRATION-AND-ENVIRONMENT-GOVERNANCE.md)

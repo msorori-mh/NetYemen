@@ -1,0 +1,58 @@
+#cloud-config
+users:
+  - name: wasel
+    gecos: WASEL One staging operator
+    groups: [adm, sudo, docker]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - __SSH_PUBLIC_KEY__
+
+ssh_pwauth: false
+disable_root: true
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose-v2
+  - fail2ban
+  - git
+  - ufw
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/60-wasel-hardening.conf
+    permissions: '0644'
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+      KbdInteractiveAuthentication no
+      X11Forwarding no
+      AllowUsers wasel
+  - path: /etc/fail2ban/jail.d/sshd.local
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 5
+      findtime = 10m
+      bantime = 1h
+
+runcmd:
+  - install -d -m 0750 -o wasel -g wasel /opt/wasel-radius
+  - systemctl enable --now docker
+  - systemctl enable --now fail2ban
+  - systemctl restart ssh
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow from __ADMIN_CIDR__ to any port 22 proto tcp comment 'WASEL admin SSH'
+  - ufw allow from __ROUTER_CIDR__ to any port 1812 proto udp comment 'WASEL RADIUS auth'
+  - ufw allow from __ROUTER_CIDR__ to any port 1813 proto udp comment 'WASEL RADIUS accounting'
+  - ufw --force enable
+  - touch /opt/wasel-radius/CLOUD_INIT_COMPLETE
+  - chown wasel:wasel /opt/wasel-radius/CLOUD_INIT_COMPLETE
+
+final_message: 'WASEL One staging bootstrap complete.'

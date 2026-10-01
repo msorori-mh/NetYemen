@@ -1,0 +1,176 @@
+name: NetYemen Supabase Core CI
+
+on:
+  push:
+    branches:
+      - 'antigravity/*'
+      - 'kimi/*'
+      - 'codex/*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'antigravity/*'
+      - 'codex/*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  supabase-core-ci:
+    name: Supabase Local Authorization & Verification Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Non-Empty Test and Document Artifacts
+        run: |
+          set -e
+          echo "Verifying test and governance file sizes..."
+          for file in \
+            supabase/tests/001_core_schema_contract.sql \
+            supabase/tests/002_core_authorization_positive.sql \
+            supabase/tests/003_core_authorization_negative.sql \
+            supabase/tests/004_core_invariants.sql \
+            supabase/tests/019_hosted_admin_review_verifiers.sql \
+            supabase/verification/017_hosted_admin_review_production_preflight.sql \
+            supabase/verification/017_hosted_admin_review_production_postverify.sql \
+            supabase/verification/018_account_deletion_production_preflight.sql \
+            supabase/verification/018_account_deletion_production_postverify.sql \
+            docs/NETYEMEN-CORE-BACKEND-FOUNDATION-01-REPORT.md \
+            docs/NETYEMEN-CORE-BACKEND-MIGRATION-MANIFEST-01.md \
+            docs/adr/ADR-002-ROLE-AND-RLS-FOUNDATION.md \
+            docs/adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md \
+            docs/adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md; do
+            if [ ! -s "$file" ]; then
+              echo "CRITICAL: Required file $file is missing or 0 bytes!"
+              exit 1
+            fi
+            echo "[OK] $file (bytes: $(stat -c%s "$file"))"
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check Public Legal Edge Function
+        run: |
+          deno check supabase/functions/public-legal/index.ts
+          deno check supabase/functions/notification-transport-adapter/index.ts
+          deno check supabase/functions/radius-control/index.ts
+          deno test supabase/functions/radius-control/protocol_test.ts
+          deno test supabase/functions/notification-transport-adapter/reveal_test.ts
+          deno run --allow-env supabase/functions/notification-transport-adapter/test_crypto.ts
+
+      - name: Validate WASEL One FreeRADIUS Configuration
+        run: |
+          docker build -t wasel-radius-ci infra/radius
+          docker run --rm --entrypoint freeradius \
+            -e WASEL_CONTROL_URL=https://radius-control.example.test \
+            -e WASEL_RADIUS_INTERNAL_KEY=TEST_ONLY_CI_INTERNAL_KEY_32_BYTES \
+            -e WASEL_RADIUS_SHARED_SECRET=TEST_ONLY_CI_RADIUS_SECRET_32_BYTES \
+            -e WASEL_NAS_NETWORK=192.0.2.0/24 \
+            wasel-radius-ci -XC
+
+      - name: Run WASEL One RADIUS Packet E2E
+        run: sh infra/radius/test/run-radius-e2e.sh
+
+      - name: Disable Analytics in Local Supabase Config
+        run: |
+          if ! grep -q "\[analytics\]" supabase/config.toml; then
+            echo -e "\n[analytics]\nenabled = false" >> supabase/config.toml
+          fi
+
+      - name: Start Disposable Local Supabase Stack
+        run: |
+          npx --yes supabase@2.109.1 stop --no-backup || true
+          npx --yes supabase@2.109.1 start
+
+      - name: Apply Migrations via Local Database Reset
+        run: |
+          npx --yes supabase@2.109.1 db reset --no-seed
+
+      - name: Configure Disposable Card Vault Test Key
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -c "select vault.create_secret('TEST_ONLY_CI_CARD_KEY_DO_NOT_USE', 'card_master_key', 'Disposable CI-only card key');"
+
+      - name: Run WASEL One RADIUS Read-Only Preflight
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/verification/021_wasel_one_radius_pilot_preflight.sql
+
+      - name: Run WASEL One SQL Contract (020)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/020_wasel_one_access_federation.sql
+
+      - name: Run WASEL One RADIUS SQL Contract (021)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/021_wasel_one_radius_control.sql
+
+      - name: Run Function EXECUTE Lockdown Contract (022)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/022_function_execute_lockdown.sql
+
+      - name: Run Access Grant Identity Contract (023)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/023_access_grant_trusted_identity.sql
+
+      - name: Run Legacy SQL Contract and E2E Suite (001-019)
+        run: |
+          set -euo pipefail
+          for test_file in supabase/tests/{001..019}_*.sql; do
+            echo "Running $test_file"
+            PGPASSWORD=postgres psql \
+              "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+              -v ON_ERROR_STOP=1 \
+              -f "$test_file"
+          done
+
+      - name: Verify Account Deletion Post-Migration Contract
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/verification/018_account_deletion_production_postverify.sql
+
+      - name: Execute PowerShell Static Verification Script
+        shell: pwsh
+        run: |
+          ./scripts/verify_netyemen_core_foundation.ps1
+          ./scripts/verify_netyemen_commerce_v1.ps1
+          ./scripts/verify_netyemen_v1_pilot.ps1
+          ./scripts/scan_netyemen_secrets.ps1
+          ./scripts/scan_netyemen_card_secrets.ps1
+          ./scripts/scan_netyemen_financial_invariants.ps1
+          ./scripts/scan_netyemen_fcm_credentials.ps1
+
+      - name: Cleanup Local Supabase Stack
+        if: always()
+        run: |
+          npx --yes supabase@2.109.1 stop --no-backup
