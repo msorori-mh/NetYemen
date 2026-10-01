@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../packages/domain/entities.dart';
-import '../../wallet/presentation/wallet_providers.dart';
 import 'purchase_providers.dart';
 import 'purchase_result_screen.dart';
 
@@ -82,10 +81,8 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
           .read(purchaseSubmissionProvider.notifier)
           .submit(package.id);
 
+      // The notifier refreshes wallet/history providers on success.
       if (context.mounted) {
-        ref.invalidate(purchaseHistoryProvider);
-        ref.invalidate(fulfillmentRecordsProvider);
-        ref.invalidate(walletSummaryProvider);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => PurchaseResultScreen(

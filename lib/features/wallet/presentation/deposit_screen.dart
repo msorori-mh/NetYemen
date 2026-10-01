@@ -53,7 +53,6 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         _referenceController.clear();
         _selectedDestinationId = null;
       }
-      ref.invalidate(depositHistoryProvider);
     } catch (error) {
       if (mounted) {
         setState(() => _message = depositErrorMessage(error));
