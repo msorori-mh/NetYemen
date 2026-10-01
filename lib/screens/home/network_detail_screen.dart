@@ -61,11 +61,12 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> {
     } catch (e) {
       _showError('فشلت عملية الشراء: $e');
     } finally {
-      setState(() => _isPurchasing = false);
+      if (mounted) setState(() => _isPurchasing = false);
     }
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );

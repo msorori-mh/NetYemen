@@ -48,14 +48,21 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     } catch (e) {
       _showError('رمز التحقق غير صحيح');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
   }
 
   @override

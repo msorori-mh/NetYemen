@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,7 +25,10 @@ void main() async {
 }
 
 class NetYemenApp extends StatelessWidget {
-  const NetYemenApp({super.key});
+  /// Overrides the initial screen; used by tests to avoid Supabase startup.
+  final Widget? home;
+
+  const NetYemenApp({super.key, this.home});
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,11 @@ class NetYemenApp extends StatelessWidget {
       supportedLocales: const [
         Locale('ar', 'YE'),
         Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(
         useMaterial3: true,
@@ -82,7 +91,7 @@ class NetYemenApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const SplashScreen(),
+      home: home ?? const SplashScreen(),
     );
   }
 }
