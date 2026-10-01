@@ -6,6 +6,9 @@ import 'package:netyemen/features/purchase/data/fake_purchase_repository.dart';
 import 'package:netyemen/features/purchase/data/purchase_repository.dart';
 import 'package:netyemen/features/purchase/domain/entities.dart';
 import 'package:netyemen/features/purchase/presentation/purchase_providers.dart';
+import 'package:netyemen/features/wallet/data/fake_wallet_repository.dart';
+import 'package:netyemen/features/wallet/domain/entities.dart';
+import 'package:netyemen/features/wallet/presentation/wallet_providers.dart';
 
 void main() {
   group('PurchaseSubmissionNotifier', () {
@@ -67,6 +70,33 @@ void main() {
         reason: 'a confirmed purchase closes its idempotency session',
       );
     });
+
+    test('refreshes wallet and purchase history after success', () async {
+      final repository = _RecordingPurchaseRepository();
+      final wallet = _CountingWalletRepository();
+      final container = ProviderContainer(
+        overrides: [
+          purchaseRepositoryProvider.overrideWithValue(repository),
+          walletRepositoryProvider.overrideWithValue(wallet),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(walletSummaryProvider, (_, __) {});
+      container.listen(purchaseHistoryProvider, (_, __) {});
+      await container.read(walletSummaryProvider.future);
+      await container.read(purchaseHistoryProvider.future);
+      expect(wallet.summaryReads, 1);
+      expect(repository.historyReads, 1);
+
+      // No widget is involved: the refresh must not depend on the screen
+      // still being mounted when the purchase completes.
+      await container.read(purchaseSubmissionProvider.notifier).submit('p-1');
+      await container.read(walletSummaryProvider.future);
+      await container.read(purchaseHistoryProvider.future);
+
+      expect(wallet.summaryReads, 2);
+      expect(repository.historyReads, 2);
+    });
   });
 
   test('fake repository replays a key without creating a second order',
@@ -100,6 +130,7 @@ class _RecordingPurchaseRepository implements PurchaseRepository {
   final bool failFirstAttempt;
   final Completer<void>? gate;
   final List<String> idempotencyKeys = [];
+  int historyReads = 0;
 
   _RecordingPurchaseRepository({
     this.failFirstAttempt = false,
@@ -124,7 +155,10 @@ class _RecordingPurchaseRepository implements PurchaseRepository {
   }
 
   @override
-  Future<List<PurchaseOrder>> getMyPurchaseOrders() async => const [];
+  Future<List<PurchaseOrder>> getMyPurchaseOrders() async {
+    historyReads++;
+    return const [];
+  }
 
   @override
   Future<List<FulfillmentRecord>> getMyFulfillmentRecords() async => const [];
@@ -137,5 +171,20 @@ class _RecordingPurchaseRepository implements PurchaseRepository {
   @override
   Future<void> submitInvalidCardDispute(String purchaseId, String reason) {
     throw UnimplementedError();
+  }
+}
+
+class _CountingWalletRepository extends FakeWalletRepository {
+  int summaryReads = 0;
+
+  @override
+  Future<WalletSummary> getMyWalletSummary() async {
+    summaryReads++;
+    return const WalletSummary(
+      userId: 'user-1',
+      balance: 0,
+      currency: 'YER',
+      accountStatus: 'active',
+    );
   }
 }

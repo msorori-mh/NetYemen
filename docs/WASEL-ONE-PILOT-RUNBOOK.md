@@ -15,6 +15,14 @@ does not authorize a production database write or a live router change.
 Exit: named operator, maintenance window, router identity, network ID, NAS
 identifier, test user ID, rollback owner, and maximum test duration are recorded.
 
+NAS identity binding: the router's `/system identity` (sent as
+`NAS-Identifier`) must equal `WASEL_NAS_IDENTIFIER`, which FreeRADIUS uses as
+the RADIUS client `shortname` in `clients.conf`. FreeRADIUS rejects any packet
+whose `NAS-Identifier` differs from the matched client's shortname, and
+`radius-control` rejects (`INVALID_NAS_BINDING`, 400) any body whose
+`client_shortname` differs from `nas_identifier`. Additional routers each need
+their own `client` block with a `/32` address and their own shortname.
+
 ## Gate 1 — read-only preflight
 
 1. Run migrations in staging, not production.

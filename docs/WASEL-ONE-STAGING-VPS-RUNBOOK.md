@@ -8,6 +8,11 @@
 - Image: Ubuntu 24.04 LTS.
 - Exposure: SSH from one administrator CIDR; UDP 1812/1813 from one pilot
   router CIDR only.
+- Docker-published ports bypass UFW (Docker's DNAT rules run in the
+  `FORWARD` path before UFW). The rendered cloud-init therefore also appends a
+  `DOCKER-USER` block to `/etc/ufw/after.rules` that drops UDP 1812/1813 from
+  any source other than the router CIDR, and the compose file publishes the
+  ports only on `WASEL_RADIUS_BIND_IP`, never `0.0.0.0`.
 - Scope: one disposable staging server and one MikroTik pilot router.
 
 The provider order and billing remain an explicit human action. No API token or
@@ -47,7 +52,9 @@ cp .env.example .env
 chmod 0600 .env
 ```
 
-Replace every placeholder in `.env`. Generate independent values for the
+Replace every placeholder in `.env`. Set `WASEL_RADIUS_BIND_IP` to the
+server's own public IPv4 address (the address the router targets), and
+`WASEL_NAS_IDENTIFIER` to the pilot router's exact `/system identity` name. Generate independent values for the
 internal key and RADIUS shared secret:
 
 ```bash
@@ -63,12 +70,16 @@ single pilot router.
 ## Read-only gate, apply, and verification
 
 ```bash
-sh infra/radius/staging/preflight.sh /opt/wasel-radius/src
+sudo sh infra/radius/staging/preflight.sh /opt/wasel-radius/src
 docker compose --env-file infra/radius/.env \
   -f infra/radius/docker-compose.yml up --detach --build
 docker compose --env-file infra/radius/.env \
   -f infra/radius/docker-compose.yml ps
 ```
+
+The preflight runs as root because it reads UFW status and the `DOCKER-USER`
+chain. Verify externally (from a host outside the router CIDR) that UDP
+1812/1813 do not answer before continuing.
 
 Do not apply the MikroTik template until the server preflight, database
 preflight, Edge Function health, and router configuration export are all PASS.

@@ -6,6 +6,7 @@ import '../../../app/app_shell.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import 'pin_providers.dart';
+import 'pin_sign_out_button.dart';
 
 /// شاشة إدخال الرمز السري — تظهر على جهاز غير موثوق.
 ///
@@ -260,6 +261,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    const PinSignOutButton(),
                   ],
                 ],
               ),

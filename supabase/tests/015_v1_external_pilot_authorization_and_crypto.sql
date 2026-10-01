@@ -284,22 +284,23 @@ BEGIN
   IF v_count>0 THEN RAISE EXCEPTION 'CRYPTO-02 FAIL: plaintext leaked in card_vault'; END IF;
 
   -- CRYPTO-03: pgcrypto randomizes two encryptions of the same plaintext.
+  -- (The same PIN can no longer be ingested twice into one network -- see
+  -- 025_card_pin_uniqueness.sql -- so compare the ingested ciphertext with a
+  -- fresh encryption of the same plaintext under the same key.)
   EXECUTE 'SET LOCAL ROLE authenticated';
   PERFORM set_config('request.jwt.claim.sub',v_admin::text,true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
   PERFORM public.admin_ingest_card_vault_batch(
     v_network,
     v_package,
-    ARRAY[
-      jsonb_build_object('pin',v_plaintext2),
-      jsonb_build_object('pin',v_plaintext2)
-    ]::jsonb[]
+    ARRAY[jsonb_build_object('pin',v_plaintext2)]::jsonb[]
   );
   EXECUTE 'SET LOCAL ROLE postgres';
-  SELECT count(DISTINCT ciphertext) INTO v_count
+  SELECT count(*) INTO v_count
   FROM public.card_vault
-  WHERE pgp_sym_decrypt(ciphertext, public.get_card_master_key())=v_plaintext2;
-  IF v_count<>2 THEN RAISE EXCEPTION 'CRYPTO-03 FAIL: pgcrypto ciphertext was not randomized'; END IF;
+  WHERE pgp_sym_decrypt(ciphertext, public.get_card_master_key())=v_plaintext2
+    AND ciphertext <> pgp_sym_encrypt(v_plaintext2, public.get_card_master_key());
+  IF v_count<>1 THEN RAISE EXCEPTION 'CRYPTO-03 FAIL: pgcrypto ciphertext was not randomized'; END IF;
   RAISE NOTICE 'CRYPTO-01/02/03 PASS: ciphertext != plaintext, no plaintext leak, randomized encryption';
 
   -- CRYPTO-04: plaintext absent from audit_events and notification_events.

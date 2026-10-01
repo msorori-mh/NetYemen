@@ -62,6 +62,21 @@ EOF
 set -e
 printf '%s\n' "$auth_reject" | grep -q "Access-Reject"
 
+# A NAS-Identifier that differs from the RADIUS client's shortname is rejected
+# inside FreeRADIUS and never reaches the control plane.
+set +e
+auth_spoofed_nas=$(docker exec -i "$radius_container" sh -c \
+  "radclient -x -r 1 -t 3 127.0.0.1:1812 auth '$radius_secret'" <<'EOF'
+User-Name = "w1-0123456789abcdef01234567"
+User-Password = "TEST_ONLY_E2E_PASSWORD"
+NAS-Identifier = "wasel-other-nas-02"
+Acct-Session-Id = "hs-e2e-000002"
+Message-Authenticator = 0x00
+EOF
+)
+set -e
+printf '%s\n' "$auth_spoofed_nas" | grep -q "Access-Reject"
+
 accounting=$(docker exec -i "$radius_container" sh -c \
   "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
 User-Name = "w1-0123456789abcdef01234567"
@@ -79,12 +94,26 @@ EOF
 )
 printf '%s\n' "$accounting" | grep -q "Accounting-Response"
 
+# Many NASes omit counters on Accounting-Start; the REST body must default
+# them to 0 instead of emitting invalid JSON.
+accounting_no_counters=$(docker exec -i "$radius_container" sh -c \
+  "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
+User-Name = "w1-0123456789abcdef01234567"
+NAS-Identifier = "wasel-e2e-nas-01"
+Acct-Session-Id = "hs-e2e-000003"
+Acct-Status-Type = Start
+Class = "99000000-0000-4000-8000-000000000001"
+Message-Authenticator = 0x00
+EOF
+)
+printf '%s\n' "$accounting_no_counters" | grep -q "Accounting-Response"
+
 stats=$(curl --fail --silent --show-error http://127.0.0.1:18787/stats)
 node -e '
 const stats = JSON.parse(process.argv[1]);
-if (stats.authorizeAccepted !== 1 || stats.authorizeDenied !== 1 || stats.accounting !== 1) {
+if (stats.authorizeAccepted !== 1 || stats.authorizeDenied !== 1 || stats.accounting !== 2 || stats.bindingRejected !== 0) {
   throw new Error(`unexpected mock stats: ${JSON.stringify(stats)}`);
 }
 ' "$stats"
 
-echo "PASS: RADIUS packet E2E accepted=1 rejected=1 accounting=1"
+echo "PASS: RADIUS packet E2E accepted=1 rejected=1 spoofed_nas_rejected=1 accounting=2"

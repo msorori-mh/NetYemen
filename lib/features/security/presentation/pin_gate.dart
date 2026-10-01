@@ -8,6 +8,7 @@ import '../domain/pin_status.dart';
 import 'pin_entry_screen.dart';
 import 'pin_providers.dart';
 import 'pin_setup_screen.dart';
+import 'pin_sign_out_button.dart';
 
 /// بوّابة الرمز السري — تُقرر ما يراه المستخدم بعد تسجيل الدخول:
 ///
@@ -106,10 +107,18 @@ class _PinGateState extends ConsumerState<PinGate> {
                         style: TextStyle(color: AppTheme.textOnPrimary),
                       ),
                       const SizedBox(height: 20),
-                      FilledButton(
-                        key: const Key('pin-gate-retry'),
-                        onPressed: _resolveGate,
-                        child: const Text('إعادة المحاولة'),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton(
+                            key: const Key('pin-gate-retry'),
+                            onPressed: _resolveGate,
+                            child: const Text('إعادة المحاولة'),
+                          ),
+                          const PinSignOutButton(),
+                        ],
                       ),
                     ],
                   ),

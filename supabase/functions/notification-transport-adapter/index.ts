@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
   // Anon or customer JWTs must never be able to dispatch pushes or decrypt
   // card secrets generically.
   if (body.action === "dispatch_push" || body.action === "decrypt_card_secret") {
-    const authError = requireInternalAuth(req);
+    const authError = await requireInternalAuth(req);
     if (authError) return authError;
   }
 
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
  * internal function secret). This prevents anon/customer JWTs from reaching
  * dispatch_push / decrypt_card_secret.
  */
-function requireInternalAuth(req: Request): Response | null {
+async function requireInternalAuth(req: Request): Promise<Response | null> {
   const authHeader = req.headers.get("authorization") || "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   if (!match) {
@@ -122,8 +122,11 @@ function requireInternalAuth(req: Request): Response | null {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
 
-  const isServiceRole = serviceRoleKey && token === serviceRoleKey;
-  const isInternalSecret = internalSecret && token === internalSecret;
+  // Compare both candidates unconditionally and in constant time.
+  const [isServiceRole, isInternalSecret] = await Promise.all([
+    serviceRoleKey ? constantTimeEqual(token, serviceRoleKey) : Promise.resolve(false),
+    internalSecret ? constantTimeEqual(token, internalSecret) : Promise.resolve(false),
+  ]);
 
   if (!isServiceRole && !isInternalSecret) {
     console.error("Authorization rejected for sensitive action");
@@ -131,6 +134,23 @@ function requireInternalAuth(req: Request): Response | null {
   }
 
   return null;
+}
+
+/**
+ * Constant-time string comparison (same approach as radius-control): hashing
+ * both sides to fixed-length SHA-256 digests hides length and content timing.
+ */
+async function constantTimeEqual(left: string, right: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(left)),
+    crypto.subtle.digest("SHA-256", encoder.encode(right)),
+  ]);
+  const a = new Uint8Array(leftHash);
+  const b = new Uint8Array(rightHash);
+  let difference = 0;
+  for (let index = 0; index < a.length; index++) difference |= a[index] ^ b[index];
+  return difference === 0;
 }
 
 async function handleDispatchPush(payload: DispatchPushPayload): Promise<Response> {

@@ -101,6 +101,52 @@ void main() {
     );
   });
 
+  testWidgets('leaving the card screen early clears the copied card', (
+    tester,
+  ) async {
+    String? clipboardText;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        clipboardText =
+            (call.arguments as Map<dynamic, dynamic>)['text'] as String?;
+        return null;
+      }
+      if (call.method == 'Clipboard.getData') {
+        return <String, dynamic>{'text': clipboardText};
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(
+      _buildScreen(
+        const CardRevealScreen(
+          revealedInfo: RevealedCardInfo(
+            purchaseId: 'purchase-1',
+            plaintext: 'CARD-EARLY-1',
+          ),
+        ),
+        FakePurchaseRepository(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('card-secret-copy')));
+    await tester.pump();
+    expect(clipboardText, 'CARD-EARLY-1');
+
+    // Leave well before the 60-second timer fires.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+
+    expect(clipboardText, anyOf(isNull, isEmpty));
+  });
+
   testWidgets('missing dispute deadline fails closed', (tester) async {
     await tester.pumpWidget(
       _buildScreen(

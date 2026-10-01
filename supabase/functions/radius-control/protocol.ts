@@ -7,6 +7,7 @@ const GIGAWORD = 4_294_967_296;
 export interface AuthorizeRequest {
   action: "authorize";
   nas_identifier: string;
+  client_shortname: string;
   username: string;
   password: string;
   request_key: string;
@@ -17,6 +18,7 @@ export interface AccountingRequest {
   action: "accounting";
   session_id: string;
   nas_identifier: string;
+  client_shortname: string;
   event_key: string;
   event_type: "start" | "interim_update" | "stop";
   event_at: string;
@@ -36,6 +38,17 @@ export interface RpcAuthorizeResult {
   idle_timeout: number;
   speed_limit_kbps: number | null;
   remaining_bytes: number | null;
+}
+
+/** Parses a raw request body; malformed JSON is a client error (INVALID_BODY). */
+export function parseRadiusRequestBody(raw: string): RadiusRequest {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new Error("INVALID_BODY");
+  }
+  return parseRadiusRequest(value);
 }
 
 export function parseRadiusRequest(value: unknown): RadiusRequest {
@@ -112,6 +125,7 @@ export function freeRadiusAccept(result: RpcAuthorizeResult): Record<string, unk
 
 function parseAuthorize(value: Record<string, unknown>): AuthorizeRequest {
   const nas = requiredString(value.nas_identifier, "nas_identifier", 128);
+  const clientShortname = boundClientShortname(value, nas);
   const username = requiredString(value.username, "username", 64).toLowerCase();
   const password = requiredString(value.password, "password", 128);
   const requestKey = requiredString(value.request_key, "request_key", 256);
@@ -124,6 +138,7 @@ function parseAuthorize(value: Record<string, unknown>): AuthorizeRequest {
   return {
     action: "authorize",
     nas_identifier: nas,
+    client_shortname: clientShortname,
     username,
     password,
     request_key: requestKey,
@@ -134,6 +149,7 @@ function parseAuthorize(value: Record<string, unknown>): AuthorizeRequest {
 function parseAccounting(value: Record<string, unknown>): AccountingRequest {
   const sessionId = requiredString(value.session_id, "session_id", 36);
   const nas = requiredString(value.nas_identifier, "nas_identifier", 128);
+  const clientShortname = boundClientShortname(value, nas);
   const eventKey = requiredString(value.event_key, "event_key", 256);
   const eventType = value.event_type === "interim-update" ? "interim_update" : value.event_type;
   const eventAt = requiredString(value.event_at, "event_at", 40);
@@ -147,6 +163,7 @@ function parseAccounting(value: Record<string, unknown>): AccountingRequest {
     action: "accounting",
     session_id: sessionId,
     nas_identifier: nas,
+    client_shortname: clientShortname,
     event_key: eventKey,
     event_type: eventType as AccountingRequest["event_type"],
     event_at: eventAt,
@@ -156,6 +173,17 @@ function parseAccounting(value: Record<string, unknown>): AccountingRequest {
     output_gigawords: nonNegativeInt(value.output_gigawords ?? 0, "output_gigawords"),
     session_seconds: nonNegativeInt(value.session_seconds, "session_seconds"),
   };
+}
+
+/**
+ * NAS-Identifier is self-asserted by the router. FreeRADIUS also sends the
+ * shortname of the RADIUS client (matched by source IP + shared secret); the
+ * claimed identity is only trusted when the two are identical.
+ */
+function boundClientShortname(value: Record<string, unknown>, nas: string): string {
+  const shortname = requiredString(value.client_shortname, "client_shortname", 128);
+  if (shortname !== nas) throw new Error("INVALID_NAS_BINDING");
+  return shortname;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

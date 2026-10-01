@@ -6,8 +6,15 @@ import '../domain/entities.dart';
 
 class SupabasePurchaseRepository implements PurchaseRepository {
   final SupabaseClient _client;
+  final String? Function()? _currentUserId;
 
-  const SupabasePurchaseRepository(this._client);
+  /// [currentUserId] overrides the signed-in user lookup (tests only).
+  const SupabasePurchaseRepository(
+    this._client, {
+    String? Function()? currentUserId,
+  }) : _currentUserId = currentUserId;
+
+  String? get _userId => _currentUserId?.call() ?? _client.auth.currentUser?.id;
 
   @override
   Future<Map<String, dynamic>> purchasePackage({
@@ -26,9 +33,14 @@ class SupabasePurchaseRepository implements PurchaseRepository {
 
   @override
   Future<List<PurchaseOrder>> getMyPurchaseOrders() async {
+    // RLS also lets network owners/finance/admin read other customers' rows,
+    // so "my purchases" must filter by the signed-in user explicitly.
+    final userId = _userId;
+    if (userId == null) return const [];
     final result = await _client
         .from('purchase_records')
         .select('*, network_packages(name), networks(commercial_name)')
+        .eq('user_id', userId)
         .order('created_at', ascending: false);
     final list = result as List<dynamic>;
     return list.map((row) {

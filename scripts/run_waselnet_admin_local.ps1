@@ -23,9 +23,34 @@ Do not paste the key into source code, GitHub, screenshots, or chat.
 '@
 }
 
+# A legacy service_role key is also a JWT starting with "eyJ", so a prefix
+# check is not enough: decode the payload and require role = anon.
+function Test-LegacyAnonJwt {
+    param([string]$Key)
+    $parts = $Key.Split('.')
+    if ($parts.Length -ne 3 -or -not $Key.StartsWith('eyJ')) { return $false }
+    $payload = $parts[1].Replace('-', '+').Replace('_', '/')
+    switch ($payload.Length % 4) {
+        1 { return $false }
+        2 { $payload += '==' }
+        3 { $payload += '=' }
+    }
+    try {
+        $json = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($payload))
+        $claims = $json | ConvertFrom-Json
+    } catch {
+        return $false
+    }
+    if ($null -eq $claims -or -not ($claims.PSObject.Properties.Name -contains 'role')) {
+        return $false
+    }
+    return ($claims.role -ceq 'anon')
+}
+
+$isSecretKey = $publishableKey.StartsWith('sb_secret_')
 $isPublishableKey = $publishableKey.StartsWith('sb_publishable_')
-$isLegacyAnonJwt = $publishableKey.StartsWith('eyJ')
-if (-not ($isPublishableKey -or $isLegacyAnonJwt)) {
+$isLegacyAnonJwt = Test-LegacyAnonJwt -Key $publishableKey
+if ($isSecretKey -or -not ($isPublishableKey -or $isLegacyAnonJwt)) {
     throw @'
 HOLD: WASELNET_SUPABASE_PUBLISHABLE_KEY is not a Supabase client key.
 Copy the Publishable key (or legacy anon key) from Project Settings > API Keys.
