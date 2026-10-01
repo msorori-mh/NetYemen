@@ -63,9 +63,12 @@ class SupabaseWalletRepository implements WalletRepository {
       'create_wallet_deposit_request',
       params: {
         'p_amount': amount,
+        // The server rejects an empty reference with INVALID_REFERENCE; the
+        // deposit form requires it. No proof file upload exists yet, so the
+        // storage path stays null rather than echoing the reference.
         'p_reference_number': proofReference ?? '',
         'p_payment_destination_id': paymentDestinationId,
-        'p_proof_storage_path': proofReference,
+        'p_proof_storage_path': null,
         'p_idempotency_key': idempotencyKey,
       },
     );
