@@ -25,6 +25,8 @@ DECLARE
     v_count INTEGER;
     v_denied BOOLEAN;
     v_base_time TIMESTAMPTZ := NOW();
+    v_session_b UUID;
+    v_remaining BIGINT;
 BEGIN
     EXECUTE 'SET LOCAL ROLE postgres';
 
@@ -210,6 +212,68 @@ BEGIN
     END IF;
     IF (SELECT consumed_bytes FROM public.access_entitlements WHERE id = v_entitlement) <> 6291456 THEN
         RAISE EXCEPTION 'TEST_FAIL (ACCT-05): entitlement consumption is wrong.';
+    END IF;
+
+    -- ------------------------------------------------------------------
+    -- QUOTA-01..04: concurrent sessions reserve the allowance, so their sum
+    -- can never exceed it (Mikrotik-Total-Limit caps each session).
+    -- ------------------------------------------------------------------
+    UPDATE public.access_entitlements SET max_concurrent_sessions = 2
+    WHERE id = v_entitlement;
+    v_remaining := 1073741824 - 6291456;
+
+    EXECUTE 'SET LOCAL ROLE service_role';
+    SELECT public.radius_authorize_access(
+        'wasel-radius-nas-01', v_username, v_password,
+        '99900000-0000-4000-8000-000000000002', NULL
+    ) INTO v_authorization;
+    IF (v_authorization->>'remaining_bytes')::BIGINT <> v_remaining THEN
+        RAISE EXCEPTION 'TEST_FAIL (QUOTA-01): first session should get the whole remainder, got %.',
+            v_authorization->>'remaining_bytes';
+    END IF;
+    v_session_b := (v_authorization->>'session_id')::UUID;
+
+    v_denied := FALSE;
+    BEGIN
+        PERFORM public.radius_authorize_access(
+            'wasel-radius-nas-01', v_username, v_password,
+            '99900000-0000-4000-8000-000000000003', NULL
+        );
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'ALLOWANCE_RESERVED_BY_OTHER_SESSIONS%' THEN
+            RAISE EXCEPTION 'TEST_FAIL (QUOTA-02): unexpected error %', SQLERRM;
+        END IF;
+        v_denied := TRUE;
+    END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'TEST_FAIL (QUOTA-02): a concurrent session received allowance already reserved.';
+    END IF;
+
+    -- Retrying the first authorization keeps its reservation.
+    SELECT public.radius_authorize_access(
+        'wasel-radius-nas-01', v_username, v_password,
+        '99900000-0000-4000-8000-000000000002', NULL
+    ) INTO v_retry;
+    IF (v_retry->>'remaining_bytes')::BIGINT <> v_remaining THEN
+        RAISE EXCEPTION 'TEST_FAIL (QUOTA-03): retry changed the reservation.';
+    END IF;
+
+    -- After the first session ends having used 1 MiB, the rest is available.
+    PERFORM public.radius_record_accounting(
+        v_session_b, 'wasel-radius-nas-01', 'radius-02:start', 'start',
+        v_base_time + INTERVAL '3 seconds', 0, 0, 0
+    );
+    PERFORM public.radius_record_accounting(
+        v_session_b, 'wasel-radius-nas-01', 'radius-02:stop', 'stop',
+        v_base_time + INTERVAL '4 seconds', 524288, 524288, 30
+    );
+    SELECT public.radius_authorize_access(
+        'wasel-radius-nas-01', v_username, v_password,
+        '99900000-0000-4000-8000-000000000003', NULL
+    ) INTO v_authorization;
+    IF (v_authorization->>'remaining_bytes')::BIGINT <> v_remaining - 1048576 THEN
+        RAISE EXCEPTION 'TEST_FAIL (QUOTA-04): released allowance is wrong, got %.',
+            v_authorization->>'remaining_bytes';
     END IF;
 END;
 $$;
