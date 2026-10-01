@@ -648,6 +648,48 @@ BEGIN
     END IF;
     EXECUTE 'SET LOCAL ROLE authenticated';
 
+    -- ------------------------------------------------------------------------
+    -- NEG-21: Large deposits need two different approvers (THR-23)
+    -- (kept last: it credits customer B, which earlier balance checks avoid)
+    -- ------------------------------------------------------------------------
+    EXECUTE 'SET LOCAL ROLE postgres';
+    SELECT cached_balance INTO v_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_customer_b_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_customer_b_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.create_wallet_deposit_request(60000, 'REF-LARGE-0001', v_destination_id, NULL, gen_random_uuid());
+    v_deposit_id := (v_result->>'id')::UUID;
+
+    PERFORM set_config('request.jwt.claim.sub', v_finance_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_finance_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'under_review' OR NOT (v_result->>'requires_second_approval')::BOOLEAN THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): first approval of a large deposit credited directly: %', v_result;
+    END IF;
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'under_review' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): the same reviewer completed the second approval.';
+    END IF;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    IF (SELECT cached_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id) <> v_balance THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): balance changed before the second approval.';
+    END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::text, true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+    v_result := public.review_wallet_deposit_request(v_deposit_id, 'approve');
+    IF v_result->>'status' <> 'approved' THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): second approver could not approve: %', v_result;
+    END IF;
+
+    EXECUTE 'SET LOCAL ROLE postgres';
+    IF (SELECT cached_balance FROM public.wallet_accounts WHERE user_id = v_customer_b_id) <> v_balance + 60000 THEN
+        RAISE EXCEPTION 'TEST_FAIL (NEG-21): large deposit was not credited exactly once.';
+    END IF;
+
     RAISE NOTICE 'SUCCESS: All Commerce Core Tests Passed.';
 END $$;
 
