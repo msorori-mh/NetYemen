@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/sensitive_clipboard.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../domain/entities.dart';
@@ -731,6 +731,11 @@ class _CredentialSheet extends StatelessWidget {
   }
 }
 
+/// Shared across both credential fields and kept beyond the sheet's life so
+/// the copied password can still be pasted into the network login page, but
+/// is wiped from the clipboard after a minute.
+final _credentialClipboard = SensitiveClipboard();
+
 class _SecretField extends StatelessWidget {
   final String label;
   final String value;
@@ -770,10 +775,13 @@ class _SecretField extends StatelessWidget {
           IconButton(
             tooltip: 'نسخ',
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: value));
+              await _credentialClipboard.copy(value);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text('تم نسخ $label')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('تم نسخ $label — سيُمسح من الحافظة بعد دقيقة'),
+                ),
+              );
             },
             icon: const Icon(Icons.copy_outlined),
           ),

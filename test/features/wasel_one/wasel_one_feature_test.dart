@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
@@ -72,5 +73,55 @@ void main() {
     expect(find.text('بيانات الدخول المؤقتة'), findsOneWidget);
     expect(find.text('w1-0123456789abcdef01234567'), findsOneWidget);
     expect(find.text('TEST-ONLY-482731'), findsOneWidget);
+  });
+
+  testWidgets('copied WASEL One password is wiped after a minute', (
+    tester,
+  ) async {
+    String? clipboardText;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        clipboardText =
+            (call.arguments as Map<dynamic, dynamic>)['text'] as String?;
+        return null;
+      }
+      if (call.method == 'Clipboard.getData') {
+        return <String, dynamic>{'text': clipboardText};
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          currentUserProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(home: WaselOneScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final issueButton = find.byKey(const Key('wasel-one-issue-credential'));
+    await tester.ensureVisible(issueButton);
+    await tester.tap(issueButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('نسخ').last);
+    await tester.pump();
+    expect(clipboardText, 'TEST-ONLY-482731');
+
+    await tester.pump(const Duration(seconds: 59));
+    expect(clipboardText, 'TEST-ONLY-482731');
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(clipboardText, anyOf(isNull, isEmpty));
+    await tester.pumpAndSettle();
   });
 }

@@ -1,10 +1,8 @@
 // lib/features/purchase/presentation/card_reveal_screen.dart
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/sensitive_clipboard.dart';
 import '../domain/entities.dart';
 import 'purchase_providers.dart';
 
@@ -22,12 +20,14 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   bool _disputing = false;
   bool _disputeSubmitted = false;
   final _reasonController = TextEditingController();
-  Timer? _clipboardClearTimer;
+  final _clipboard = SensitiveClipboard();
   String? _message;
 
   @override
   void dispose() {
-    _clipboardClearTimer?.cancel();
+    // Leaving early must not leave the card on the clipboard: clear it now
+    // instead of only cancelling the 60-second timer.
+    _clipboard.dispose();
     _reasonController.dispose();
     super.dispose();
   }
@@ -185,14 +185,7 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   }
 
   Future<void> _copyToClipboard(String text) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    _clipboardClearTimer?.cancel();
-    _clipboardClearTimer = Timer(const Duration(seconds: 60), () async {
-      final current = await Clipboard.getData(Clipboard.kTextPlain);
-      if (current?.text == text) {
-        await Clipboard.setData(const ClipboardData(text: ''));
-      }
-    });
+    await _clipboard.copy(text);
     if (mounted) {
       ScaffoldMessenger.of(
         context,
