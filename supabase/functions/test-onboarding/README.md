@@ -10,7 +10,7 @@ Required server secrets:
 - `TEST_ONBOARDING_EXPIRES_AT=<ISO-8601 UTC timestamp>`
 - `TEST_ONBOARDING_INVITE_SHA256=<lowercase SHA-256 of the tester invite>`
 - `TEST_ONBOARDING_INVITE_LABEL=<non-secret audit label>`
-- `TEST_ONBOARDING_ALLOWED_PHONES=<optional comma-separated +967 numbers>`
+- `TEST_ONBOARDING_ALLOWED_PHONES=<required comma-separated +967 numbers>`
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are supplied by Supabase. Never
 place the service-role key or the invite digest in the Flutter application.

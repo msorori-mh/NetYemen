@@ -37,7 +37,12 @@ network or membership automatically.
 - `TEST_ONBOARDING_INVITE_SHA256` must be a 64-character SHA-256 digest.
 - The underlying invite must be randomly generated with at least 128 bits of
   entropy; do not use a memorable word or shared account password.
-- `TEST_ONBOARDING_ALLOWED_PHONES` can restrict creation to named numbers.
+- `TEST_ONBOARDING_ALLOWED_PHONES` is mandatory and restricts creation to named
+  numbers; when it is unset or empty the function returns 503
+  `SERVICE_UNAVAILABLE`.
+- Account-creation failures, including an already-registered phone, return a
+  generic 400 `ACCOUNT_CREATION_FAILED` so the endpoint cannot enumerate
+  accounts.
 - Request bodies are limited to 16 KiB.
 - Password and invite values are never logged or stored in the application
   table.

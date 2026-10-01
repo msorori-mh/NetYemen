@@ -59,7 +59,13 @@ Deno.serve(async (request) => {
     .split(",")
     .map((phone) => phone.trim())
     .filter(Boolean);
-  if (allowedPhones.length > 0 && !allowedPhones.includes(payload.phone)) {
+  // The named-tester allowlist is mandatory: without it any holder of the
+  // invite could mint phone-confirmed identities for arbitrary numbers.
+  if (allowedPhones.length === 0) {
+    console.error("TEST_ONBOARDING_ALLOWED_PHONES is missing or empty");
+    return jsonResponse({ error: "SERVICE_UNAVAILABLE" }, 503);
+  }
+  if (!allowedPhones.includes(payload.phone)) {
     return jsonResponse({ error: "TESTER_NOT_ALLOWED" }, 403);
   }
 
@@ -84,12 +90,9 @@ Deno.serve(async (request) => {
       app_metadata: { onboarding_channel: "test_invite" },
     });
     if (error || !data.user) {
-      const duplicate = error?.message?.toLowerCase().includes("already") ??
-        false;
-      return jsonResponse(
-        { error: duplicate ? "ACCOUNT_EXISTS" : "ACCOUNT_CREATION_FAILED" },
-        duplicate ? 409 : 400,
-      );
+      // Deliberately generic: do not reveal whether the phone already has an
+      // account (no ACCOUNT_EXISTS / 409), to avoid account enumeration.
+      return jsonResponse({ error: "ACCOUNT_CREATION_FAILED" }, 400);
     }
 
     createdUserId = data.user.id;
