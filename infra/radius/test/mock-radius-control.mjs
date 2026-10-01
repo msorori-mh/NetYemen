@@ -46,6 +46,8 @@ createServer(async (request, response) => {
       "reply:Idle-Timeout": 300,
       "reply:Acct-Interim-Interval": 60,
       "reply:Mikrotik-Rate-Limit": "4096k/4096k",
+      "reply:Mikrotik-Total-Limit": 1048576,
+      "reply:Mikrotik-Total-Limit-Gigawords": 1,
     });
   }
 

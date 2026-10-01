@@ -54,6 +54,50 @@ Deno.test("FreeRADIUS response maps time, class and MikroTik rate", () => {
   assert(response["reply:Class"] === "99000000-0000-4000-8000-000000000001", "Class mismatch");
   assert(response["reply:Acct-Interim-Interval"] === 60, "interim interval mismatch");
   assert(response["reply:Mikrotik-Rate-Limit"] === "4096k/4096k", "rate mapping mismatch");
+  assert(response["reply:Mikrotik-Total-Limit"] === 1024, "data cap missing");
+  assert(response["reply:Mikrotik-Total-Limit-Gigawords"] === 0, "data cap gigawords mismatch");
+});
+
+Deno.test("FreeRADIUS response splits large data caps into gigawords", () => {
+  const response = freeRadiusAccept({
+    accepted: true,
+    session_id: "99000000-0000-4000-8000-000000000001",
+    session_timeout: 3600,
+    idle_timeout: 300,
+    speed_limit_kbps: null,
+    remaining_bytes: 5 * 4_294_967_296 + 123,
+  });
+  assert(response["reply:Mikrotik-Total-Limit"] === 123, "low word mismatch");
+  assert(response["reply:Mikrotik-Total-Limit-Gigawords"] === 5, "gigawords mismatch");
+});
+
+Deno.test("unlimited entitlements get no data cap", () => {
+  const response = freeRadiusAccept({
+    accepted: true,
+    session_id: "99000000-0000-4000-8000-000000000001",
+    session_timeout: 3600,
+    idle_timeout: 300,
+    speed_limit_kbps: null,
+    remaining_bytes: null,
+  });
+  assert(!("reply:Mikrotik-Total-Limit" in response), "unexpected data cap");
+});
+
+Deno.test("an exhausted allowance is never accepted", () => {
+  let rejected = false;
+  try {
+    freeRadiusAccept({
+      accepted: true,
+      session_id: "99000000-0000-4000-8000-000000000001",
+      session_timeout: 3600,
+      idle_timeout: 300,
+      speed_limit_kbps: null,
+      remaining_bytes: 0,
+    });
+  } catch (error) {
+    rejected = error instanceof Error && error.message === "INVALID_REMAINING_BYTES";
+  }
+  assert(rejected, "zero remaining bytes must fail closed");
 });
 
 Deno.test("accounting counters must be safe non-negative integers", () => {

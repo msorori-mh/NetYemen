@@ -46,6 +46,8 @@ printf '%s\n' "$auth_accept" | grep -q "Access-Accept"
 printf '%s\n' "$auth_accept" | grep -q 'Class = 0x39393030303030302d303030302d343030302d383030302d303030303030303030303031\|Class = "99000000-0000-4000-8000-000000000001"'
 printf '%s\n' "$auth_accept" | grep -q "Session-Timeout = 3600"
 printf '%s\n' "$auth_accept" | grep -q 'Mikrotik-Rate-Limit = "4096k/4096k"'
+printf '%s\n' "$auth_accept" | grep -q 'Mikrotik-Total-Limit = 1048576'
+printf '%s\n' "$auth_accept" | grep -q 'Mikrotik-Total-Limit-Gigawords = 1'
 
 set +e
 auth_reject=$(docker exec -i "$radius_container" sh -c \
