@@ -62,11 +62,18 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   PurchaseIdempotencySession? _pendingSession;
   Future<Map<String, dynamic>>? _inFlight;
   String? _inFlightFingerprint;
+  String? _statePackageId;
+
+  /// The package the current loading/error/result state belongs to. The
+  /// provider is global, so screens must only show an error for their own
+  /// package; the idempotency session itself is kept per fingerprint.
+  String? get statePackageId => _statePackageId;
 
   @override
   Future<Map<String, dynamic>?> build() async {
     // Reset any result or error left by a previous account.
     ref.watch(currentUserIdProvider);
+    _statePackageId = null;
     return null;
   }
 
@@ -100,6 +107,7 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
     required String packageId,
     required String fingerprint,
   }) async {
+    _statePackageId = packageId;
     state = const AsyncValue.loading();
 
     final session = _pendingSession;

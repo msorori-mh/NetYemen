@@ -19,6 +19,12 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final submission = ref.watch(purchaseSubmissionProvider);
+    // The submission provider is global: an error left by another package
+    // must not show here. Loading still disables the button for any package
+    // so two purchases never run at once.
+    final ownError = submission.hasError &&
+        ref.read(purchaseSubmissionProvider.notifier).statePackageId ==
+            package.id;
 
     return Scaffold(
       appBar: AppBar(title: const Text('تأكيد الشراء')),
@@ -44,7 +50,7 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
-              if (submission.hasError) ...[
+              if (ownError) ...[
                 Text(
                   _purchaseErrorText(submission.error!),
                   key: const Key('purchase-submit-error'),
@@ -63,9 +69,7 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(
-                        submission.hasError
-                            ? 'إعادة المحاولة بأمان'
-                            : 'تأكيد الشراء',
+                        ownError ? 'إعادة المحاولة بأمان' : 'تأكيد الشراء',
                       ),
               ),
             ],
