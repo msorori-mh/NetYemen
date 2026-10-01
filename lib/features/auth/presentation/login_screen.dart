@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/app_shell.dart';
+import '../../security/presentation/pin_gate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/customer_auth.dart';
 import 'customer_auth_providers.dart';
@@ -41,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AppShell()),
+        MaterialPageRoute(builder: (_) => const PinGate()),
         (route) => false,
       );
     } on FormatException catch (error) {

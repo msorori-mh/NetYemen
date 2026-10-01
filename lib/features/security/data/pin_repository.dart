@@ -3,6 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/pin_status.dart';
 
+const _trustKeyPrefix = 'pin_trusted_';
+
+/// Forgets every "trusted device" mark on this device, so the next sign-in
+/// (of any account) must enter the PIN again. Called on sign-out.
+Future<void> clearPinDeviceTrust() async {
+  final prefs = await SharedPreferences.getInstance();
+  for (final key in prefs.getKeys().toList()) {
+    if (key.startsWith(_trustKeyPrefix)) await prefs.remove(key);
+  }
+}
+
 /// Contract for PIN operations. Implementations must never log or return the
 /// plaintext PIN — only pass it through to the backend RPC.
 abstract interface class PinRepository {
@@ -31,7 +42,7 @@ class SupabasePinRepository implements PinRepository {
     if (!hasPin) return PinStatus.notSet;
 
     final prefs = await SharedPreferences.getInstance();
-    final trusted = prefs.getString('pin_trusted_$userId') == '1';
+    final trusted = prefs.getString('$_trustKeyPrefix$userId') == '1';
     return trusted ? PinStatus.setAndTrusted : PinStatus.setAndUntrusted;
   }
 
@@ -55,6 +66,6 @@ class SupabasePinRepository implements PinRepository {
   @override
   Future<void> trustDevice(String userId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('pin_trusted_$userId', '1');
+    await prefs.setString('$_trustKeyPrefix$userId', '1');
   }
 }

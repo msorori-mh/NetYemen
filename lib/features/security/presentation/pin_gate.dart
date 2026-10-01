@@ -29,7 +29,8 @@ class _PinGateState extends ConsumerState<PinGate> {
   @override
   void initState() {
     super.initState();
-    _resolveGate();
+    // Navigating from initState runs during build; wait for the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveGate());
   }
 
   Future<void> _resolveGate() async {
