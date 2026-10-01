@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../data/fake_notification_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/notification_transport_adapter.dart';
@@ -24,6 +25,8 @@ final notificationPermissionServiceProvider =
 });
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  // Per-user data: rebuild (and drop cached data) when the account changes.
+  ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return FakeNotificationRepository();

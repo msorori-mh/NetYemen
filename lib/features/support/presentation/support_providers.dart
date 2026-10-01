@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../data/fake_support_repository.dart';
 import '../data/support_repository.dart';
 import '../data/supabase_support_repository.dart';
 import '../domain/entities.dart';
 
 final supportRepositoryProvider = Provider<SupportRepository>((ref) {
+  // Per-user data: rebuild (and drop cached data) when the account changes.
+  ref.watch(currentUserIdProvider);
   final c = ref.watch(appConfigProvider);
   return c.isDemoMode || !c.isConfigured
       ? FakeSupportRepository()

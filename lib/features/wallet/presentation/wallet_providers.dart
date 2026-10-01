@@ -11,6 +11,8 @@ import '../data/fake_wallet_repository.dart';
 import '../domain/entities.dart';
 
 final walletRepositoryProvider = Provider<WalletRepository>((ref) {
+  // Per-user data: rebuild (and drop cached data) when the account changes.
+  ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return FakeWalletRepository();
@@ -53,7 +55,11 @@ class DepositSubmissionNotifier extends AsyncNotifier<String?> {
   String? _inFlightFingerprint;
 
   @override
-  Future<String?> build() async => null;
+  Future<String?> build() async {
+    // Reset any result or error left by a previous account.
+    ref.watch(currentUserIdProvider);
+    return null;
+  }
 
   Future<String> submit({
     required int amount,

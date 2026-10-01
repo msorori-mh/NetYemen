@@ -11,6 +11,8 @@ import '../data/fake_purchase_repository.dart';
 import '../domain/entities.dart';
 
 final purchaseRepositoryProvider = Provider<PurchaseRepository>((ref) {
+  // Per-user data: rebuild (and drop cached data) when the account changes.
+  ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return FakePurchaseRepository();
@@ -61,7 +63,11 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   String? _inFlightFingerprint;
 
   @override
-  Future<Map<String, dynamic>?> build() async => null;
+  Future<Map<String, dynamic>?> build() async {
+    // Reset any result or error left by a previous account.
+    ref.watch(currentUserIdProvider);
+    return null;
+  }
 
   Future<Map<String, dynamic>> submit(String packageId) async {
     final userId = ref.read(currentUserProvider)?.id ?? '';
@@ -127,7 +133,11 @@ final purchaseSubmissionProvider =
 
 class CardRevealNotifier extends AsyncNotifier<CardRevealResult?> {
   @override
-  Future<CardRevealResult?> build() async => null;
+  Future<CardRevealResult?> build() async {
+    // Reset any result or error left by a previous account.
+    ref.watch(currentUserIdProvider);
+    return null;
+  }
 
   Future<void> reveal(String purchaseId) async {
     state = await AsyncValue.guard(() async {

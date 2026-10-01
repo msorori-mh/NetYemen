@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config_provider.dart';
+import '../../auth/presentation/customer_session_providers.dart';
 import '../data/fake_wasel_one_repository.dart';
 import '../data/supabase_wasel_one_repository.dart';
 import '../data/wasel_one_repository.dart';
 import '../domain/entities.dart';
 
 final waselOneRepositoryProvider = Provider<WaselOneRepository>((ref) {
+  // Per-user data: rebuild (and drop cached data) when the account changes.
+  ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
     return FakeWaselOneRepository();
@@ -28,7 +31,11 @@ final waselOneEntitlementsProvider = FutureProvider<List<AccessEntitlement>>((
 class WaselOneCredentialNotifier
     extends AsyncNotifier<RadiusAccessCredential?> {
   @override
-  Future<RadiusAccessCredential?> build() async => null;
+  Future<RadiusAccessCredential?> build() async {
+    // Reset any result or error left by a previous account.
+    ref.watch(currentUserIdProvider);
+    return null;
+  }
 
   Future<RadiusAccessCredential> issue(String entitlementId) async {
     state = const AsyncValue.loading();
