@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
@@ -25,12 +26,18 @@ final networkCatalogRepositoryProvider = Provider<NetworkCatalogRepository>((
 });
 
 final wifiScanServiceProvider = Provider<WifiScanService>((ref) {
-  final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
-    return FakeWifiScanService();
-  }
-  return AndroidWifiScanService();
+  return wifiScanServiceForPlatform(
+    isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
+  );
 });
+
+/// Hardware discovery is independent from the backend configuration.
+///
+/// A debug/demo APK still needs to scan the physical Android device; only
+/// non-Android platforms and unit tests use the deterministic fake service.
+WifiScanService wifiScanServiceForPlatform({required bool isAndroid}) {
+  return isAndroid ? AndroidWifiScanService() : FakeWifiScanService();
+}
 
 final networkCatalogProvider =
     AsyncNotifierProvider<NetworkCatalogNotifier, List<NetworkEntity>>(
