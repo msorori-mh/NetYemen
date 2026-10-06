@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:wifi_scan/wifi_scan.dart';
@@ -27,26 +28,50 @@ class AndroidWifiScanService implements WifiScanService {
     final canStart = await WiFiScan.instance.canStartScan(askPermissions: true);
     _assertCanStart(canStart);
 
-    final started = await WiFiScan.instance.startScan();
-    if (!started) {
-      // On Android, startScan frequently returns false when throttled.
-      throw const ScanThrottledException();
-    }
-
     final canGet = await WiFiScan.instance.canGetScannedResults(
       askPermissions: true,
     );
     _assertCanGetResults(canGet);
 
-    final results = await WiFiScan.instance.getScannedResults();
-    final ssids = <String>{};
+    final freshResults = Completer<List<WiFiAccessPoint>>();
+    final subscription = WiFiScan.instance.onScannedResultsAvailable.listen(
+      (results) {
+        if (!freshResults.isCompleted) freshResults.complete(results);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (!freshResults.isCompleted) {
+          freshResults.completeError(error, stackTrace);
+        }
+      },
+    );
 
+    try {
+      final started = await WiFiScan.instance.startScan();
+      if (!started) {
+        // Android may throttle an explicit request. Cached system results are
+        // still useful when available, and avoid reporting a false empty scan.
+        final cachedResults = await WiFiScan.instance.getScannedResults();
+        if (cachedResults.isEmpty) throw const ScanThrottledException();
+        return _ssidStrings(cachedResults);
+      }
+
+      final results = await freshResults.future.timeout(
+        const Duration(seconds: 8),
+        onTimeout: WiFiScan.instance.getScannedResults,
+      );
+      return _ssidStrings(results);
+    } finally {
+      await subscription.cancel();
+    }
+  }
+
+  List<String> _ssidStrings(Iterable<WiFiAccessPoint> results) {
+    final ssids = <String>{};
     for (final accessPoint in results) {
       final ssid = accessPoint.ssid.trim();
       if (ssid.isEmpty || ssid == '<unknown ssid>') continue;
       ssids.add(ssid);
     }
-
     return ssids.toList();
   }
 
@@ -61,7 +86,7 @@ class AndroidWifiScanService implements WifiScanService {
       case CanStartScan.noLocationPermissionUpgradeAccuracy:
         throw const ScanPermissionDeniedException();
       case CanStartScan.noLocationServiceDisabled:
-        throw const WifiDisabledException();
+        throw const LocationServicesDisabledException();
       case CanStartScan.failed:
         throw const ScanException('تعذّر بدء المسح', code: 'SCAN_FAILED');
     }
@@ -78,7 +103,7 @@ class AndroidWifiScanService implements WifiScanService {
       case CanGetScannedResults.noLocationPermissionUpgradeAccuracy:
         throw const ScanPermissionDeniedException();
       case CanGetScannedResults.noLocationServiceDisabled:
-        throw const WifiDisabledException();
+        throw const LocationServicesDisabledException();
     }
   }
 }
