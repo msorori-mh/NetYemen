@@ -109,7 +109,8 @@ class FakeWaselOneRepository implements WaselOneRepository {
     final newBalance = _walletStore.debit(plan.retailPrice);
     final suffix = _purchasesByKey.length + 2;
     final startsAt = DateTime.now();
-    final entitlementId = 'demo-entitlement-${suffix.toString().padLeft(3, '0')}';
+    final entitlementId =
+        'demo-entitlement-${suffix.toString().padLeft(3, '0')}';
     final result = WaselOnePurchaseResult(
       purchaseId: 'demo-purchase-${suffix.toString().padLeft(3, '0')}',
       entitlementId: entitlementId,

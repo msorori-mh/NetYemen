@@ -40,8 +40,7 @@ class WaselOnePurchaseSession {
   });
 }
 
-class WaselOnePurchaseNotifier
-    extends AsyncNotifier<WaselOnePurchaseResult?> {
+class WaselOnePurchaseNotifier extends AsyncNotifier<WaselOnePurchaseResult?> {
   WaselOnePurchaseSession? _pendingSession;
   Future<WaselOnePurchaseResult>? _inFlight;
   String? _inFlightFingerprint;
@@ -105,8 +104,8 @@ class WaselOnePurchaseNotifier
   void clear() => state = const AsyncValue.data(null);
 }
 
-final waselOnePurchaseProvider = AsyncNotifierProvider<
-    WaselOnePurchaseNotifier, WaselOnePurchaseResult?>(
+final waselOnePurchaseProvider =
+    AsyncNotifierProvider<WaselOnePurchaseNotifier, WaselOnePurchaseResult?>(
   WaselOnePurchaseNotifier.new,
 );
 

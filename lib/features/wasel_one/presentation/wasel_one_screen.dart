@@ -125,7 +125,8 @@ class WaselOneScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(plan.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(plan.name,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('سيتم خصم ${_formatMoney(plan.retailPrice)} من محفظتك.'),
             const SizedBox(height: 8),
@@ -151,9 +152,8 @@ class WaselOneScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      final result = await ref
-          .read(waselOnePurchaseProvider.notifier)
-          .purchase(plan.id);
+      final result =
+          await ref.read(waselOnePurchaseProvider.notifier).purchase(plan.id);
       ref.invalidate(walletSummaryProvider);
       ref.invalidate(waselOneEntitlementsProvider);
       if (!context.mounted) return;

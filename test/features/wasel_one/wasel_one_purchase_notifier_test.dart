@@ -51,7 +51,8 @@ void main() {
       await notifier.purchase('plan-1');
 
       expect(repository.idempotencyKeys, hasLength(2));
-      expect(repository.idempotencyKeys[1], isNot(repository.idempotencyKeys[0]));
+      expect(
+          repository.idempotencyKeys[1], isNot(repository.idempotencyKeys[0]));
     });
   });
 }
