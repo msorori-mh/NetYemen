@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config_provider.dart';
+import '../../../core/demo/demo_wallet_store.dart';
 import '../../../core/utils/uuid_generator.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../data/wallet_repository.dart';
@@ -15,7 +16,7 @@ final walletRepositoryProvider = Provider<WalletRepository>((ref) {
   ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
   if (config.isDemoMode || !config.isConfigured) {
-    return FakeWalletRepository();
+    return FakeWalletRepository(ref.watch(demoWalletStoreProvider));
   }
   return SupabaseWalletRepository(Supabase.instance.client);
 });

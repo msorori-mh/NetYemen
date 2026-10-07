@@ -6,6 +6,7 @@ import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../wallet/presentation/wallet_providers.dart';
 import '../domain/entities.dart';
 import 'wasel_one_providers.dart';
 
@@ -18,6 +19,7 @@ class WaselOneScreen extends ConsumerWidget {
     final isDemo = config.isDemoMode || !config.isConfigured;
     final hasSession = ref.watch(currentUserProvider) != null || isDemo;
     final plans = ref.watch(waselOnePlansProvider);
+    final purchaseState = ref.watch(waselOnePurchaseProvider);
     final entitlements = hasSession
         ? ref.watch(waselOneEntitlementsProvider)
         : const AsyncValue<List<AccessEntitlement>>.data([]);
@@ -63,7 +65,12 @@ class WaselOneScreen extends ConsumerWidget {
                   'اختر مدة واستهلاكًا مناسبين، واستخدمهما عبر أكثر من شبكة.',
             ),
             const SizedBox(height: 8),
-            _PlansSection(plans: plans),
+            _PlansSection(
+              plans: plans,
+              isPurchasing: purchaseState.isLoading,
+              onPurchase: (plan) =>
+                  _purchasePlan(context, ref, plan, hasSession),
+            ),
             const SizedBox(height: 20),
             const _HowItWorks(),
           ],
@@ -94,6 +101,91 @@ class WaselOneScreen extends ConsumerWidget {
           .showSnackBar(SnackBar(content: Text(_friendlyError(error))));
     } finally {
       ref.read(waselOneCredentialProvider.notifier).clear();
+    }
+  }
+
+  Future<void> _purchasePlan(
+    BuildContext context,
+    WidgetRef ref,
+    FederatedAccessPlan plan,
+    bool hasSession,
+  ) async {
+    if (!hasSession) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد شراء باقة واصل ون'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(plan.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('سيتم خصم ${_formatMoney(plan.retailPrice)} من محفظتك.'),
+            const SizedBox(height: 8),
+            const Text(
+              'تعمل الصلاحية لدى جميع الشبكات الشريكة المشمولة في الباقة.',
+              style: TextStyle(color: AppTheme.textSecondary, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            key: const Key('wasel-one-confirm-purchase'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('شراء وتفعيل'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final result = await ref
+          .read(waselOnePurchaseProvider.notifier)
+          .purchase(plan.id);
+      ref.invalidate(walletSummaryProvider);
+      ref.invalidate(waselOneEntitlementsProvider);
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(
+            Icons.check_circle_outline,
+            color: Color(0xFF08705B),
+            size: 42,
+          ),
+          title: const Text('تم تفعيل الباقة'),
+          content: Text(
+            'تم خصم ${_formatMoney(result.amountPaid)} وأصبحت صلاحية الدخول جاهزة ضمن «دخولك الحالي».',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            FilledButton(
+              key: const Key('wasel-one-purchase-done'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('حسنًا'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyPurchaseError(error))));
+    } finally {
+      ref.read(waselOnePurchaseProvider.notifier).clear();
     }
   }
 }
@@ -461,8 +553,14 @@ class _Metric extends StatelessWidget {
 
 class _PlansSection extends StatelessWidget {
   final AsyncValue<List<FederatedAccessPlan>> plans;
+  final bool isPurchasing;
+  final ValueChanged<FederatedAccessPlan> onPurchase;
 
-  const _PlansSection({required this.plans});
+  const _PlansSection({
+    required this.plans,
+    required this.isPurchasing,
+    required this.onPurchase,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -481,7 +579,11 @@ class _PlansSection extends StatelessWidget {
               .map(
                 (plan) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _PlanCard(plan: plan),
+                  child: _PlanCard(
+                    plan: plan,
+                    isPurchasing: isPurchasing,
+                    onPurchase: () => onPurchase(plan),
+                  ),
                 ),
               )
               .toList(),
@@ -493,8 +595,14 @@ class _PlansSection extends StatelessWidget {
 
 class _PlanCard extends StatelessWidget {
   final FederatedAccessPlan plan;
+  final bool isPurchasing;
+  final VoidCallback onPurchase;
 
-  const _PlanCard({required this.plan});
+  const _PlanCard({
+    required this.plan,
+    required this.isPurchasing,
+    required this.onPurchase,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +625,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${plan.retailPrice} ${plan.currency}',
+                  _formatMoney(plan.retailPrice),
                   style: const TextStyle(
                     color: AppTheme.primary,
                     fontSize: 16,
@@ -556,6 +664,21 @@ class _PlanCard extends StatelessWidget {
                   text: '${plan.partnerCount} شبكات شريكة',
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                key: Key('wasel-one-buy-${plan.id}'),
+                onPressed: isPurchasing ? null : onPurchase,
+                icon: isPurchasing
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.shopping_bag_outlined),
+                label: Text(isPurchasing ? 'جارٍ التفعيل…' : 'شراء وتفعيل'),
+              ),
             ),
           ],
         ),
@@ -812,6 +935,16 @@ String _formatDateTime(DateTime value) {
 
 String _two(int value) => value.toString().padLeft(2, '0');
 
+String _formatMoney(int amount) {
+  final digits = amount.toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+    buffer.write(digits[index]);
+  }
+  return '${buffer.toString()} ر.ي';
+}
+
 String _friendlyError(Object error) {
   final value = error.toString();
   if (value.contains('ENTITLEMENT_NOT_ACTIVE')) {
@@ -821,4 +954,25 @@ String _friendlyError(Object error) {
     return 'يرجى تسجيل الدخول أولًا.';
   }
   return 'تعذر إنشاء بيانات الدخول. حاول مرة أخرى.';
+}
+
+String _friendlyPurchaseError(Object error) {
+  final value = error.toString();
+  if (value.contains('INSUFFICIENT_BALANCE')) {
+    return 'رصيد المحفظة غير كافٍ لشراء هذه الباقة.';
+  }
+  if (value.contains('PLAN_UNAVAILABLE') ||
+      value.contains('PLAN_HAS_NO_ACTIVE_NETWORKS')) {
+    return 'هذه الباقة غير متاحة حاليًا. اختر باقة أخرى.';
+  }
+  if (value.contains('WALLET_UNAVAILABLE')) {
+    return 'المحفظة غير متاحة حاليًا. تواصل مع الدعم.';
+  }
+  if (value.contains('UNAUTHENTICATED')) {
+    return 'يرجى تسجيل الدخول أولًا.';
+  }
+  if (value.contains('WASEL_ONE_PURCHASE_ALREADY_IN_PROGRESS')) {
+    return 'توجد عملية شراء قيد التنفيذ بالفعل.';
+  }
+  return 'تعذر تفعيل الباقة. لم يتم تأكيد الخصم، حاول مرة أخرى.';
 }

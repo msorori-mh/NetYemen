@@ -40,6 +40,30 @@ class SupabaseWaselOneRepository implements WaselOneRepository {
   }
 
   @override
+  Future<WaselOnePurchaseResult> purchasePlan({
+    required String planId,
+    required String idempotencyKey,
+  }) async {
+    final response = await _client.rpc(
+      'purchase_federated_access_plan',
+      params: {
+        'p_plan_id': planId,
+        'p_idempotency_key': idempotencyKey,
+      },
+    );
+    if (response is! Map) throw StateError('INVALID_PURCHASE_RESPONSE');
+    final result = WaselOnePurchaseResult.fromJson(
+      Map<String, dynamic>.from(response),
+    );
+    if (!result.isCompleted ||
+        result.purchaseId.isEmpty ||
+        result.entitlementId.isEmpty) {
+      throw StateError('INVALID_PURCHASE_RESPONSE');
+    }
+    return result;
+  }
+
+  @override
   Future<RadiusAccessCredential> issueAccessCredential(
     String entitlementId,
   ) async {
