@@ -26,6 +26,9 @@ $forbiddenPatterns = @(
 foreach ($pattern in $forbiddenPatterns) {
     $matches = Select-String -Path $scanPaths -Pattern $pattern -ErrorAction SilentlyContinue
     foreach ($match in $matches) {
+        if ($match.Line -match 'secret-scan:\s*allow-numeric-limit') {
+            continue
+        }
         $violations += "Possible secret in $($match.Path):$($match.LineNumber) matching '$pattern'"
     }
 }

@@ -1,10 +1,15 @@
 // lib/features/wallet/data/fake_wallet_repository.dart
 
+import '../../../core/demo/demo_wallet_store.dart';
 import 'wallet_repository.dart';
 import '../domain/entities.dart';
 
 class FakeWalletRepository implements WalletRepository {
-  final int _balance = 5000;
+  final DemoWalletStore _walletStore;
+
+  FakeWalletRepository([DemoWalletStore? walletStore])
+      : _walletStore = walletStore ?? DemoWalletStore();
+
   final Map<String, _FakeDepositReplay> _idempotentRequests = {};
   final List<DepositRequest> _deposits = [
     DepositRequest(
@@ -22,7 +27,7 @@ class FakeWalletRepository implements WalletRepository {
     await Future.delayed(const Duration(milliseconds: 200));
     return WalletSummary(
       userId: 'fake-user',
-      balance: _balance,
+      balance: _walletStore.balance,
       currency: 'YER',
       accountStatus: 'active',
     );

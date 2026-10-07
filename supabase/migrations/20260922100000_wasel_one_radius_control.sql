@@ -207,6 +207,7 @@ BEGIN
        OR p_event_key IS NULL OR length(trim(p_event_key)) = 0
        OR p_event_at IS NULL OR p_event_at > NOW() + INTERVAL '5 minutes'
        OR p_input_bytes < 0 OR p_output_bytes < 0 OR p_session_seconds < 0
+       -- secret-scan: allow-numeric-limit (BIGINT accounting overflow guard)
        OR p_input_bytes > 9000000000000000 OR p_output_bytes > 9000000000000000 THEN
         RAISE EXCEPTION 'INVALID_ACCOUNTING_REQUEST' USING ERRCODE = '22023';
     END IF;

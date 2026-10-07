@@ -141,6 +141,13 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/023_access_grant_trusted_identity.sql
 
+      - name: Run WASEL One Plan Purchase Contract (024)
+        run: |
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/024_wasel_one_plan_purchase.sql
+
       - name: Run Legacy SQL Contract and E2E Suite (001-019)
         run: |
           set -euo pipefail

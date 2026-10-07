@@ -38,11 +38,22 @@ void main() {
       final credential = await repository.issueAccessCredential(
         entitlements.single.id,
       );
+      final purchase = await repository.purchasePlan(
+        planId: plans.first.id,
+        idempotencyKey: 'demo-key-1',
+      );
+      final replay = await repository.purchasePlan(
+        planId: plans.first.id,
+        idempotencyKey: 'demo-key-1',
+      );
 
       expect(plans, hasLength(3));
       expect(entitlements.single.isUsable, isTrue);
       expect(credential.username, startsWith('w1-'));
       expect(credential.password, isNotEmpty);
+      expect(purchase.isCompleted, isTrue);
+      expect(replay.purchaseId, purchase.purchaseId);
+      expect(replay.replayed, isTrue);
     },
   );
 
@@ -72,5 +83,36 @@ void main() {
     expect(find.text('بيانات الدخول المؤقتة'), findsOneWidget);
     expect(find.text('w1-0123456789abcdef01234567'), findsOneWidget);
     expect(find.text('TEST-ONLY-482731'), findsOneWidget);
+  });
+
+  testWidgets('WASEL One demo purchases and activates a selected plan', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(AppConfig.demo),
+          currentUserProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(home: WaselOneScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final buyButton = find.byKey(const Key('wasel-one-buy-demo-one-hour'));
+    await tester.scrollUntilVisible(buyButton, 300);
+    await tester.tap(buyButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('تأكيد شراء باقة واصل ون'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('wasel-one-confirm-purchase')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('تم تفعيل الباقة'), findsOneWidget);
+    expect(find.textContaining('أصبحت صلاحية الدخول جاهزة'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('wasel-one-purchase-done')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('واصل ون — ساعة'), findsWidgets);
   });
 }

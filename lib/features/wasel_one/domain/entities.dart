@@ -129,3 +129,48 @@ class RadiusAccessCredential {
     );
   }
 }
+
+class WaselOnePurchaseResult {
+  final String purchaseId;
+  final String entitlementId;
+  final String status;
+  final int amountPaid;
+  final String currency;
+  final int newBalance;
+  final DateTime? startsAt;
+  final DateTime? expiresAt;
+  final bool replayed;
+
+  const WaselOnePurchaseResult({
+    required this.purchaseId,
+    required this.entitlementId,
+    required this.status,
+    required this.amountPaid,
+    required this.currency,
+    required this.newBalance,
+    this.startsAt,
+    this.expiresAt,
+    required this.replayed,
+  });
+
+  factory WaselOnePurchaseResult.fromJson(Map<String, dynamic> json) {
+    return WaselOnePurchaseResult(
+      purchaseId: json['purchase_id'] as String? ?? '',
+      entitlementId: json['entitlement_id'] as String? ?? '',
+      status: json['status'] as String? ?? '',
+      amountPaid: (json['amount_paid'] as num?)?.toInt() ?? 0,
+      currency: json['currency'] as String? ?? 'YER',
+      newBalance: (json['new_balance'] as num?)?.toInt() ?? 0,
+      startsAt: _tryDate(json['starts_at']),
+      expiresAt: _tryDate(json['expires_at']),
+      replayed: json['replayed'] as bool? ?? false,
+    );
+  }
+
+  bool get isCompleted => status == 'completed';
+}
+
+DateTime? _tryDate(Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value);
+}

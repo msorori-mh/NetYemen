@@ -35,7 +35,8 @@ BEGIN
         'public.admin_list_pin_reset_requests()',
         'public.admin_resolve_pin_reset(uuid, boolean)',
         'public.submit_refund_request(uuid, text)',
-        'public.review_refund_request(uuid, text)'
+        'public.review_refund_request(uuid, text)',
+        'public.purchase_federated_access_plan(uuid, uuid)'
     ] LOOP
         IF has_function_privilege('anon', v_fn, 'EXECUTE') THEN
             RAISE EXCEPTION 'TEST_FAIL: anon can execute %', v_fn;
