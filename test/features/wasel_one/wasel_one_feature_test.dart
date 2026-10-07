@@ -100,7 +100,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final buyButton = find.byKey(const Key('wasel-one-buy-demo-one-hour'));
-    await tester.ensureVisible(buyButton);
+    await tester.scrollUntilVisible(buyButton, 300);
     await tester.tap(buyButton);
     await tester.pumpAndSettle();
 
