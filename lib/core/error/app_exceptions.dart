@@ -40,3 +40,11 @@ class WifiDisabledException extends ScanException {
   const WifiDisabledException()
       : super('الواي فاي غير مُفعّل', code: 'WIFI_DISABLED');
 }
+
+class LocationServicesDisabledException extends ScanException {
+  const LocationServicesDisabledException()
+      : super(
+          'خدمة الموقع غير مُفعّلة',
+          code: 'LOCATION_SERVICES_DISABLED',
+        );
+}

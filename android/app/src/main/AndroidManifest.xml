@@ -1,10 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Wi-Fi scan prerequisites: only SSID is collected, never BSSID/MAC/signal/location. -->
+    <!--
+      Wi-Fi scan prerequisites. Android still gates WifiManager scan results
+      behind precise-location permission and the device Location switch.
+      The app only keeps SSID strings; it never persists or transmits BSSID,
+      MAC, signal strength, frequency, or coordinates.
+    -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission
-        android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation" />

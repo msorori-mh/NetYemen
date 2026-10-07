@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../../core/error/app_exceptions.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../network_discovery/domain/entities.dart';
@@ -28,7 +30,10 @@ class ScanResultsScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : scanResult.when(
               data: (result) => _ScanResultsBody(result: result),
-              error: (e, _) => _ScanErrorState(error: e),
+              error: (e, _) => _ScanErrorState(
+                error: e,
+                onRetry: () => ref.read(scanNotifierProvider).performScan(),
+              ),
               loading: () => const Center(child: CircularProgressIndicator()),
             ),
     );
@@ -126,7 +131,9 @@ class _ScanResultsBody extends ConsumerWidget {
 
 class _ScanErrorState extends StatelessWidget {
   final Object error;
-  const _ScanErrorState({required this.error});
+  final VoidCallback onRetry;
+
+  const _ScanErrorState({required this.error, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +141,15 @@ class _ScanErrorState extends StatelessWidget {
     IconData icon;
 
     if (error is ScanPermissionDeniedException) {
-      message = 'تم رفض إذن المسح. يرجى تفعيل الأذونات من إعدادات الجهاز.';
+      message =
+          'اسمح للموقع الدقيق من إعدادات التطبيق حتى يتمكن Android من عرض '
+          'شبكات Wi-Fi القريبة. لا يحفظ واصل موقعك.';
       icon = Icons.security;
+    } else if (error is LocationServicesDisabledException) {
+      message =
+          'فعّل خدمة الموقع في الهاتف ثم أعد المسح. يشترط Android تشغيلها '
+          'لقراءة شبكات Wi-Fi القريبة.';
+      icon = Icons.location_off_outlined;
     } else if (error is ScanUnsupportedException) {
       message = 'المسح غير مدعوم على هذا الجهاز.';
       icon = Icons.device_unknown;
@@ -159,6 +173,20 @@ class _ScanErrorState extends StatelessWidget {
             Icon(icon, size: 48, color: AppTheme.warning),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المسح'),
+            ),
+            if (error is ScanPermissionDeniedException) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: openAppSettings,
+                icon: const Icon(Icons.settings_outlined),
+                label: const Text('فتح إعدادات التطبيق'),
+              ),
+            ],
           ],
         ),
       ),

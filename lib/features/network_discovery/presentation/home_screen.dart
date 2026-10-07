@@ -423,7 +423,7 @@ class _ScanSection extends ConsumerWidget {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'المسح يدوي ولا يرفع BSSID أو هوية جهازك.',
+                    'يتطلب Android إذن الموقع للمسح؛ لا يحفظ واصل موقعك أو BSSID.',
                     style: TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 12,
