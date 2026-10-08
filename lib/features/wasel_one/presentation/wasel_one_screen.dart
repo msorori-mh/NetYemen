@@ -964,8 +964,12 @@ String _formatMoney(int amount) => formatYer(amount, currency: 'ر.ي');
 
 String _friendlyError(Object error) {
   final value = error.toString();
-  if (value.contains('ENTITLEMENT_NOT_ACTIVE')) {
+  if (value.contains('ENTITLEMENT_NOT_ACTIVE') ||
+      value.contains('ENTITLEMENT_NOT_FOUND')) {
     return 'هذه الباقة غير فعّالة أو انتهت صلاحيتها.';
+  }
+  if (_isInactiveAccountError(value)) {
+    return 'حسابك غير مفعّل حاليًا. تواصل مع الدعم لمراجعة حالته.';
   }
   if (value.contains('UNAUTHENTICATED')) {
     return 'يرجى تسجيل الدخول أولًا.';
@@ -973,8 +977,14 @@ String _friendlyError(Object error) {
   return 'تعذر إنشاء بيانات الدخول. حاول مرة أخرى.';
 }
 
+bool _isInactiveAccountError(String value) =>
+    value.contains('ACCOUNT_NOT_ACTIVE') || value.contains('INACTIVE_PROFILE');
+
 String _friendlyPurchaseError(Object error) {
   final value = error.toString();
+  if (_isInactiveAccountError(value)) {
+    return 'حسابك غير مفعّل حاليًا. تواصل مع الدعم لمراجعة حالته.';
+  }
   if (value.contains('INSUFFICIENT_BALANCE')) {
     return 'رصيد المحفظة غير كافٍ لشراء هذه الباقة.';
   }

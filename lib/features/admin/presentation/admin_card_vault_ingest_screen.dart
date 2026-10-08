@@ -96,6 +96,11 @@ class _AdminCardVaultIngestScreenState
       }
     } catch (error, stackTrace) {
       logError('Card batch ingest failed', error, stackTrace);
+      if (error.toString().contains('BATCH_KEY_REUSED')) {
+        // The key belongs to another package: the next attempt needs a new one.
+        _batchKey = null;
+        _batchFingerprint = null;
+      }
       if (mounted) {
         setState(() => _message = _ingestErrorMessage(error));
       }
@@ -126,8 +131,20 @@ class _AdminCardVaultIngestScreenState
     if (message.contains('TOO_MANY_CARDS')) {
       return 'عدد الكروت في الدفعة أكبر من المسموح (5000). قسّم الدفعة ثم أعد المحاولة.';
     }
+    if (message.contains('INVALID_CARDS')) {
+      return 'الدفعة فارغة. أضف بطاقة واحدة على الأقل ثم أعد المحاولة.';
+    }
     if (message.contains('INVALID_CARD')) {
       return 'توجد بطاقة غير صالحة في الدفعة (رمز فارغ، أطول من 64 حرفاً، أو يحتوي مسافات). صحّح البيانات ثم أعد المحاولة.';
+    }
+    if (message.contains('BATCH_KEY_REUSED')) {
+      return 'سبق إرسال هذه الدفعة لباقة أخرى. أعد فتح الصفحة ثم أرسلها من جديد.';
+    }
+    if (message.contains('INVALID_PACKAGE_REFERENCE')) {
+      return 'الباقة المختارة لا تتبع هذه الشبكة. اختر الشبكة والباقة من جديد.';
+    }
+    if (message.contains('INACTIVE_PROFILE')) {
+      return 'حسابك غير مفعّل حالياً ولا يمكنه استيراد الكروت.';
     }
     if (message.contains('UNAUTHENTICATED') || message.contains('FORBIDDEN')) {
       return 'لا تملك صلاحية استيراد الكروت أو انتهت الجلسة. سجّل الدخول من جديد.';
@@ -203,9 +220,8 @@ class _AdminCardVaultIngestScreenState
             TextField(
               controller: _cardsController,
               decoration: const InputDecoration(
-                labelText: 'مصفوفة الكروت المشفرة (JSON)',
-                hintText:
-                    '[{"ciphertext":"...","nonce":"...","auth_tag":"...","expires_at":"..."}]',
+                labelText: 'مصفوفة الكروت (JSON)',
+                hintText: '[{"pin":"...","expires_at":"..."}]',
                 border: OutlineInputBorder(),
               ),
               maxLines: 10,
@@ -215,9 +231,7 @@ class _AdminCardVaultIngestScreenState
               onPressed: () {
                 _cardsController.text = jsonEncode([
                   {
-                    'ciphertext': 'BASE64_CIPHERTEXT_HERE',
-                    'nonce': 'NONCE_HERE',
-                    'auth_tag': 'AUTH_TAG_HERE',
+                    'pin': 'CARD_PIN_HERE',
                     'expires_at': DateTime.now()
                         .add(const Duration(days: 365))
                         .toIso8601String(),

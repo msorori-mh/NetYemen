@@ -678,13 +678,20 @@ class FakeAdminRepository implements AdminRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     final replay = batchKey == null ? null : _ingestedBatches[batchKey];
     if (replay != null) return {...replay, 'replayed': true};
+    // Mirror the server contract so the demo cannot accept what production
+    // rejects: a card is a plaintext `pin` the server encrypts on arrival.
+    if (cards.isEmpty) {
+      throw ArgumentError('INVALID_CARDS: Non-empty card array required.');
+    }
+    if (cards.length > 5000) {
+      throw ArgumentError('TOO_MANY_CARDS: At most 5000 cards per batch.');
+    }
+    final invalidPin = RegExp(r'\s');
     for (final card in cards) {
-      if (card['ciphertext'] == null ||
-          (card['ciphertext'] as String).isEmpty) {
-        throw ArgumentError('INVALID_CARD: ciphertext is required');
-      }
-      if (card['nonce'] == null || (card['nonce'] as String).isEmpty) {
-        throw ArgumentError('INVALID_CARD: nonce is required');
+      final value = card['pin'];
+      final pin = value is String ? value.trim() : '';
+      if (pin.isEmpty || pin.length > 64 || invalidPin.hasMatch(pin)) {
+        throw ArgumentError('INVALID_CARD: pin is required.');
       }
     }
     _recordAudit('ADMIN_INGEST_CARD_VAULT_BATCH', 'card_vault', packageId);

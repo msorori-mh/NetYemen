@@ -162,6 +162,10 @@ class PurchaseSubmissionNotifier extends AsyncNotifier<Map<String, dynamic>?> {
         // package lists so the customer sees the current price.
         _pendingSession = null;
         ref.invalidate(publicPackagesProvider);
+      } else if (error.toString().contains('IDEMPOTENCY_KEY_REUSED')) {
+        // Refused before debiting because the key belongs to another
+        // purchase: it must never be sent again.
+        _pendingSession = null;
       }
       state = AsyncValue.error(error, stackTrace);
       rethrow;
@@ -185,6 +189,13 @@ String purchaseErrorMessage(Object error) {
   }
   if (message.contains('INSUFFICIENT_BALANCE')) {
     return 'رصيد المحفظة غير كافٍ لإتمام الشراء.';
+  }
+  if (message.contains('INACTIVE_PROFILE') ||
+      message.contains('ACCOUNT_NOT_ACTIVE')) {
+    return 'حسابك غير مفعّل حاليًا ولا يمكنه الشراء. تواصل مع الدعم.';
+  }
+  if (message.contains('IDEMPOTENCY_KEY_REUSED')) {
+    return 'تعذر إتمام العملية ولم يُخصم أي مبلغ. ارجع إلى الباقات ثم حاول مجددًا.';
   }
   if (message.contains('OUT_OF_STOCK')) {
     return 'نفدت كروت هذه الباقة حاليًا. اختر باقة أخرى أو حاول لاحقًا.';
