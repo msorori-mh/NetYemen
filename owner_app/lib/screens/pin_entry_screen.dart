@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/owner_providers.dart';
+import '../providers/session_providers.dart';
 import '../utils/app_theme.dart';
-import 'pin_gate.dart';
+import '../utils/error_text.dart';
+import '../utils/pin_lock_policy.dart';
 
 class PinEntryScreen extends ConsumerStatefulWidget {
   final bool isAutoLock;
@@ -54,41 +54,34 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
 
   Future<void> _submitPin() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final service = ref.read(ownerServiceProvider);
       final isValid = await service.verifyAccountPin(_pinController.text);
-      
+
       if (isValid) {
         final user = ref.read(currentUserProvider);
         if (user != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('pin_trusted_${user.id}', '1');
+          await PinLockStore.markUnlocked(user.id);
         }
-        
+        if (!mounted) return;
+
+        ref.invalidate(pinTrustedProvider);
         if (widget.isAutoLock) {
-          if (mounted) Navigator.of(context).pop();
-        } else {
-          ref.invalidate(pinTrustedProvider);
+          Navigator.of(context).pop();
         }
       } else {
+        if (!mounted) return;
         setState(() {
           _errorMessage = 'رمز PIN غير صحيح. يرجى المحاولة مرة أخرى.';
           _pinController.clear();
         });
       }
-    } on PostgrestException catch (e) {
+    } catch (e, st) {
+      final message = describeError(e, stackTrace: st, where: 'owner.pin');
+      if (!mounted) return;
       setState(() {
-        if (e.message.contains('PIN_LOCKED')) {
-          _errorMessage = 'تم حظر الحساب مؤقتاً بسبب المحاولات الخاطئة. حاول بعد 15 دقيقة.';
-        } else {
-          _errorMessage = 'حدث خطأ: ${e.message}';
-        }
-        _pinController.clear();
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'حدث خطأ غير متوقع';
+        _errorMessage = message;
         _pinController.clear();
       });
     } finally {
@@ -106,25 +99,27 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       await service.requestPinReset();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم إرسال طلب إعادة التعيين للإدارة بنجاح')),
+        const SnackBar(
+          content: Text('تم إرسال طلب إعادة التعيين للإدارة بنجاح'),
+        ),
       );
-    } on PostgrestException catch (e) {
+    } catch (e, st) {
+      final message = describeError(e, stackTrace: st, where: 'owner.pin');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: ${e.message}')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ غير متوقع: $e')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _signOut() {
-    ref.read(ownerServiceProvider).signOut();
+  Future<void> _signOut() async {
+    final signedOut = await signOutOwner(ref);
+    if (signedOut || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(signOutFailedText)),
+    );
   }
 
   Widget _buildPinDots(String text) {

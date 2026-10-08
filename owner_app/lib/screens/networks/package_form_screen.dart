@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/networks_providers.dart';
+import '../../utils/error_text.dart';
 
 class PackageFormScreen extends ConsumerStatefulWidget {
   final String networkId;
@@ -91,10 +92,27 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
           packageType: _packageType,
         );
       }
+      // مزوّد واحد لباقات الشبكة: يحدّث قائمة الباقات وقائمة رفع الكروت معاً.
+      ref.invalidate(networkPackagesProvider(widget.networkId));
       if (mounted) Navigator.pop(context);
-    } catch (e) {
+    } on FormatException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('أدخل أرقاماً صحيحة في السعر والمدة والسرعة.'),
+          ),
+        );
+      }
+    } catch (e, st) {
+      final message = describeError(
+        e,
+        stackTrace: st,
+        where: 'owner.package_form',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

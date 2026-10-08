@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/owner_providers.dart';
 import '../utils/app_theme.dart';
-import 'pin_gate.dart';
+import '../utils/error_text.dart';
+import '../utils/pin_lock_policy.dart';
 
 class PinSetupScreen extends ConsumerStatefulWidget {
   const PinSetupScreen({super.key});
@@ -80,29 +79,24 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
     }
 
     setState(() => _isLoading = true);
-    
+
     try {
       final service = ref.read(ownerServiceProvider);
       await service.setAccountPin(_pinController.text);
-      
+
       final user = ref.read(currentUserProvider);
       if (user != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('pin_trusted_${user.id}', '1');
+        await PinLockStore.markUnlocked(user.id);
       }
-      
+      if (!mounted) return;
+
       ref.invalidate(hasAccountPinProvider);
       ref.invalidate(pinTrustedProvider);
-    } on PostgrestException catch (e) {
+    } catch (e, st) {
+      final message = describeError(e, stackTrace: st, where: 'owner.pin');
+      if (!mounted) return;
       setState(() {
-        _errorMessage = 'حدث خطأ: ${e.message}';
-        _isConfirmStep = false;
-        _pinController.clear();
-        _confirmController.clear();
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'حدث خطأ غير متوقع';
+        _errorMessage = message;
         _isConfirmStep = false;
         _pinController.clear();
         _confirmController.clear();
@@ -111,7 +105,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
+
   Widget _buildPinDots(String text) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

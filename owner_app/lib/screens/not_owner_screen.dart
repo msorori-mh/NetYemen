@@ -1,7 +1,7 @@
 // lib/screens/not_owner_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/owner_providers.dart';
+import '../providers/session_providers.dart';
 import '../utils/app_theme.dart';
 
 /// تُعرض حين تنجح المصادقة لكن `get_owned_networks()` تعود فارغة — أي أن
@@ -21,9 +21,13 @@ class _NotOwnerScreenState extends ConsumerState<NotOwnerScreen> {
     // تمت إزالة تسجيل الخروج التلقائي هنا للحفاظ على استقرار الجلسة (P0)
   }
 
-  void _backToLogin() {
-    ref.read(ownerServiceProvider).signOut();
+  Future<void> _backToLogin() async {
     // splash_screen ستستجيب لتغير الجلسة وتنقله لـ LoginScreen تلقائيا
+    final signedOut = await signOutOwner(ref);
+    if (signedOut || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(signOutFailedText)),
+    );
   }
 
   @override

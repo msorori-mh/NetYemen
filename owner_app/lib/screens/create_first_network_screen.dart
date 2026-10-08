@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/owner_providers.dart';
+import '../providers/session_providers.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import '../utils/error_text.dart';
 
 class CreateFirstNetworkScreen extends ConsumerStatefulWidget {
   const CreateFirstNetworkScreen({super.key});
@@ -56,15 +57,15 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
 
       // Invalidate owned networks to refresh the RoleGate and go to Dashboard
       ref.invalidate(ownedNetworksProvider);
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ في قاعدة البيانات: ${e.message}')),
+    } catch (e, st) {
+      final message = describeError(
+        e,
+        stackTrace: st,
+        where: 'owner.create_network',
       );
-    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ غير متوقع: $e')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) {
@@ -73,8 +74,12 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
     }
   }
 
-  void _signOut() {
-    ref.read(ownerServiceProvider).signOut();
+  Future<void> _signOut() async {
+    final signedOut = await signOutOwner(ref);
+    if (signedOut || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(signOutFailedText)),
+    );
   }
 
   @override
