@@ -19,7 +19,7 @@ final networkCatalogRepositoryProvider = Provider<NetworkCatalogRepository>((
   ref,
 ) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return DemoNetworkCatalogRepository();
   }
   return SupabaseNetworkCatalogRepository(Supabase.instance.client);
@@ -83,9 +83,8 @@ final filteredNetworksProvider = Provider<AsyncValue<List<NetworkEntity>>>((
   ref,
 ) {
   final networksAsync = ref.watch(networkCatalogProvider);
-  final query = ScanMatcher.normalizeForMatching(
-    ref.watch(networkSearchQueryProvider),
-  );
+  // The entity normalises the query and its own fields the same way.
+  final query = ref.watch(networkSearchQueryProvider);
   final selectedGovernorate = ref.watch(networkGovernorateFilterProvider);
 
   return networksAsync.whenData((networks) {

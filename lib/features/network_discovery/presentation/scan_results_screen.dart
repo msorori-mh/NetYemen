@@ -55,6 +55,8 @@ class _ScanResultsBody extends ConsumerWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
+          const _NameMatchNotice(),
+          const SizedBox(height: 8),
           ...result.matchedNetworks.map(
             (network) => Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -125,6 +127,38 @@ class _ScanResultsBody extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// A matching Wi-Fi name is only a name: anyone can broadcast it. This
+/// notice keeps the customer from typing a card into a look-alike hotspot.
+class _NameMatchNotice extends StatelessWidget {
+  const _NameMatchNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('scan-name-match-notice'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.info.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppTheme.info, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'تطابق اسم الشبكة لا يؤكد أن نقطة الاتصال أصلية. أدخل رقم الكرت '
+              'فقط في صفحة الدخول المعتادة لهذه الشبكة.',
+              style: TextStyle(color: AppTheme.textSecondary, height: 1.4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

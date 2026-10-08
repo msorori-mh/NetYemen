@@ -31,7 +31,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
-    final hasCustomerSession = user != null || config.isDemoMode;
+    final hasCustomerSession = user != null || config.usesDemoData;
     final networksAsync = ref.watch(networkCatalogProvider);
     final walletAsync =
         hasCustomerSession ? ref.watch(walletSummaryProvider) : null;
@@ -402,11 +402,34 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-class _ScanSection extends ConsumerWidget {
+class _ScanSection extends ConsumerStatefulWidget {
   const _ScanSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ScanSection> createState() => _ScanSectionState();
+}
+
+class _ScanSectionState extends ConsumerState<_ScanSection> {
+  /// True from the tap until the results screen is closed again, so repeated
+  /// taps cannot start several scans or stack several results screens.
+  bool _scanInFlight = false;
+
+  Future<void> _scan() async {
+    if (_scanInFlight) return;
+    setState(() => _scanInFlight = true);
+    try {
+      await ref.read(scanNotifierProvider).performScan();
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ScanResultsScreen()),
+      );
+    } finally {
+      if (mounted) setState(() => _scanInFlight = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -434,17 +457,15 @@ class _ScanSection extends ConsumerWidget {
               ),
             ),
             FilledButton(
-              onPressed: () async {
-                await ref.read(scanNotifierProvider).performScan();
-                if (context.mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ScanResultsScreen(),
-                    ),
-                  );
-                }
-              },
-              child: const Text('مسح'),
+              key: const Key('home-scan-button'),
+              onPressed: _scanInFlight ? null : _scan,
+              child: _scanInFlight
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('مسح'),
             ),
           ],
         ),

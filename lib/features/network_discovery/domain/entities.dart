@@ -1,3 +1,5 @@
+import 'network_search.dart';
+
 class NetworkEntity {
   final String id;
   final String commercialName;
@@ -26,26 +28,28 @@ class NetworkEntity {
     return parts.join(' - ');
   }
 
-  bool matchesSearch(String normalizedQuery) {
+  /// Whether this network matches a customer search [query].
+  ///
+  /// The query and every searched field go through [normalizeForSearch], so
+  /// case, Unicode form and spacing never decide the outcome.
+  bool matchesSearch(String query) {
+    final normalizedQuery = normalizeForSearch(query);
     if (normalizedQuery.isEmpty) {
       return true;
     }
-    if (commercialName.toLowerCase().contains(normalizedQuery)) {
-      return true;
+    final fields = [commercialName, city, district, governorate];
+    for (final field in fields) {
+      if (field != null &&
+          normalizeForSearch(field).contains(normalizedQuery)) {
+        return true;
+      }
     }
-    if ((city ?? '').toLowerCase().contains(normalizedQuery)) {
-      return true;
-    }
-    if ((district ?? '').toLowerCase().contains(normalizedQuery)) {
-      return true;
-    }
-    if ((governorate ?? '').toLowerCase().contains(normalizedQuery)) {
-      return true;
-    }
+    // Stored SSIDs use hyphens where the customer may type spaces.
+    final ssidQuery = normalizedQuery.replaceAll(' ', '-');
     return ssidAliases.any(
       (a) =>
-          a.ssidNormalized.contains(normalizedQuery) ||
-          a.ssidDisplay.toLowerCase().contains(normalizedQuery),
+          a.ssidNormalized.contains(ssidQuery) ||
+          normalizeForSearch(a.ssidDisplay).contains(normalizedQuery),
     );
   }
 
