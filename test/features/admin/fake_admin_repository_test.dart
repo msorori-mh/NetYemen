@@ -174,5 +174,49 @@ void main() {
       final events = await repository.fetchAuditEvents();
       expect(events, isNotEmpty);
     });
+
+    test('card ingest takes pin cards and replays a batch key', () async {
+      final cards = [
+        {'pin': 'CARD-0001'},
+        {'pin': 'CARD-0002', 'expires_at': '2027-01-01T00:00:00Z'},
+      ];
+
+      final first = await repository.ingestCardVaultBatch(
+        networkId: 'demo-net-1',
+        packageId: 'demo-pkg-1',
+        cards: cards,
+        batchKey: 'batch-key-1',
+      );
+      final replay = await repository.ingestCardVaultBatch(
+        networkId: 'demo-net-1',
+        packageId: 'demo-pkg-1',
+        cards: cards,
+        batchKey: 'batch-key-1',
+      );
+
+      expect(first['ingested_count'], 2);
+      expect(first['replayed'], isFalse);
+      expect(replay['batch_id'], first['batch_id']);
+      expect(replay['replayed'], isTrue);
+    });
+
+    test('card ingest rejects what the server rejects', () async {
+      Future<Map<String, dynamic>> ingest(List<Map<String, dynamic>> cards) {
+        return repository.ingestCardVaultBatch(
+          networkId: 'demo-net-1',
+          packageId: 'demo-pkg-1',
+          cards: cards,
+        );
+      }
+
+      const blankPin = {'pin': '   '};
+      const pinWithSpace = {'pin': 'HAS SPACE'};
+      const legacyShape = {'ciphertext': 'not-a-pin'};
+
+      await expectLater(ingest([]), throwsArgumentError);
+      await expectLater(ingest([blankPin]), throwsArgumentError);
+      await expectLater(ingest([pinWithSpace]), throwsArgumentError);
+      await expectLater(ingest([legacyShape]), throwsArgumentError);
+    });
   });
 }
