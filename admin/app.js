@@ -11,6 +11,7 @@
   var cfg = window.NETYEMEN_CONFIG;
   var db = window.supabase.createClient(cfg.url, cfg.anonKey, {
     auth: {
+      flowType: 'pkce',
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
@@ -61,11 +62,23 @@
       var actions = modalFooter.querySelectorAll('[data-action]');
       for (var i = 0; i < actions.length; i++) {
         actions[i].onclick = function(e) {
-          cleanup(e.target.dataset.action);
+          cleanup(e.currentTarget.dataset.action);
         };
       }
+
+      // التركيز على أول حقل إدخال (أو زر الإغلاق) لتسهيل استخدام لوحة المفاتيح
+      var firstField = modalBody.querySelector('input, select, textarea');
+      try { (firstField || modalClose).focus(); } catch (e) {}
     });
   }
+
+  // إغلاق النافذة بمفتاح Escape (يعادل زر الإغلاق = إلغاء)
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Escape' || e.key === 'Esc') && modalOverlay.classList.contains('on') && modalClose.onclick) {
+      e.preventDefault();
+      modalClose.onclick();
+    }
+  });
 
   function asyncConfirm(message) {
     return openModal('تأكيد', '<p>' + esc(message) + '</p>',
@@ -101,8 +114,26 @@
 
   function errText(e) {
     var raw = (e && (e.message || e.error_description)) || String(e);
+    // الرموز الأكثر تحديداً أولاً (المطابقة بالاحتواء، وأول تطابق يفوز)
     var known = {
       UNAUTHENTICATED: 'انتهت الجلسة، سجّل الدخول من جديد',
+      FORBIDDEN_SELF_APPROVAL: 'لا يمكنك الموافقة على دفعة أنشأتها أنت — يجب أن يوافق موظف آخر',
+      SELF_REVIEW_FORBIDDEN: 'لا يمكنك مراجعة طلب شحن قدّمته أنت',
+      SELF_LOCKOUT_BLOCKED: 'لا يمكنك سحب صلاحيتك أو إيقاف حسابك بنفسك',
+      LAST_ADMIN_BLOCKED: 'لا يمكن إزالة آخر مدير منصة نشط',
+      DUPLICATE_REFERENCE: 'رقم المرجع هذا سبق اعتماده لطلب آخر على نفس الوجهة',
+      REJECTION_REASON_REQUIRED: 'سبب الرفض مطلوب',
+      WALLET_ACCOUNT_MISSING: 'لا توجد محفظة لهذا العميل',
+      INVALID_STATUS_FILTER: 'فلتر الحالة غير صالح',
+      INVALID_STATE_FILTER: 'فلتر الحالة غير صالح',
+      INVALID_PERIOD: 'الفترة غير صحيحة: تاريخ البداية يجب أن يسبق تاريخ النهاية',
+      INVALID_RATE: 'نسبة العمولة يجب أن تكون بين 0% و 100%',
+      INVALID_ROLE: 'هذا الدور لا يمكن منحه من هنا',
+      INVALID_PROVIDER_TYPE: 'نوع وجهة الدفع غير صالح',
+      INVALID_CARD: 'أحد الكروت غير صالح (فارغ، أطول من 64 خانة، أو يحتوي مسافات)',
+      TOO_MANY_CARDS: 'عدد الكروت يتجاوز الحد الأقصى (5000) في الدفعة الواحدة',
+      INACTIVE_PROFILE: 'حسابك غير نشط',
+      RATE_LIMITED: 'تجاوزت الحد اليومي، حاول لاحقاً',
       FORBIDDEN: 'لا تملك صلاحية لهذا الإجراء',
       NOT_FOUND: 'العنصر غير موجود',
       INVALID_STATE: 'الحالة الحالية لا تسمح بهذا الإجراء',
@@ -131,7 +162,29 @@
 
   function esc(v) {
     return String(v === null || v === undefined ? '' : v)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // حالة خطأ ظاهرة داخل القسم: فشل التحميل لا يُعرض أبداً كجدول فارغ «لا توجد بيانات»
+  function errorBox(e, label) {
+    return '<div class="load-error" role="alert"><strong>' + esc(label || 'تعذّر تحميل البيانات') + '</strong>' +
+      '<span>' + esc(errText(e)) + '</span></div>';
+  }
+
+  // يحوّل الوعد إلى { ok, data } أو { ok: false, error } حتى يعرض كل قسم خطأه بنفسه
+  function settle(promise) {
+    return Promise.resolve(promise).then(
+      function (data) { return { ok: true, data: data }; },
+      function (e) { console.error('NetYemen admin: load failed', e); return { ok: false, error: e }; }
+    );
+  }
+
+  // استعلام جدول مباشر (PostgREST) كوعد يرمي الخطأ بدل إرجاعه داخل النتيجة
+  function query(builder) {
+    return builder.then(function (r) {
+      if (r.error) throw r.error;
+      return r.data || [];
+    });
   }
 
   function money(n) { return (Number(n) || 0).toLocaleString('en-US'); }
@@ -140,13 +193,21 @@
     var d = new Date(iso);
     return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
   }
+  function whenFull(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    function p2(n) { return (n < 10 ? '0' : '') + n; }
+    return when(iso) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
   function badge(text, kind) { return '<span class="badge b-' + kind + '">' + esc(text) + '</span>'; }
 
   var STATUS_STYLE = {
     active: ['نشطة', 'ok'], verified: ['موثّقة', 'ok'], approved: ['مقبول', 'ok'], completed: ['مكتمل', 'ok'], paid: ['مدفوع', 'ok'],
-    pending: ['قيد الانتظار', 'warn'], pending_approval: ['بانتظار الموافقة', 'warn'], under_review: ['قيد المراجعة', 'warn'],
+    pending: ['قيد الانتظار', 'warn'], under_review: ['قيد المراجعة', 'warn'], ready_for_review: ['جاهزة للمراجعة', 'warn'],
+    pending_verification: ['بانتظار التحقق', 'warn'],
     unverified: ['غير موثّقة', 'warn'], draft: ['مسودة', 'mute'], inactive: ['معطّلة', 'mute'], archived: ['مؤرشفة', 'mute'],
-    cancelled: ['ملغى', 'mute'], suspended: ['موقوفة', 'err'], rejected: ['مرفوض', 'err'], failed: ['فشل', 'err'], refunded: ['مسترد', 'warn']
+    cancelled: ['ملغى', 'mute'], corrected: ['مصحّحة', 'mute'], anonymized: ['مجهّل', 'mute'], suspended: ['موقوفة', 'err'], rejected: ['مرفوض', 'err'], failed: ['فشل', 'err'], refunded: ['مسترد', 'warn']
   };
   function statusBadge(status) {
     var s = STATUS_STYLE[status] || [status, 'mute'];
@@ -156,7 +217,8 @@
   var PROVIDER_LABELS = {
     bank_account: 'حساب بنكي',
     mobile_wallet: 'محفظة إلكترونية',
-    exchange: 'صرافة'
+    manual_transfer: 'حوالة / صرافة',
+    other: 'أخرى'
   };
   function providerLabel(t) { return PROVIDER_LABELS[t] || t; }
 
@@ -197,23 +259,97 @@
       });
   };
 
+  // يمسح علامة «جهاز موثوق» لرمز الحماية حتى يُطلب الرمز من جديد بعد تسجيل الخروج
+  function clearPinTrust() {
+    try {
+      var doomed = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('pin_trusted_') === 0) doomed.push(k);
+      }
+      doomed.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
   document.getElementById('logout').onclick = function () {
-    db.auth.signOut().then(function () { location.reload(); });
+    clearPinTrust();
+    var reload = function () { location.reload(); };
+    db.auth.signOut().then(reload, reload);
   };
 
+  // ---------- الأدوار ----------
+  // الخادم هو من يفرض الصلاحيات في كل RPC؛ ما هنا تجربة استخدام فقط (إخفاء ما لا يُسمح به).
+  var STAFF_ROLES = ['platform_admin', 'finance_officer', 'support_agent'];
+  var STAFF_ROLE_LABELS = { platform_admin: 'مدير المنصة', finance_officer: 'موظف مالية', support_agent: 'دعم فني' };
+  // الأقسام المسموحة لكل دور، مشتقّة من فحوص الأدوار داخل دوال الخادم:
+  //  - finance_officer: كل دوال هذه الأقسام تتحقق من is_finance_or_admin (والعمولة للقراءة فقط).
+  //  - support_agent: الدالة الوحيدة التي تسمح له هنا هي admin_dashboard_kpis.
+  var ROLE_VIEWS = {
+    finance_officer: ['destinations', 'deposits', 'settlements', 'commission'],
+    support_agent: ['dashboard']
+  };
+  var currentRoles = {};
+  var currentUserId = null;
+
+  function hasRole(role) { return currentRoles[role] === true; }
+  function isPlatformAdmin() { return hasRole('platform_admin'); }
+  function canView(name) {
+    if (isPlatformAdmin()) return true;
+    for (var i = 0; i < STAFF_ROLES.length; i++) {
+      var allowed = ROLE_VIEWS[STAFF_ROLES[i]];
+      if (allowed && hasRole(STAFF_ROLES[i]) && allowed.indexOf(name) !== -1) return true;
+    }
+    return false;
+  }
+
+  function applyRoleNav() {
+    var nav = document.querySelector('.sidebar-nav');
+    if (!nav) return;
+    var group = null;
+    var groupHasVisible = false;
+    Array.prototype.forEach.call(nav.children, function (el) {
+      if (el.classList.contains('nav-group')) {
+        if (group) group.hidden = !groupHasVisible;
+        group = el;
+        groupHasVisible = false;
+        return;
+      }
+      var name = el.getAttribute('data-view');
+      if (!name) return;
+      var ok = canView(name);
+      el.hidden = !ok;
+      if (ok) groupHasVisible = true;
+    });
+    if (group) group.hidden = !groupHasVisible;
+  }
+
   function onSignedIn() {
-    return rpc('has_platform_role', { p_role: 'platform_admin' }).then(function (isAdmin) {
-      // نسجّل الخروج فقط عندما يُرجع الخادم false صراحةً (ليس صلاحية إدارة)
-      if (isAdmin === false) {
-        toast('هذا الحساب لا يملك صلاحية إدارة', true);
+    return Promise.all(STAFF_ROLES.map(function (role) {
+      return rpc('has_platform_role', { p_role: role });
+    })).then(function (flags) {
+      currentRoles = {};
+      var anyRole = false;
+      var allExplicitlyFalse = true;
+      STAFF_ROLES.forEach(function (role, i) {
+        if (flags[i] === true) { currentRoles[role] = true; anyRole = true; }
+        if (flags[i] !== false) allExplicitlyFalse = false;
+      });
+      // نسجّل الخروج فقط عندما يُرجع الخادم false صراحةً لكل الأدوار
+      if (allExplicitlyFalse) {
+        toast('هذا الحساب لا يملك صلاحية إدارة أو مالية أو دعم', true);
+        clearPinTrust();
         return db.auth.signOut().then(function () {
           shellEl.classList.remove('on');
           loginEl.style.display = '';
         });
       }
+      if (!anyRole) throw new Error('has_platform_role returned an unexpected value');
+      applyRoleNav();
       return db.auth.getUser().then(function (r) {
         var user = r.data.user;
-        document.getElementById('whoami').textContent = (user && (user.email || user.phone)) || '';
+        currentUserId = (user && user.id) || null;
+        var roleNames = STAFF_ROLES.filter(hasRole).map(function (role) { return STAFF_ROLE_LABELS[role]; }).join('، ');
+        document.getElementById('whoami').textContent = ((user && (user.email || user.phone)) || '') + (roleNames ? ' — ' + roleNames : '');
         loginEl.style.display = 'none';
         return runPinGate(user && user.id).catch(function (e) {
           console.error('NetYemen admin: PIN gate failed', e);
@@ -230,7 +366,7 @@
   }
 
   // ---------- قفل الرمز (PIN) ----------
-  // البوابة تُشغَّل بعد تأكيد صلاحية platform_admin وقبل عرض الواجهة. لا قفل خمول
+  // البوابة تُشغَّل بعد تأكيد أحد أدوار الطاقم (STAFF_ROLES) وقبل عرض الواجهة. لا قفل خمول
   // هنا (خاص بتطبيق المالك/المشغّل فقط) — فقط اكتشاف جهاز جديد + نسيت الرمز.
 
   var pinGateEl = document.getElementById('pin-gate');
@@ -338,9 +474,27 @@
     menuToggle.onclick = function() { sidebar.classList.toggle('open'); };
   }
 
+  // hasOwnProperty حتى لا تُحلّ مسارات مثل '#constructor' أو '#toString' إلى خصائص موروثة
+  function hasView(name) {
+    return Object.prototype.hasOwnProperty.call(views, name) && typeof views[name] === 'function';
+  }
+
+  function defaultView() {
+    var order = ['dashboard', 'deposits'];
+    for (var i = 0; i < order.length; i++) {
+      if (hasView(order[i]) && canView(order[i])) return order[i];
+    }
+    return null;
+  }
+
   function route() {
-    var name = (location.hash || '#dashboard').slice(1);
-    if (!views[name]) name = 'dashboard';
+    var name = (location.hash || '').slice(1);
+    if (!hasView(name) || !canView(name)) name = defaultView();
+    if (!name) {
+      viewEl.innerHTML = '<div class="card"><h2>لا توجد أقسام متاحة</h2>' +
+        '<p class="text-muted">دورك الحالي لا يملك أقساماً في هذه اللوحة.</p></div>';
+      return;
+    }
     Array.prototype.forEach.call(document.querySelectorAll('.sidebar-nav a'), function (a) {
       a.classList.toggle('active', a.dataset.view === name);
       if (a.dataset.view === name) document.getElementById('page-title').textContent = a.textContent;
@@ -353,7 +507,7 @@
       .catch(function (e) {
         console.error('NetYemen admin: view "' + name + '" failed to load', e);
         viewEl.innerHTML = '<div class="card"><h2>تعذّر التحميل</h2>' +
-          '<p class="text-muted">تعذّر تحميل هذا القسم، حاول لاحقاً.</p>' +
+          '<p class="text-muted">' + esc(errText(e)) + '</p>' +
           '<button class="btn btn-ghost mt-2" id="view-retry">إعادة المحاولة</button></div>';
         var retry = document.getElementById('view-retry');
         if (retry) retry.onclick = function () { route(); };
@@ -369,7 +523,7 @@
         if (!p || !p.then) return;
         btn.disabled = true;
         p.then(function (res) {
-          if (res === false) return; // user cancelled modal
+          if (res === false) { btn.disabled = false; return; } // user cancelled modal
           toast(typeof successText === 'function' ? successText(res) : successText); 
           route(); 
         }).catch(function (e) { console.error('NetYemen admin action failed:', e); toast(errText(e), true); btn.disabled = false; });
@@ -380,37 +534,40 @@
   // --- VIEWS ---
   
   views.dashboard = function () {
+    // admin_dashboard_kpis: platform_admin أو support_agent. get_commerce_admin_summary: platform_admin فقط.
+    var showCommerce = isPlatformAdmin();
     return Promise.all([
-      rpc('admin_dashboard_kpis').catch(function(){ return {}; }),
-      rpc('get_commerce_admin_summary').catch(function(){ return {}; })
+      settle(rpc('admin_dashboard_kpis')),
+      showCommerce ? settle(rpc('get_commerce_admin_summary')) : Promise.resolve(null)
     ]).then(function (res) {
-      var kpis = res[0] || {};
-      var comm = res[1] || {};
-      
       var KPI_LABELS = {
-        active_networks: 'شبكات نشطة', pending_requests: 'طلبات معلّقة', approved_requests: 'طلبات مقبولة', 
-        rejected_requests: 'طلبات مرفوضة', active_packages: 'باقات نشطة', out_of_stock_packages: 'باقات نفد مخزونها', 
+        active_networks: 'شبكات نشطة', pending_requests: 'طلبات معلّقة', approved_requests: 'طلبات مقبولة',
+        rejected_requests: 'طلبات مرفوضة', active_packages: 'باقات نشطة', out_of_stock_packages: 'باقات نفد مخزونها',
         network_owners: 'ملاك شبكات', network_operators: 'مشغّلون'
       };
-      
+
+      // المفاتيح كما يُرجعها get_commerce_admin_summary (كلها بالريال اليمني عدا عدد العمليات)
       var COMM_LABELS = {
-        total_revenue_yer: 'إجمالي الإيرادات (ر.ي)', total_deposits: 'إجمالي الشحن', pending_settlements: 'تصفيات معلقة',
-        total_active_cards: 'كروت نشطة', completed_purchases: 'عمليات ناجحة'
+        total_gross_sales: 'إجمالي المبيعات المكتملة (ر.ي)',
+        total_completed_purchases: 'عمليات شراء مكتملة',
+        total_pending_deposits: 'طلبات شحن بانتظار المراجعة (ر.ي)',
+        total_customer_liability: 'أرصدة محافظ العملاء (ر.ي)'
       };
 
-      var kpiCards = Object.keys(KPI_LABELS).map(function (k) {
-        if(kpis[k] === undefined) return '';
-        return '<div class="kpi"><div class="n">' + money(kpis[k]) + '</div><div class="l">' + esc(KPI_LABELS[k]) + '</div></div>';
-      }).join('');
-      
-      var commCards = Object.keys(COMM_LABELS).map(function (k) {
-        if(comm[k] === undefined) return '';
-        return '<div class="kpi"><div class="n">' + money(comm[k]) + '</div><div class="l">' + esc(COMM_LABELS[k]) + '</div></div>';
-      }).join('');
+      function kpiSection(result, labels) {
+        if (!result.ok) return errorBox(result.error, 'تعذّر تحميل المؤشرات');
+        var data = result.data || {};
+        var cards = Object.keys(labels).map(function (k) {
+          if (data[k] === undefined || data[k] === null) return '';
+          return '<div class="kpi"><div class="n">' + money(data[k]) + '</div><div class="l">' + esc(labels[k]) + '</div></div>';
+        }).join('');
+        if (!cards) return errorBox(new Error('empty'), 'لم يُرجع الخادم أي مؤشرات');
+        return '<div class="kpis">' + cards + '</div>';
+      }
 
-      viewEl.innerHTML = 
-        '<div class="mb-4"><h3>المؤشرات التشغيلية</h3></div><div class="kpis mb-6">' + kpiCards + '</div>' +
-        '<div class="mb-4 mt-6"><h3>المؤشرات المالية (Commerce)</h3></div><div class="kpis">' + commCards + '</div>';
+      viewEl.innerHTML =
+        '<div class="mb-4"><h3>المؤشرات التشغيلية</h3></div><div class="mb-6">' + kpiSection(res[0], KPI_LABELS) + '</div>' +
+        (res[1] ? '<div class="mb-4 mt-6"><h3>المؤشرات المالية (Commerce)</h3></div>' + kpiSection(res[1], COMM_LABELS) : '');
     });
   };
 
@@ -479,12 +636,12 @@
 
   // ---------- SSID توثيق ----------
   views.ssid = function () {
-    return db.from('network_ssid_aliases').select('*, networks(commercial_name)').eq('status', 'pending_verification').order('created_at', { ascending: false }).then(function (r) {
+    return db.from('network_ssid_aliases').select('id, ssid_display, status, created_at, networks(commercial_name)').eq('status', 'pending_verification').order('created_at', { ascending: false }).then(function (r) {
       if (r.error) throw r.error;
       var rows = r.data.map(function (a) {
         var actions = '<button class="btn btn-sm btn-accent" data-verify-ssid="' + esc(a.id) + '">توثيق</button>' +
                       '<button class="btn btn-sm btn-danger" data-reject-ssid="' + esc(a.id) + '">رفض</button>';
-        return '<tr><td>' + esc(a.ssid) + '</td><td>' + esc(a.networks && a.networks.commercial_name) + '</td><td>' + when(a.created_at) + '</td><td class="actions">' + actions + '</td></tr>';
+        return '<tr><td dir="ltr">' + esc(a.ssid_display) + '</td><td>' + esc(a.networks && a.networks.commercial_name) + '</td><td>' + when(a.created_at) + '</td><td class="actions">' + actions + '</td></tr>';
       });
       viewEl.innerHTML = '<div class="note">قائمة المعرفات (SSID) التي أضافها ملاك الشبكات وتنتظر التوثيق لتظهر للعملاء.</div>' +
                          '<div class="card">' + table(['المعرف (SSID)', 'الشبكة', 'تاريخ الإضافة', 'إجراء'], rows) + '</div>';
@@ -505,6 +662,11 @@
   };
 
   // ---------- الباقات ----------
+  // القيم المسموحة في قيد الجدول: package_type IN ('time','volume','unlimited')
+  var PACKAGE_TYPES = [['time', 'زمنية'], ['volume', 'حجم بيانات'], ['unlimited', 'غير محدودة']];
+  var PACKAGE_TYPE_LABELS = { time: 'زمنية', volume: 'حجم بيانات', unlimited: 'غير محدودة' };
+  // duration_unit IN ('hour','day','week','month')
+  var DURATION_UNIT_LABELS = { hour: 'ساعة', day: 'يوم', week: 'أسبوع', month: 'شهر' };
   views.packages = function () {
     return Promise.all([
       db.from('networks').select('id, commercial_name').order('commercial_name'),
@@ -520,7 +682,7 @@
         var actions = '';
         if (p.status === 'draft' || p.status === 'inactive') actions += '<button class="btn btn-sm btn-accent" data-publish="' + esc(p.id) + '">نشر</button>';
         if (p.status === 'active') actions += '<button class="btn btn-sm btn-ghost" data-deactivate="' + esc(p.id) + '">تعطيل</button>';
-        return '<tr><td>' + esc(p.name) + '</td><td>' + esc(p.networks ? p.networks.commercial_name : '') + '</td><td>' + money(p.price) + ' ' + esc(p.currency) + '</td><td>' + esc(p.duration_value ? p.duration_value + ' ' + p.duration_unit : '') + '</td><td>' + statusBadge(p.status) + '</td><td>' + (p.is_public ? badge('معروضة', 'ok') : badge('مخفية', 'mute')) + '</td><td class="actions">' + actions + '</td></tr>';
+        return '<tr><td>' + esc(p.name) + '</td><td>' + esc(p.networks ? p.networks.commercial_name : '') + '</td><td>' + money(p.price) + ' ' + esc(p.currency) + '</td><td>' + esc(PACKAGE_TYPE_LABELS[p.package_type] || p.package_type) + '</td><td>' + esc(p.duration_value ? p.duration_value + ' ' + (DURATION_UNIT_LABELS[p.duration_unit] || p.duration_unit || '') : '') + '</td><td>' + statusBadge(p.status) + '</td><td>' + (p.is_public ? badge('معروضة', 'ok') : badge('مخفية', 'mute')) + '</td><td class="actions">' + actions + '</td></tr>';
       });
 
       var noNet = !networks.length;
@@ -531,7 +693,8 @@
             '<div><label>الشبكة</label><select id="p-network"' + dis + '>' + options + '</select></div>' +
             '<div><label>الاسم</label><input id="p-name" placeholder="باقة شهرية"' + dis + '></div>' +
             '<div><label>السعر (ر.ي)</label><input id="p-price" type="number" min="1" dir="ltr"' + dis + '></div>' +
-            '<div><label>النوع</label><select id="p-type"' + dis + '><option value="time">زمنية</option><option value="data">بيانات</option><option value="hybrid">مختلطة</option></select></div>' +
+            '<div><label>النوع</label><select id="p-type"' + dis + '>' +
+              PACKAGE_TYPES.map(function (t) { return '<option value="' + esc(t[0]) + '">' + esc(t[1]) + '</option>'; }).join('') + '</select></div>' +
             '<div><label>مدة الصلاحية</label><input id="p-dur" type="number" min="1" dir="ltr"' + dis + '></div>' +
             '<div><label>وحدة المدة</label><select id="p-unit"' + dis + '><option value="day">يوم</option><option value="hour">ساعة</option><option value="week">أسبوع</option><option value="month">شهر</option></select></div>' +
             '<div><label>السرعة (ميجابت/ث)</label><input id="p-speed" type="number" min="1" dir="ltr"' + dis + '></div>' +
@@ -539,7 +702,7 @@
           '<label>الوصف</label><textarea id="p-desc" rows="2" class="mb-4"' + dis + '></textarea>' +
           '<button class="btn btn-primary" id="p-create"' + dis + '>إنشاء</button>' +
         '</div>' +
-        '<div class="card"><div class="card-header"><h3>الباقات الحالية</h3></div>' + table(['الباقة', 'الشبكة', 'السعر', 'المدة', 'الحالة', 'العرض', ''], rows) + '</div>';
+        '<div class="card"><div class="card-header"><h3>الباقات الحالية</h3></div>' + table(['الباقة', 'الشبكة', 'السعر', 'النوع', 'المدة', 'الحالة', 'العرض', ''], rows) + '</div>';
 
       var btnCreate = document.getElementById('p-create');
       if (btnCreate) btnCreate.onclick = function () {
@@ -547,9 +710,11 @@
         var price = parseInt(document.getElementById('p-price').value, 10);
         if (!name) return toast('أدخل اسم الباقة', true);
         if (!price || price < 1) return toast('أدخل سعراً صحيحاً', true);
-        this.disabled = true;
         var dur = parseInt(document.getElementById('p-dur').value, 10);
         var speed = parseInt(document.getElementById('p-speed').value, 10);
+        if (!isNaN(dur) && dur < 1) return toast('مدة الصلاحية يجب أن تكون 1 أو أكثر', true);
+        if (!isNaN(speed) && speed < 0) return toast('السرعة لا يمكن أن تكون سالبة', true);
+        this.disabled = true;
         rpc('create_network_package', {
           p_network_id: document.getElementById('p-network').value,
           p_name: name, p_description: document.getElementById('p-desc').value.trim() || null,
@@ -565,30 +730,39 @@
   };
 
   // ---------- المستخدمون والأدوار ----------
-  var ROLE_LABELS = { customer: 'عميل', network_owner: 'مالك شبكة', network_operator: 'مشغّل', platform_admin: 'مدير المنصة', finance_officer: 'موظف مالية', support_agent: 'دعم فني' };
+  var ROLE_LABELS = { customer: 'عميل', network_owner: 'مالك شبكة', network_operator: 'مشغّل', platform_admin: 'مدير المنصة', finance_officer: 'موظف مالية', support_agent: 'دعم فني', system_auditor: 'مدقّق النظام' };
+  // الأدوار التي تقبلها admin_set_user_platform_role (v_allowed_roles في الخادم)
+  var ASSIGNABLE_PLATFORM_ROLES = ['finance_officer', 'support_agent', 'system_auditor', 'platform_admin'];
+  var ADMIN_GRANT_WARNING = 'مدير المنصة يملك صلاحية كاملة: الأموال، العمولة، الأدوار وإيقاف الحسابات.';
   views.users = function () {
     return Promise.all([
-      db.from('profiles').select('*').order('created_at', { ascending: false }),
-      db.from('user_roles').select('user_id, role'),
-      rpc('admin_list_access_grants').catch(function () { return []; }),
-      rpc('admin_list_pin_reset_requests').catch(function () { return []; })
+      settle(query(db.from('profiles').select('*').order('created_at', { ascending: false }))),
+      // قراءة فقط: أي تغيير للأدوار يمر حصراً عبر admin_set_user_platform_role
+      settle(query(db.from('user_roles').select('user_id, role'))),
+      settle(rpc('admin_list_access_grants')),
+      settle(rpc('admin_list_pin_reset_requests'))
     ]).then(function (res) {
-      if (res[0].error) throw res[0].error;
-      if (res[1].error) throw res[1].error;
-      var grants = res[2] || [];
-      var pinRequests = res[3] || [];
+      var profilesRes = res[0];
+      var rolesRes = res[1];
+      var grantsRes = res[2];
+      var pinRes = res[3];
+      var profiles = profilesRes.ok ? (profilesRes.data || []) : [];
+      var grants = grantsRes.ok ? (grantsRes.data || []) : [];
+      var pinRequests = pinRes.ok ? (pinRes.data || []) : [];
       var rolesByUser = {};
-      res[1].data.forEach(function (r) { (rolesByUser[r.user_id] = rolesByUser[r.user_id] || []).push(r.role); });
+      var nameById = {};
+      if (rolesRes.ok) (rolesRes.data || []).forEach(function (r) { (rolesByUser[r.user_id] = rolesByUser[r.user_id] || []).push(r.role); });
+      profiles.forEach(function (p) { nameById[p.id] = p.full_name || ''; });
 
-      var rows = res[0].data.map(function (p) {
-        var roles = (rolesByUser[p.id] || []).map(function (r) { return badge(ROLE_LABELS[r] || r, r === 'platform_admin' ? 'ok' : 'mute'); }).join(' ');
+      var rows = profiles.map(function (p) {
+        var roles = !rolesRes.ok ? badge('تعذّر التحميل', 'err') : (rolesByUser[p.id] || []).map(function (r) { return badge(ROLE_LABELS[r] || r, r === 'platform_admin' ? 'ok' : 'mute'); }).join(' ');
         var toggle = p.account_status === 'active'
           ? '<button class="btn btn-sm btn-danger" data-suspend-user="' + esc(p.id) + '">إيقاف</button>'
           : '<button class="btn btn-sm btn-accent" data-activate-user="' + esc(p.id) + '">تفعيل</button>';
         var shortId = String(p.id || '').slice(0, 8);
         var idCell = '<span class="text-sm text-muted" dir="ltr">' + esc(shortId) + '…</span>' +
           '<button class="btn btn-icon btn-sm" data-copy-id="' + esc(p.id) + '" title="نسخ المعرّف" aria-label="نسخ المعرّف">⧉</button>';
-        var searchText = [p.full_name, p.phone, p.email, p.id].filter(Boolean).join(' ').toLowerCase();
+        var searchText = [p.full_name, p.id].filter(Boolean).join(' ').toLowerCase();
         return '<tr data-search="' + esc(searchText) + '"><td>' + esc(p.full_name || '—') + '</td><td class="id-cell">' + idCell + '</td><td>' + roles + '</td><td>' + statusBadge(p.account_status) + '</td><td>' + when(p.created_at) + '</td><td class="actions">' + toggle + '<button class="btn btn-sm btn-ghost" data-role-user="' + esc(p.id) + '">الأدوار</button></td></tr>';
       });
 
@@ -624,15 +798,17 @@
           '</div>' +
           '<div class="mb-4"><label>الأدوار</label><div class="flex gap-4 flex-wrap">' + roleChecks + '</div></div>' +
           '<button class="btn btn-primary" id="inv-submit">إرسال الدعوة</button>' +
-          (grantRows.length ? '<div class="mt-4">' + table(['البريد', 'الأدوار', 'الحالة', 'أُنشئت', 'إجراء'], grantRows) + '</div>' : '') +
+          (!grantsRes.ok ? '<div class="mt-4">' + errorBox(grantsRes.error, 'تعذّر تحميل الدعوات') + '</div>' :
+            (grantRows.length ? '<div class="mt-4">' + table(['البريد', 'الأدوار', 'الحالة', 'أُنشئت', 'إجراء'], grantRows) + '</div>' : '')) +
         '</div>' +
         '<div class="card"><div class="card-header"><h3>المستخدمون</h3></div>' +
-          '<div class="mb-4"><input type="search" id="user-search" placeholder="ابحث بالاسم أو الهاتف أو البريد…"></div>' +
-          '<div id="users-table">' + table(['الاسم', 'المعرّف', 'الأدوار', 'الحالة', 'انضم', 'إجراء'], rows) + '</div>' +
+          '<div class="mb-4"><input type="search" id="user-search" placeholder="ابحث بالاسم أو المعرّف…"></div>' +
+          (!rolesRes.ok ? errorBox(rolesRes.error, 'تعذّر تحميل أدوار المستخدمين') : '') +
+          '<div id="users-table">' + (profilesRes.ok ? table(['الاسم', 'المعرّف', 'الأدوار', 'الحالة', 'انضم', 'إجراء'], rows) : errorBox(profilesRes.error, 'تعذّر تحميل المستخدمين')) + '</div>' +
         '</div>' +
         '<div class="card"><div class="card-header"><h3>طلبات إعادة تعيين رمز الحماية</h3></div>' +
           '<div class="note">الموافقة تحذف رمز المستخدم الحالي؛ يُطلب منه إنشاء رمز جديد عند الدخول التالي.</div>' +
-          table(['البريد', 'الاسم', 'الحالة', 'تاريخ الطلب', 'إجراء'], pinReqRows) +
+          (pinRes.ok ? table(['البريد', 'الاسم', 'الحالة', 'تاريخ الطلب', 'إجراء'], pinReqRows) : errorBox(pinRes.error, 'تعذّر تحميل طلبات إعادة التعيين')) +
         '</div>';
 
       // بحث فوري في جدول المستخدمين (اسم/هاتف/بريد)
@@ -669,9 +845,14 @@
         if (!email) return toast('أدخل البريد الإلكتروني', true);
         if (!roles.length) return toast('اختر دوراً واحداً على الأقل', true);
         var btn = this; btn.disabled = true;
-        rpc('admin_create_access_grant', { p_email: email, p_roles: roles, p_note: note || null })
-          .then(function () { toast('تمت إضافة الدعوة'); route(); })
-          .catch(function (e) { toast(errText(e), true); btn.disabled = false; });
+        var confirmed = roles.indexOf('platform_admin') === -1
+          ? Promise.resolve(true)
+          : asyncConfirm('ستُمنح صلاحية «مدير المنصة» للبريد ' + email + ' عند أول دخول. ' + ADMIN_GRANT_WARNING + ' هل تريد المتابعة؟');
+        confirmed.then(function (ok) {
+          if (!ok) { btn.disabled = false; return; }
+          return rpc('admin_create_access_grant', { p_email: email, p_roles: roles, p_note: note || null })
+            .then(function () { toast('تمت إضافة الدعوة'); route(); });
+        }).catch(function (e) { toast(errText(e), true); btn.disabled = false; });
       };
       bindActionAsync('revoke-grant', function (id) {
         return rpc('admin_revoke_access_grant', { p_id: id });
@@ -697,18 +878,31 @@
       }, 'تم تفعيل الحساب');
       bindActionAsync('role-user', function (id) {
         var div = document.createElement('div');
-        div.innerHTML = '<p>اختر الدور الذي ترغب في إدارته لهذا المستخدم:</p>' +
-          '<select id="role-select" class="mb-4"><option value="network_owner">مالك شبكة</option><option value="platform_admin">مدير منصة</option><option value="finance_officer">موظف مالية</option></select>' +
+        var who = nameById[id] || String(id).slice(0, 8);
+        div.innerHTML = '<p>اختر الدور الذي ترغب في إدارته للمستخدم «' + esc(who) + '»:</p>' +
+          '<select id="role-select" class="mb-4">' +
+            ASSIGNABLE_PLATFORM_ROLES.map(function (r) { return '<option value="' + esc(r) + '">' + esc(ROLE_LABELS[r] || r) + '</option>'; }).join('') +
+          '</select>' +
           '<div class="flex gap-4"><label><input type="radio" name="role-act" value="grant" checked> منح الدور</label><label><input type="radio" name="role-act" value="revoke"> سحب الدور</label></div>';
         return openModal('إدارة الأدوار', div, '<button class="btn btn-ghost" data-action="cancel">إلغاء</button><button class="btn btn-primary" data-action="ok">حفظ</button>').then(function(res) {
           if(res === 'ok') {
             var role = document.getElementById('role-select').value;
             var enable = document.querySelector('input[name="role-act"]:checked').value === 'grant';
-            return rpc('admin_set_user_platform_role', { p_user_id: id, p_role: role, p_enabled: enable });
+            if (ASSIGNABLE_PLATFORM_ROLES.indexOf(role) === -1) { toast(errText(new Error('INVALID_ROLE')), true); return false; }
+            // تأكيد إضافي صريح قبل منح مدير المنصة
+            var confirmed = (role === 'platform_admin' && enable)
+              ? asyncConfirm('سيُمنح المستخدم «' + who + '» صلاحية «مدير المنصة». ' + ADMIN_GRANT_WARNING + ' هل تريد المتابعة؟')
+              : Promise.resolve(true);
+            return confirmed.then(function (ok) {
+              if (!ok) return false;
+              return rpc('admin_set_user_platform_role', { p_user_id: id, p_role: role, p_enabled: enable });
+            });
           }
           return false;
         });
-      }, 'تم تحديث الأدوار');
+      }, function (res) {
+        return res && res.changed === false ? 'لا تغيير — الدور على حاله مسبقاً' : 'تم تحديث الأدوار';
+      });
 
       bindActionAsync('approve-pin', function (id) {
         return asyncConfirm('تأكيد قبول الطلب؟ سيُطلب من المستخدم إنشاء رمز جديد عند الدخول التالي.').then(function (ok) {
@@ -738,7 +932,7 @@
       viewEl.innerHTML = '<div class="note">هذه الوجهات تظهر للعميل في شاشة شحن المحفظة.</div>' +
         '<div class="card"><div class="card-header"><h3>إضافة وجهة دفع جديدة</h3></div>' +
           '<div class="grid grid-2 mb-4">' +
-            '<div><label>النوع</label><select id="d-type"><option value="bank_account">حساب بنكي</option><option value="mobile_wallet">محفظة إلكترونية</option><option value="exchange">صرافة</option></select></div>' +
+            '<div><label>النوع</label><select id="d-type"><option value="bank_account">حساب بنكي</option><option value="mobile_wallet">محفظة إلكترونية</option><option value="manual_transfer">حوالة / صرافة</option><option value="other">أخرى</option></select></div>' +
             '<div><label>الاسم المعروض</label><input id="d-name" placeholder="بنك الكريمي"></div>' +
             '<div><label>اسم صاحب الحساب</label><input id="d-holder"></div>' +
             '<div><label>رقم الحساب</label><input id="d-acct" dir="ltr"></div>' +
@@ -769,86 +963,246 @@
   };
 
   // ---------- طلبات الشحن ----------
+  var DEPOSIT_STATUSES = ['pending', 'under_review', 'approved', 'rejected', 'cancelled'];
+  var DEPOSIT_DUAL_APPROVAL_FALLBACK = 50000; // deposit_dual_approval_threshold() في الخادم
   views.deposits = function () {
-    var status = sessionStorage.getItem('depositFilter') || 'pending';
-    return rpc('get_finance_deposit_queue', { p_status: status }).then(function (list) {
-      var rows = (list || []).map(function (d) {
-        var actions = '';
-        if (d.status === 'pending' || d.status === 'under_review') {
-          actions = '<button class="btn btn-sm btn-accent" data-approve-dep="' + esc(d.id) + '">قبول</button>' +
-                    '<button class="btn btn-sm btn-danger" data-reject-dep="' + esc(d.id) + '">رفض</button>';
-        }
-        return '<tr><td>' + money(d.amount) + ' ر.ي</td><td dir="ltr" class="text-center">' + esc(d.reference_number) + '</td><td>' + statusBadge(d.status) + '</td><td>' + when(d.created_at) + '</td><td class="actions">' + actions + '</td></tr>';
-      });
+    var status = sessionStorage.getItem('depositFilter');
+    if (DEPOSIT_STATUSES.indexOf(status) === -1) status = 'pending';
 
-      var filters = ['pending', 'under_review', 'approved', 'rejected', 'cancelled'].map(function (s) {
-        var label = (STATUS_STYLE[s] || [s])[0];
-        return '<button class="btn btn-sm ' + (s === status ? 'btn-primary' : 'btn-ghost') + '" data-filter="' + s + '">' + esc(label) + '</button>';
-      }).join('');
+    return Promise.all([
+      settle(rpc('get_finance_deposit_queue', { p_status: status })),
+      settle(rpc('deposit_dual_approval_threshold'))
+    ]).then(function (first) {
+      var queueRes = first[0];
+      var list = queueRes.ok ? (queueRes.data || []) : [];
+      var threshold = first[1].ok ? Number(first[1].data) : NaN;
+      if (!(threshold > 0)) threshold = DEPOSIT_DUAL_APPROVAL_FALLBACK;
 
-      viewEl.innerHTML = '<div class="card"><div class="flex gap-2">' + filters + '</div></div>' +
-        '<div class="card">' + table(['المبلغ', 'رقم الحوالة/المرجع', 'الحالة', 'التاريخ', 'إجراء'], rows) + '</div>';
+      // قائمة المراجعة لا تُرجع لقطة وجهة الدفع ولا الموافق الأول، فنقرؤها من الجدول
+      // مباشرةً (سياسة SELECT تسمح لموظف المالية ومدير المنصة). قراءة فقط.
+      var ids = list.map(function (d) { return d.id; });
+      var detailsPromise = ids.length
+        ? settle(query(db.from('wallet_deposit_requests')
+            .select('id, destination_snapshot, first_approved_by, first_approved_at, reviewed_at, rejection_reason')
+            .in('id', ids)))
+        : Promise.resolve({ ok: true, data: [] });
 
-      Array.prototype.forEach.call(viewEl.querySelectorAll('[data-filter]'), function (btn) {
-        btn.onclick = function () { sessionStorage.setItem('depositFilter', btn.dataset.filter); route(); };
-      });
+      return detailsPromise.then(function (detailsRes) {
+        var detailById = {};
+        (detailsRes.ok ? detailsRes.data : []).forEach(function (r) { detailById[r.id] = r; });
 
-      bindActionAsync('approve-dep', function (id) {
-        return asyncConfirm('تأكيد قبول الطلب وإيداع المبلغ في محفظة العميل فوراً؟').then(function(ok) {
-          if(!ok) return false;
-          return rpc('review_wallet_deposit_request', { p_deposit_id: id, p_action: 'approve', p_rejection_reason: null });
+        var approverIds = [];
+        Object.keys(detailById).forEach(function (k) {
+          var a = detailById[k].first_approved_by;
+          if (a && a !== currentUserId && approverIds.indexOf(a) === -1) approverIds.push(a);
         });
-      }, function (res) {
-        // Large deposits need a second, different approver before crediting.
-        return res && res.requires_second_approval
-          ? 'تم تسجيل موافقتك — يحتاج الطلب موافقة موظف آخر قبل إضافة الرصيد'
-          : 'تم قبول الطلب وإضافة الرصيد';
-      });
+        // أسماء الموافقين الأوائل: الملفات الشخصية مقروءة لمدير المنصة فقط؛ عند التعذّر نعرض المعرّف المختصر
+        var namesPromise = approverIds.length
+          ? settle(query(db.from('profiles').select('id, full_name').in('id', approverIds)))
+          : Promise.resolve({ ok: true, data: [] });
 
-      bindActionAsync('reject-dep', function (id) {
-        return asyncPrompt('سبب الرفض:').then(function(reason) {
-          if(!reason) return false;
-          return rpc('review_wallet_deposit_request', { p_deposit_id: id, p_action: 'reject', p_rejection_reason: reason });
+        return namesPromise.then(function (namesRes) {
+          var approverName = {};
+          (namesRes.ok ? namesRes.data : []).forEach(function (p) { approverName[p.id] = p.full_name; });
+          renderDeposits(status, queueRes, list, threshold, detailsRes, detailById, approverName);
         });
-      }, 'تم رفض الطلب');
+      });
     });
   };
 
+  function renderDeposits(status, queueRes, list, threshold, detailsRes, detailById, approverName) {
+    var byId = {};
+    function line(label, value, ltr) {
+      if (value === null || value === undefined || value === '') return '';
+      return '<div class="kv"><span class="k">' + esc(label) + '</span> <span' + (ltr ? ' dir="ltr"' : '') + '>' + esc(value) + '</span></div>';
+    }
+    function approverLabel(uid) {
+      if (!uid) return '';
+      if (uid === currentUserId) return 'أنت';
+      return approverName[uid] || ('موظف ' + String(uid).slice(0, 8) + '…');
+    }
+
+    var rows = list.map(function (d) {
+      var det = detailById[d.id] || null;
+      var snap = (det && det.destination_snapshot && typeof det.destination_snapshot === 'object') ? det.destination_snapshot : {};
+      var reviewable = d.status === 'pending' || d.status === 'under_review';
+      var needsDual = Number(d.amount) >= threshold;
+      var firstBy = det ? det.first_approved_by : null;
+      var firstIsMe = !!firstBy && firstBy === currentUserId;
+      byId[d.id] = { d: d, snap: snap, needsDual: needsDual, firstBy: firstBy };
+
+      var customer = '<div>' + esc(d.customer_name || '—') + '</div>' +
+        '<div class="text-sm text-muted" dir="ltr">' + esc(String(d.user_id || '').slice(0, 8)) + '…</div>';
+
+      var destination;
+      if (!detailsRes.ok) {
+        destination = '<span class="text-error">تعذّر التحميل</span>';
+      } else if (!snap.display_name && !snap.account_identifier) {
+        destination = '<span class="text-error">لا توجد لقطة وجهة محفوظة لهذا الطلب</span>';
+      } else {
+        destination = line('الوجهة:', snap.display_name) +
+          line('النوع:', snap.provider_type ? providerLabel(snap.provider_type) : '') +
+          line('صاحب الحساب:', snap.account_holder_name) +
+          line('رقم الحساب:', snap.account_identifier, true);
+      }
+
+      var state = statusBadge(d.status);
+      if (reviewable && needsDual) {
+        if (firstBy) {
+          state += '<div class="dual-note">تمت الموافقة الأولى بواسطة ' + esc(approverLabel(firstBy)) +
+            (det.first_approved_at ? ' (' + esc(whenFull(det.first_approved_at)) + ')' : '') +
+            ' — يحتاج موافقة مراجع ثانٍ مختلف قبل إضافة الرصيد.</div>';
+        } else {
+          state += '<div class="dual-note">مبلغ ' + esc(money(threshold)) + ' ر.ي فأكثر: يحتاج موافقتين من مراجعَين مختلفَين.</div>';
+        }
+      }
+      if (det && d.status === 'rejected' && det.rejection_reason) state += line('سبب الرفض:', det.rejection_reason);
+      if (det && det.reviewed_at) state += line('روجع في:', whenFull(det.reviewed_at), true);
+
+      var actions = '';
+      if (reviewable) {
+        if (!detailsRes.ok) {
+          actions += '<span class="text-sm text-error">القبول معطّل حتى تُحمّل التفاصيل</span>';
+        } else if (firstIsMe) {
+          actions += '<span class="text-sm text-muted">سجّلت موافقتك — بانتظار مراجع آخر</span>';
+        } else {
+          actions += '<button class="btn btn-sm btn-accent" data-approve-dep="' + esc(d.id) + '">' +
+            (needsDual ? (firstBy ? 'موافقة ثانية وإضافة الرصيد' : 'موافقة أولى') : 'قبول') + '</button>';
+        }
+        actions += '<button class="btn btn-sm btn-danger" data-reject-dep="' + esc(d.id) + '">رفض</button>';
+      }
+
+      return '<tr><td>' + customer + '</td>' +
+        '<td><strong>' + esc(money(d.amount)) + '</strong> ' + esc(d.currency || 'YER') + '</td>' +
+        '<td>' + destination + '</td>' +
+        '<td dir="ltr" class="text-center">' + esc(d.reference_number) + (d.proof_storage_path ? '<div class="text-sm text-muted" dir="rtl">مرفق إثبات</div>' : '') + '</td>' +
+        '<td dir="ltr">' + esc(whenFull(d.created_at)) + '</td>' +
+        '<td>' + state + '</td>' +
+        '<td class="actions">' + actions + '</td></tr>';
+    });
+
+    var filters = DEPOSIT_STATUSES.map(function (s) {
+      var label = (STATUS_STYLE[s] || [s])[0];
+      return '<button class="btn btn-sm ' + (s === status ? 'btn-primary' : 'btn-ghost') + '" data-filter="' + esc(s) + '">' + esc(label) + '</button>';
+    }).join('');
+
+    viewEl.innerHTML = '<div class="note">الطلبات بمبلغ ' + esc(money(threshold)) + ' ر.ي فأكثر تحتاج موافقتين من مراجعَين مختلفَين: الموافقة الأولى تنقل الطلب إلى «قيد المراجعة» دون إضافة رصيد، والثانية (من موظف آخر) تضيف الرصيد.</div>' +
+      '<div class="card"><div class="flex gap-2 flex-wrap">' + filters + '</div></div>' +
+      '<div class="card">' +
+        (queueRes.ok && !detailsRes.ok ? errorBox(detailsRes.error, 'تعذّر تحميل تفاصيل وجهة الدفع والموافقة الأولى — القبول معطّل، أعد تحميل الصفحة') : '') +
+        (queueRes.ok
+          ? table(['العميل', 'المبلغ', 'وجهة الدفع', 'رقم الحوالة/المرجع', 'وقت الطلب', 'الحالة', 'إجراء'], rows)
+          : errorBox(queueRes.error, 'تعذّر تحميل طلبات الشحن')) +
+      '</div>';
+
+    Array.prototype.forEach.call(viewEl.querySelectorAll('[data-filter]'), function (btn) {
+      btn.onclick = function () { sessionStorage.setItem('depositFilter', btn.dataset.filter); route(); };
+    });
+
+    bindActionAsync('approve-dep', function (id) {
+      var item = byId[id];
+      if (!item) return Promise.resolve(false);
+      var d = item.d;
+      var summary = 'المبلغ: ' + money(d.amount) + ' ر.ي — العميل: ' + (d.customer_name || '—') +
+        ' — المرجع: ' + d.reference_number +
+        ' — الوجهة: ' + (item.snap.display_name || '—') + (item.snap.account_identifier ? ' (' + item.snap.account_identifier + ')' : '') + '. ';
+      var consequence = !item.needsDual
+        ? 'سيُضاف المبلغ إلى محفظة العميل فوراً. تأكيد القبول؟'
+        : (item.firstBy
+          ? 'هذه الموافقة الثانية: سيُضاف المبلغ إلى محفظة العميل فوراً. تأكيد؟'
+          : 'هذه الموافقة الأولى: لن يُضاف الرصيد الآن، وسينتقل الطلب إلى «قيد المراجعة» بانتظار مراجع ثانٍ مختلف. تأكيد؟');
+      return asyncConfirm(summary + consequence).then(function (ok) {
+        if (!ok) return false;
+        return rpc('review_wallet_deposit_request', { p_deposit_id: id, p_action: 'approve', p_rejection_reason: null });
+      });
+    }, function (res) {
+      // المبالغ الكبيرة: الموافقة الأولى تُرجع status = under_review و requires_second_approval = true دون إضافة رصيد
+      if (res && (res.requires_second_approval || res.status === 'under_review')) {
+        return res.replayed
+          ? 'موافقتك مسجّلة مسبقاً — الطلب ما زال يحتاج مراجعاً ثانياً مختلفاً، ولم يُضف أي رصيد'
+          : 'سُجّلت موافقتك الأولى ونُقل الطلب إلى «قيد المراجعة» — يحتاج مراجعاً ثانياً مختلفاً قبل إضافة الرصيد';
+      }
+      if (res && res.status === 'rejected') return 'الطلب مرفوض مسبقاً — لم يُضف أي رصيد';
+      if (res && res.replayed) return 'الطلب معتمد مسبقاً — لم يُضف الرصيد مرة ثانية';
+      return 'تم قبول الطلب وإضافة الرصيد';
+    });
+
+    bindActionAsync('reject-dep', function (id) {
+      return asyncPrompt('سبب الرفض (مطلوب، 500 حرف كحد أقصى):').then(function (reason) {
+        if (reason === null) return false;
+        if (!reason) { toast('سبب الرفض مطلوب', true); return false; }
+        if (reason.length > 500) { toast('سبب الرفض أطول من 500 حرف', true); return false; }
+        return rpc('review_wallet_deposit_request', { p_deposit_id: id, p_action: 'reject', p_rejection_reason: reason });
+      });
+    }, function (res) {
+      return res && res.status === 'approved' ? 'الطلب معتمد مسبقاً ولا يمكن رفضه' : 'تم رفض الطلب';
+    });
+  }
+
   // ---------- تصفية المستحقات ----------
+  // الحالات كما يقبلها get_finance_settlement_batches (أي قيمة أخرى ترفع INVALID_STATUS_FILTER)
+  var SETTLEMENT_STATUSES = ['draft', 'ready_for_review', 'approved', 'paid', 'cancelled', 'corrected'];
   views.settlements = function () {
-    var status = sessionStorage.getItem('settlementFilter') || 'pending_approval';
+    var status = sessionStorage.getItem('settlementFilter');
+    // 'all' => p_status = null (كل الحالات)
+    if (status !== 'all' && SETTLEMENT_STATUSES.indexOf(status) === -1) status = 'draft';
+
     return Promise.all([
-      db.from('networks').select('id, commercial_name').order('commercial_name'),
-      rpc('get_finance_settlement_batches', { p_status: status }).catch(function(){ return []; })
+      settle(query(db.from('networks').select('id, commercial_name').order('commercial_name'))),
+      settle(rpc('get_finance_settlement_batches', { p_status: status === 'all' ? null : status }))
     ]).then(function (res) {
-      if (res[0].error) throw res[0].error;
-      var networks = res[0].data;
-      var list = res[1] || [];
+      var networksRes = res[0];
+      var batchesRes = res[1];
+      var networks = networksRes.ok ? networksRes.data : [];
+      var list = batchesRes.ok ? (batchesRes.data || []) : [];
+      var byId = {};
 
       var rows = list.map(function (b) {
+        byId[b.id] = b;
         var actions = '';
-        if (b.status === 'pending_approval') actions += '<button class="btn btn-sm btn-accent" data-approve-set="' + esc(b.id) + '">موافقة</button>';
-        if (b.status === 'approved') actions += '<button class="btn btn-sm btn-primary" data-pay-set="' + esc(b.id) + '">سداد</button>';
-        
-        return '<tr><td>' + esc(b.networks && b.networks.commercial_name) + '</td><td>' + when(b.period_start) + ' - ' + when(b.period_end) + '</td><td>' + money(b.total_amount) + '</td><td>' + money(b.commission_amount) + '</td><td>' + money(b.net_amount) + '</td><td>' + statusBadge(b.status) + '</td><td class="actions">' + actions + '</td></tr>';
+        // الخادم يوافق من draft أو ready_for_review فقط، ويرفض موافقة منشئ الدفعة نفسه
+        if (b.status === 'draft' || b.status === 'ready_for_review') {
+          if (b.created_by && b.created_by === currentUserId) {
+            actions += '<span class="text-sm text-muted">أنشأتها أنت — تحتاج موافقة موظف آخر</span>';
+          } else {
+            actions += '<button class="btn btn-sm btn-accent" data-approve-set="' + esc(b.id) + '">موافقة</button>';
+          }
+        }
+        if (b.status === 'approved') actions += '<button class="btn btn-sm btn-primary" data-pay-set="' + esc(b.id) + '">تسجيل السداد</button>';
+
+        return '<tr><td><div>' + esc(b.network_name || '—') + '</div><div class="text-sm text-muted">' + esc(b.owner_name || '') + '</div></td>' +
+          '<td dir="ltr">' + esc(when(b.period_start)) + ' - ' + esc(when(b.period_end)) + '</td>' +
+          '<td>' + esc(money(b.gross_sales)) + '</td>' +
+          '<td>' + esc(money(b.total_commission)) + '</td>' +
+          '<td>' + esc(money(b.total_refunds)) + '</td>' +
+          '<td>' + esc(money(b.total_adjustments)) + '</td>' +
+          '<td><strong>' + esc(money(b.net_settlement)) + '</strong></td>' +
+          '<td>' + statusBadge(b.status) + (b.notes ? '<div class="text-sm text-muted">' + esc(b.notes) + '</div>' : '') + '</td>' +
+          '<td class="actions">' + actions + '</td></tr>';
       });
 
-      var filters = ['pending_approval', 'approved', 'paid'].map(function (s) {
-        var label = (STATUS_STYLE[s] || [s])[0];
-        return '<button class="btn btn-sm ' + (s === status ? 'btn-primary' : 'btn-ghost') + '" data-filter="' + s + '">' + esc(label) + '</button>';
+      var filters = ['all'].concat(SETTLEMENT_STATUSES).map(function (s) {
+        var label = s === 'all' ? 'الكل' : (STATUS_STYLE[s] || [s])[0];
+        return '<button class="btn btn-sm ' + (s === status ? 'btn-primary' : 'btn-ghost') + '" data-filter="' + esc(s) + '">' + esc(label) + '</button>';
       }).join('');
-      
-      var options = '<option value="">الكل (أو اختر شبكة)</option>' + networks.map(function (n) { return '<option value="' + esc(n.id) + '">' + esc(n.commercial_name) + '</option>'; }).join('');
+
+      var options = '<option value="">كل الشبكات</option>' + networks.map(function (n) { return '<option value="' + esc(n.id) + '">' + esc(n.commercial_name) + '</option>'; }).join('');
 
       viewEl.innerHTML = '<div class="card"><div class="card-header"><h3>إنشاء دفعة تصفية</h3></div>' +
+        '<p class="mb-4 text-muted">تُنشأ دفعة «مسودة» لكل شبكة/مالك لديه مبيعات مكتملة غير مسوّاة في الفترة. من أنشأ الدفعة لا يستطيع الموافقة عليها.</p>' +
+        (networksRes.ok ? '' : errorBox(networksRes.error, 'تعذّر تحميل قائمة الشبكات — يمكن الإنشاء لكل الشبكات فقط')) +
         '<div class="grid grid-3 mb-4">' +
           '<div><label>من تاريخ</label><input type="date" id="s-start" dir="ltr"></div>' +
           '<div><label>إلى تاريخ</label><input type="date" id="s-end" dir="ltr"></div>' +
           '<div><label>الشبكة (اختياري)</label><select id="s-network">' + options + '</select></div>' +
         '</div>' +
         '<button class="btn btn-primary" id="s-create">إنشاء الدفعة</button></div>' +
-        '<div class="card"><div class="flex gap-2">' + filters + '</div></div>' +
-        '<div class="card"><div class="card-header"><h3>دفعات التصفية</h3></div>' + table(['الشبكة', 'الفترة', 'الإجمالي', 'العمولة', 'الصافي', 'الحالة', 'إجراء'], rows) + '</div>';
+        '<div class="card"><div class="flex gap-2 flex-wrap">' + filters + '</div></div>' +
+        '<div class="card"><div class="card-header"><h3>دفعات التصفية</h3></div>' +
+          (batchesRes.ok
+            ? table(['الشبكة / المالك', 'الفترة', 'إجمالي المبيعات', 'العمولة', 'المستردات', 'التسويات', 'الصافي المستحق', 'الحالة', 'إجراء'], rows)
+            : errorBox(batchesRes.error, 'تعذّر تحميل دفعات التصفية')) +
+        '</div>';
 
       Array.prototype.forEach.call(viewEl.querySelectorAll('[data-filter]'), function (btn) {
         btn.onclick = function () { sessionStorage.setItem('settlementFilter', btn.dataset.filter); route(); };
@@ -860,57 +1214,75 @@
         var end = document.getElementById('s-end').value;
         var nid = document.getElementById('s-network').value || null;
         if (!start || !end) return toast('حدد تاريخ البداية والنهاية', true);
+        if (start > end) return toast(errText(new Error('INVALID_PERIOD')), true);
         this.disabled = true;
         rpc('finance_create_settlement_batch', { p_period_start: start, p_period_end: end, p_network_id: nid })
-          .then(function () { toast('تم إنشاء الدفعة'); route(); }).catch(function (e) { toast(errText(e), true); }).finally(function () { if(btnCreate) btnCreate.disabled = false; });
+          .then(function (r) {
+            var n = (r && Number(r.batches_created)) || 0;
+            if (!n) { toast('لم تُنشأ أي دفعة: لا توجد مبيعات مؤهلة للتسوية في هذه الفترة', true); return; }
+            toast('تم إنشاء ' + n + ' دفعة — إجمالي المبيعات ' + money(r.total_gross_sales) + ' ر.ي، المستردات ' + money(r.total_refunds) + ' ر.ي');
+            sessionStorage.setItem('settlementFilter', 'draft');
+            route();
+          }).catch(function (e) { console.error('NetYemen admin action failed:', e); toast(errText(e), true); }).finally(function () { if(btnCreate) btnCreate.disabled = false; });
       };
 
+      function batchSummary(b) {
+        return 'الشبكة: ' + (b.network_name || '—') + ' — الفترة: ' + when(b.period_start) + ' - ' + when(b.period_end) +
+          ' — الصافي المستحق: ' + money(b.net_settlement) + ' ر.ي. ';
+      }
+
       bindActionAsync('approve-set', function (id) {
-        return asyncConfirm('تأكيد الموافقة على الدفعة؟').then(function(ok) {
+        var b = byId[id];
+        if (!b) return Promise.resolve(false);
+        return asyncConfirm(batchSummary(b) + 'تأكيد الموافقة على الدفعة؟').then(function(ok) {
           if(!ok) return false;
           return rpc('finance_approve_settlement_batch', { p_batch_id: id });
         });
       }, 'تمت الموافقة');
 
       bindActionAsync('pay-set', function (id) {
-        return asyncPrompt('ملاحظات السداد (مثال: رقم التحويل):').then(function(notes) {
-          if(notes === null) return false;
+        var b = byId[id];
+        if (!b) return Promise.resolve(false);
+        var div = document.createElement('div');
+        div.innerHTML = '<p>' + esc(batchSummary(b)) + '</p>' +
+          '<p class="text-error" style="font-weight:600">تسجيل السداد نهائي: تأكد أن التحويل للمالك تم فعلاً.</p>' +
+          '<label for="pay-notes">مرجع/ملاحظات السداد <span class="text-error">*</span></label>' +
+          '<textarea id="pay-notes" rows="3" placeholder="مثال: رقم الحوالة، الجهة، التاريخ"></textarea>';
+        return openModal('تسجيل سداد الدفعة', div,
+          '<button class="btn btn-ghost" data-action="cancel">إلغاء</button>' +
+          '<button class="btn btn-primary" data-action="ok">تأكيد السداد</button>'
+        ).then(function (res) {
+          if (res !== 'ok') return false;
+          // المعامل الثاني للدالة هو p_notes (نص) — نشترطه غير فارغ ليبقى أثر للسداد
+          var notes = document.getElementById('pay-notes').value.trim();
+          if (!notes) { toast('مرجع/ملاحظات السداد مطلوبة', true); return false; }
           return rpc('finance_mark_settlement_paid', { p_batch_id: id, p_notes: notes });
         });
-      }, 'تم السداد');
+      }, 'تم تسجيل السداد');
     });
   };
 
   // ---------- الإشعارات ----------
   views.notifications = function () {
-    return rpc('get_notification_transport_status').catch(function(e){ console.error('get_notification_transport_status failed', e); return null; }).then(function(status) {
-      // الدالة قد تُرجع مصفوفة، أو كائن json واحد، أو كائن مفاتيحه هي النواقل — نتعامل مع كل الأشكال دفاعياً
-      function toTransportList(x) {
-        if (x === null || x === undefined) return [];
-        if (Array.isArray(x)) return x.filter(Boolean);
-        if (typeof x === 'object') {
-          // كائن يحمل حقول حالة مباشرة => سجلّ واحد
-          if ('transport_type' in x || 'is_active' in x || 'pending_count' in x || 'failed_count' in x) {
-            return [x];
-          }
-          // كائن {ناقل: حالة} => نحوّله إلى مصفوفة سجلات
-          return Object.keys(x).map(function (k) {
-            var v = x[k];
-            if (v && typeof v === 'object') {
-              if (!('transport_type' in v)) v = Object.assign({ transport_type: k }, v);
-              return v;
-            }
-            return { transport_type: k, is_active: v };
-          });
-        }
-        return [];
+    // get_notification_transport_status تُرجع كائناً واحداً:
+    // { provider_key, binding_status, adapter_interface, notes, od_notif_01, external_push_dispatch_enabled }
+    return settle(rpc('get_notification_transport_status')).then(function (statusRes) {
+      var transportHtml;
+      var st = statusRes.ok ? statusRes.data : null;
+      if (!statusRes.ok) {
+        transportHtml = errorBox(statusRes.error, 'تعذّر تحميل حالة ناقل الإشعارات');
+      } else if (!st || typeof st !== 'object' || Array.isArray(st)) {
+        transportHtml = errorBox(new Error('unexpected shape'), 'أرجع الخادم حالة ناقل بصيغة غير متوقعة');
+      } else {
+        var enabled = st.external_push_dispatch_enabled === true;
+        transportHtml = table(['المزوّد', 'حالة الربط', 'الإرسال الخارجي (Push)', 'الواجهة', 'ملاحظات'], [
+          '<tr><td dir="ltr">' + esc(st.provider_key || '—') + '</td>' +
+          '<td dir="ltr">' + esc(st.binding_status || '—') + '</td>' +
+          '<td>' + (enabled ? badge('مفعّل', 'ok') : badge('غير مفعّل', 'err')) + '</td>' +
+          '<td dir="ltr">' + esc(st.adapter_interface || '—') + '</td>' +
+          '<td>' + esc(st.notes || '') + '</td></tr>'
+        ]) + (enabled ? '' : '<p class="text-sm text-muted mt-2">الإرسال الخارجي للأجهزة (Push) غير مربوط حالياً.</p>');
       }
-
-      var transportRows = toTransportList(status).map(function(s) {
-        s = s || {};
-        var active = s.is_active === true || s.is_active === 'true' || s.is_active === 1;
-        return '<tr><td>' + esc(s.transport_type != null ? s.transport_type : '—') + '</td><td>' + (active ? badge('نشط', 'ok') : badge('متوقف', 'err')) + '</td><td>' + esc(s.pending_count != null ? s.pending_count : 0) + '</td><td>' + esc(s.failed_count != null ? s.failed_count : 0) + '</td></tr>';
-      });
 
       viewEl.innerHTML = '<div class="card"><div class="card-header"><h3>إرسال إشعار جديد</h3></div>' +
         '<div class="grid grid-2 mb-4">' +
@@ -923,7 +1295,7 @@
         '<label>النص</label><textarea id="n-body" rows="3" class="mb-4"></textarea>' +
         '<div class="flex items-center gap-2 mb-4"><input type="checkbox" id="n-imm" checked> <label style="margin:0">إرسال فوراً</label></div>' +
         '<button class="btn btn-primary" id="n-send">إرسال الإشعار</button></div>' +
-        '<div class="card"><div class="card-header"><h3>حالة نواقل الإشعارات</h3></div>' + table(['الناقل', 'الحالة', 'في الانتظار', 'فشلت'], transportRows) + '</div>';
+        '<div class="card"><div class="card-header"><h3>حالة ناقل الإشعارات</h3></div>' + transportHtml + '</div>';
 
       var audSel = document.getElementById('n-audience');
       var govWrap = document.getElementById('n-gov-wrap');
@@ -955,23 +1327,88 @@
   };
 
   // ---------- إعدادات العمولة ----------
+  // COMMISSION CONTRACT: الواجهة تعرض وتستقبل نسبة مئوية (0–100)، والخادم يخزّن ويستقبل
+  // كسراً بين 0 و 1 (0.03 = 3%). التحويل يتم في هاتين الدالتين فقط.
+  // تُرجع الكسر (0..1) أو null إن كان الإدخال غير صالح. لا تُرجع أبداً قيمة أكبر من 1.
+  function commissionPercentToFraction(percentText) {
+    var text = String(percentText === null || percentText === undefined ? '' : percentText).trim();
+    // أرقام عشرية بسيطة فقط، بخانة عشرية واحدة كحد أقصى (step = 0.1)
+    if (!/^[0-9]{1,3}(\.[0-9])?$/.test(text)) return null;
+    var percent = Number(text);
+    if (!isFinite(percent) || percent < 0 || percent > 100) return null;
+    var fraction = Number((percent / 100).toFixed(4));
+    if (!(fraction >= 0 && fraction <= 1)) return null;
+    return fraction;
+  }
+  function commissionFractionToPercentText(fraction) {
+    return String(Number((Number(fraction) * 100).toFixed(4)));
+  }
+
   views.commission = function () {
-    viewEl.innerHTML = '<div class="card"><div class="card-header"><h3>العمولة الافتراضية</h3></div>' +
-      '<p class="mb-4 text-muted">تُخصم هذه العمولة من مبيعات الشبكات تلقائياً (كنسبة مئوية).</p>' +
-      '<div style="max-width:300px"><label>نسبة العمولة (%)</label><input type="number" id="c-rate" step="0.1" min="0" max="100" class="mb-4" dir="ltr"></div>' +
-      '<button class="btn btn-primary" id="c-save">تحديث العمولة</button></div>';
-      
-    var btnSave = document.getElementById('c-save');
-    if (btnSave) btnSave.onclick = function() {
-      var rate = parseFloat(document.getElementById('c-rate').value);
-      if(isNaN(rate) || rate < 0 || rate > 100) return toast('أدخل نسبة صحيحة بين 0 و 100', true);
-      this.disabled = true;
-      rpc('admin_update_default_commission_rate', { p_rate: rate })
-        .then(function() { toast('تم التحديث بنجاح'); }).catch(function(e) { toast(errText(e), true); }).finally(function() { if(btnSave) btnSave.disabled = false; });
-    };
+    var canEdit = isPlatformAdmin(); // admin_update_default_commission_rate: platform_admin فقط
+    return settle(rpc('get_platform_commission_config')).then(function (cfgRes) {
+      var conf = cfgRes.ok ? cfgRes.data : null;
+      var currentFraction = conf ? Number(conf.default_rate) : NaN;
+      var loaded = cfgRes.ok && !!conf && conf.default_rate !== null && conf.default_rate !== undefined &&
+        isFinite(currentFraction) && currentFraction >= 0 && currentFraction <= 1;
+      var currentText = loaded ? commissionFractionToPercentText(currentFraction) : '';
+      // بدون القيمة الحالية لا نسمح بالحفظ: لا يمكن تأكيد «من X% إلى Y%» على عمى
+      var dis = (loaded && canEdit) ? '' : ' disabled';
+
+      var currentHtml;
+      if (!cfgRes.ok) {
+        currentHtml = errorBox(cfgRes.error, 'تعذّر تحميل العمولة الحالية — الحفظ معطّل');
+      } else if (!loaded) {
+        currentHtml = errorBox(new Error('unexpected shape'), 'أرجع الخادم قيمة عمولة غير متوقعة — الحفظ معطّل');
+      } else {
+        currentHtml = '<div class="kpis mb-4"><div class="kpi"><div class="n" dir="ltr">' + esc(currentText) + '%</div><div class="l">العمولة الافتراضية الحالية</div></div></div>' +
+          '<p class="text-sm text-muted mb-4">سارية منذ: <span dir="ltr">' + esc(whenFull(conf.effective_from) || '—') + '</span> — آخر تحديث: <span dir="ltr">' + esc(whenFull(conf.updated_at) || '—') + '</span></p>';
+      }
+
+      viewEl.innerHTML = '<div class="card"><div class="card-header"><h3>العمولة الافتراضية</h3></div>' +
+        '<p class="mb-4 text-muted">تُخصم هذه العمولة من مبيعات الشبكات تلقائياً (كنسبة مئوية).</p>' +
+        currentHtml +
+        (canEdit
+          ? '<div style="max-width:300px"><label for="c-rate">النسبة الجديدة (%) — من 0 إلى 100</label>' +
+            '<input type="number" id="c-rate" step="0.1" min="0" max="100" inputmode="decimal" class="mb-4" dir="ltr" value="' + esc(currentText) + '"' + dis + '></div>' +
+            '<button class="btn btn-primary" id="c-save"' + dis + '>تحديث العمولة</button>'
+          : '<div class="note">تعديل العمولة متاح لمدير المنصة فقط.</div>') +
+        '</div>';
+
+      var btnSave = document.getElementById('c-save');
+      if (btnSave && loaded && canEdit) btnSave.onclick = function () {
+        var fraction = commissionPercentToFraction(document.getElementById('c-rate').value);
+        if (fraction === null) return toast('أدخل نسبة مئوية بين 0 و 100 بخانة عشرية واحدة كحد أقصى (مثال: 3.5)', true);
+        var nextText = commissionFractionToPercentText(fraction);
+        if (fraction === currentFraction) return toast('النسبة المدخلة تساوي العمولة الحالية — لا تغيير', true);
+        btnSave.disabled = true;
+        asyncConfirm('سيتم تغيير العمولة من ' + currentText + '% إلى ' + nextText + '%. هل تريد المتابعة؟').then(function (ok) {
+          if (!ok) return;
+          return rpc('admin_update_default_commission_rate', { p_rate: fraction }).then(function () {
+            toast('تم تحديث العمولة إلى ' + nextText + '%');
+            route(); // يعيد تحميل القيمة المعروضة من الخادم
+          });
+        }).catch(function (e) {
+          console.error('NetYemen admin action failed:', e);
+          toast(errText(e), true);
+        }).finally(function () { btnSave.disabled = false; });
+      };
+    });
   };
 
   // ---------- خزنة الكروت ----------
+  function newUuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    var b = new Uint8Array(16);
+    window.crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    var h = Array.prototype.map.call(b, function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+  var CARD_STATE_LABELS = { available: 'متاح', reserved: 'محجوز', sold: 'مباع', quarantined: 'محجور', invalidated: 'ملغى' };
+  var lastBatchSignature = null;
+  var lastBatchKey = null;
   views.cards = function () {
     return Promise.all([
       db.from('networks').select('id, commercial_name').order('commercial_name'),
@@ -1015,14 +1452,29 @@
         if (!nid || !pid) return toast('اختر الشبكة والباقة', true);
         var pins = document.getElementById('c-up-pins').value.split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
         if (!pins.length) return toast('أدخل كرت واحد على الأقل', true);
+        // نفس قواعد الخادم (INVALID_CARD / TOO_MANY_CARDS) لرسالة أوضح قبل الإرسال
+        if (pins.length > 5000) return toast(errText(new Error('TOO_MANY_CARDS')), true);
+        for (var i = 0; i < pins.length; i++) {
+          if (pins[i].length > 64 || /[\s\u0000-\u001f\u007f]/.test(pins[i])) {
+            return toast('السطر ' + (i + 1) + ': رقم الكرت أطول من 64 خانة أو يحتوي مسافات', true);
+          }
+        }
         var p_cards = pins.map(function(pin) { return { pin: pin, expires_at: expires || null }; });
-        
+
+        // مفتاح الدفعة (idempotency): يبقى نفسه عند إعادة محاولة نفس المحتوى حتى لا تُرفع الدفعة مرتين
+        var signature = [nid, pid, expires, pins.join('\n')].join('|');
+        if (signature !== lastBatchSignature) { lastBatchSignature = signature; lastBatchKey = newUuid(); }
+
         btnUpload.disabled = true;
-        rpc('admin_ingest_card_vault_batch', { p_network_id: nid, p_package_id: pid, p_cards: p_cards })
-          .then(function (r) { 
-            toast('تم رفع ' + r.ingested_count + ' كرت بنجاح');
+        rpc('admin_ingest_card_vault_batch', { p_network_id: nid, p_package_id: pid, p_cards: p_cards, p_batch_key: lastBatchKey })
+          .then(function (r) {
+            r = r || {};
+            var msg = (r.replayed ? 'هذه الدفعة رُفعت مسبقاً — النتيجة السابقة: ' : '') + 'تم رفع ' + (Number(r.ingested_count) || 0) + ' كرت';
+            if (Number(r.duplicates_skipped) > 0) msg += '، وتخطّي ' + Number(r.duplicates_skipped) + ' كرت مكرر';
+            toast(msg);
+            lastBatchSignature = null; lastBatchKey = null;
             document.getElementById('c-up-pins').value = '';
-          }).catch(function (e) { toast(errText(e), true); }).finally(function () { btnUpload.disabled = false; });
+          }).catch(function (e) { console.error('NetYemen admin action failed:', e); toast(errText(e), true); }).finally(function () { btnUpload.disabled = false; });
       };
 
       var btnLoad = document.getElementById('c-load');
@@ -1033,10 +1485,13 @@
         rpc('admin_list_card_vault_metadata', { p_network_id: nid, p_state: null })
           .then(function (list) {
             var rows = (list || []).map(function (c) {
-              return '<tr><td dir="ltr" class="text-sm">' + esc(c.batch_id) + '</td><td>' + esc(c.state) + '</td><td>' + when(c.created_at) + '</td><td>' + when(c.expires_at) + '</td></tr>';
+              return '<tr><td dir="ltr" class="text-sm">' + esc(c.batch_id) + '</td><td>' + esc(CARD_STATE_LABELS[c.state] || c.state) + '</td><td>' + when(c.created_at) + '</td><td>' + when(c.expires_at) + '</td></tr>';
             });
             document.getElementById('c-result').innerHTML = table(['الدفعة', 'الحالة', 'أُضيف', 'ينتهي'], rows);
-          }).catch(function (e) { toast(errText(e), true); }).finally(function () { btnLoad.disabled = false; });
+          }).catch(function (e) {
+            console.error('NetYemen admin: load failed', e);
+            document.getElementById('c-result').innerHTML = errorBox(e, 'تعذّر تحميل بيانات الكروت');
+          }).finally(function () { btnLoad.disabled = false; });
       };
     });
   };
@@ -1044,5 +1499,8 @@
   // الإقلاع
   db.auth.getSession().then(function (r) {
     if (r.data.session) return onSignedIn();
-  }).catch(function () {});
+  }).catch(function (e) {
+    console.error('NetYemen admin: session bootstrap failed', e);
+    toast('تعذّر استعادة الجلسة، سجّل الدخول من جديد', true);
+  });
 })();
