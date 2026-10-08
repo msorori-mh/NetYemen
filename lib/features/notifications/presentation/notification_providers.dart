@@ -4,16 +4,10 @@ import '../../../core/config/app_config_provider.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../data/fake_notification_repository.dart';
 import '../data/notification_repository.dart';
-import '../data/notification_transport_adapter.dart';
 import '../data/supabase_notification_repository.dart';
 import '../domain/entities.dart';
 import '../deep_link/deep_link_parser.dart';
 import 'notification_permission_service.dart';
-
-final notificationTransportAdapterProvider =
-    Provider<NotificationTransportAdapter>((ref) {
-  return const UnboundNotificationTransportAdapter();
-});
 
 final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
   return const DeepLinkParser();

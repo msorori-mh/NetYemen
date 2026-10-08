@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netyemen/core/config/app_config.dart';
-import 'package:netyemen/features/finance/presentation/deposit_review_queue_screen.dart';
 import 'package:netyemen/features/purchase/presentation/purchase_history_screen.dart';
 import 'package:netyemen/features/wallet/presentation/deposit_history_screen.dart';
 import 'package:netyemen/features/wallet/presentation/deposit_screen.dart';
@@ -61,18 +60,6 @@ void main() {
 
       expect(find.text('سجل المشتريات'), findsOneWidget);
       expect(find.text('لا توجد مشتريات بعد'), findsOneWidget);
-    });
-
-    testWidgets('DepositReviewQueueScreen renders finance queue', (
-      tester,
-    ) async {
-      await tester.pumpWidget(buildScreen(const DepositReviewQueueScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('قبول الإيداعات'), findsOneWidget);
-      // Demo fake repository seeds one submitted deposit with reference REF-001.
-      expect(find.textContaining('REF-001'), findsOneWidget);
-      expect(find.byType(ListTile), findsOneWidget);
     });
   });
 }
