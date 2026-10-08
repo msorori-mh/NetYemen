@@ -77,7 +77,7 @@ class _CardUploadScreenState extends ConsumerState<CardUploadScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _expiresAt = picked);
     }
   }
@@ -89,6 +89,7 @@ class _CardUploadScreenState extends ConsumerState<CardUploadScreen> {
   }
 
   Future<void> _upload() async {
+    if (_isUploading) return;
     final networkId = _selectedNetworkId;
     final packageId = _selectedPackageId;
     if (networkId == null || packageId == null) {

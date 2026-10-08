@@ -58,7 +58,7 @@ class OwnerInventoryService {
         .select()
         .eq('network_id', networkId)
         .order('updated_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response as List);
+    return List<Map<String, dynamic>>.from(response);
   }
 
   /// بيانات بطاقات المخزون الوصفية عبر `admin_list_card_vault_metadata`.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/owner_providers.dart';
+import '../providers/session_providers.dart';
 import '../utils/app_theme.dart';
 import '../utils/error_text.dart';
 import '../utils/pin_lock_policy.dart';
@@ -106,6 +107,15 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    final signedOut = await signOutOwner(ref);
+    if (!mounted) return;
+    if (signedOut) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(signOutFailedText)),
+    );
+  }
+
   Widget _buildPinDots(String text) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -190,6 +200,13 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
       appBar: AppBar(
         title: const Text('رمز الدخول PIN'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _isLoading ? null : _signOut,
+            tooltip: 'تسجيل الخروج',
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

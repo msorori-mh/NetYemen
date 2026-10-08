@@ -48,6 +48,15 @@ void main() {
       expect(friendlyErrorText(tooMany), contains('5000'));
     });
 
+    test('maps the phase-2 server codes instead of the generic text', () {
+      final keyReused = postgrestError('BATCH_KEY_REUSED: other package');
+      final reverify = postgrestError('REVERIFICATION_REQUIRED: rename');
+
+      expect(friendlyErrorText(keyReused), isNot(genericErrorText));
+      expect(friendlyErrorText(reverify), isNot(genericErrorText));
+      expect(friendlyErrorText(reverify), contains('موثّقة'));
+    });
+
     test('any other INVALID_* code becomes a generic validation message', () {
       final error = postgrestError('INVALID_SOMETHING_NEW: x');
 

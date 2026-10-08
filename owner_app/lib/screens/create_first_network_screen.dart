@@ -76,7 +76,8 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
 
   Future<void> _signOut() async {
     final signedOut = await signOutOwner(ref);
-    if (signedOut || !mounted) return;
+    if (!mounted) return;
+    if (signedOut) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(signOutFailedText)),
     );

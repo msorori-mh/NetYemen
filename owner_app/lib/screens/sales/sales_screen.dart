@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/owner_providers.dart';
 import '../../providers/sales_providers.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/settlement_text.dart';
 import 'settlement_detail_screen.dart';
 
 /// F-OWN-06: شاشة المبيعات — ملخّص تجاري + قائمة التسويات.
@@ -33,7 +34,7 @@ class SalesScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(commercialSummaryProvider(selectedNetwork));
               ref.invalidate(settlementsProvider(selectedNetwork));
-              return ref.refresh(ownedNetworksProvider.future);
+              await ref.refresh(ownedNetworksProvider.future);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -276,25 +277,6 @@ class _SettlementCard extends StatelessWidget {
     }
   }
 
-  String _statusLabel() {
-    switch (settlement['status']) {
-      case 'paid':
-        return 'مدفوعة';
-      case 'approved':
-        return 'معتمدة';
-      case 'draft':
-        return 'مسودة';
-      case 'ready_for_review':
-        return 'قيد المراجعة';
-      case 'cancelled':
-        return 'ملغاة';
-      case 'corrected':
-        return 'معدّلة';
-      default:
-        return settlement['status']?.toString() ?? '—';
-    }
-  }
-
   String _formatDate(dynamic dateStr) {
     if (dateStr == null) return '—';
     try {
@@ -344,7 +326,7 @@ class _SettlementCard extends StatelessWidget {
                       ),
                     ),
                     AppTheme.statusChip(
-                      _statusLabel(),
+                      settlementStatusLabel(settlement['status']),
                       color: color.withValues(alpha: 0.12),
                       textColor: color,
                     ),
@@ -359,8 +341,14 @@ class _SettlementCard extends StatelessWidget {
                 children: [
                   _miniStat('إجمالي', settlement['gross_sales']),
                   _miniStat('عمولة', settlement['total_commission']),
-                  _miniStat('صافي', settlement['net_settlement'],
-                      bold: true, color: AppTheme.accentDark),
+                  _miniStat(
+                    'صافي',
+                    settlement['net_settlement'],
+                    bold: true,
+                    color: settlementOwnerOwes(settlement['net_settlement'])
+                        ? AppTheme.error
+                        : AppTheme.accentDark,
+                  ),
                 ],
               ),
             ],

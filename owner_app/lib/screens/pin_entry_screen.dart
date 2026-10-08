@@ -116,7 +116,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
 
   Future<void> _signOut() async {
     final signedOut = await signOutOwner(ref);
-    if (signedOut || !mounted) return;
+    if (!mounted) return;
+    if (signedOut) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(signOutFailedText)),
     );
@@ -203,13 +204,14 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
           title: const Text('إدخال رمز الدخول'),
           centerTitle: true,
           automaticallyImplyLeading: false,
+          // الخروج متاح دائماً (حتى في القفل التلقائي) حتى لا يعلق من نسي
+          // الرمز؛ جذر التطبيق يزيل شاشة القفل عند انتهاء الجلسة.
           actions: [
-            if (!widget.isAutoLock)
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: _signOut,
-                tooltip: 'تسجيل الخروج',
-              ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _isLoading ? null : _signOut,
+              tooltip: 'تسجيل الخروج',
+            ),
           ],
         ),
         body: SafeArea(
