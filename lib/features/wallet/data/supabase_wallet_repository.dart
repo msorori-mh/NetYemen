@@ -20,7 +20,8 @@ class SupabaseWalletRepository implements WalletRepository {
     final result = await _client
         .from('wallet_deposit_requests')
         .select()
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(100);
     final list = result as List<dynamic>;
     return list
         .map((row) => DepositRequest.fromJson(row as Map<String, dynamic>))
@@ -44,19 +45,21 @@ class SupabaseWalletRepository implements WalletRepository {
   Future<String> createDepositRequest({
     required int amount,
     required String idempotencyKey,
-    String? paymentDestinationId,
-    String? proofReference,
+    required String paymentDestinationId,
+    required String referenceNumber,
   }) async {
     final result = await _client.rpc(
       'create_wallet_deposit_request',
       params: {
         'p_amount': amount,
-        'p_reference_number': proofReference ?? '',
+        'p_reference_number': referenceNumber.trim(),
         'p_payment_destination_id': paymentDestinationId,
-        'p_proof_storage_path': proofReference,
+        // No proof file is uploaded from the app. The reference number is not
+        // a storage path and must never be sent as one.
+        'p_proof_storage_path': null,
         'p_idempotency_key': idempotencyKey,
       },
     );
-    return (result as Map<String, dynamic>)['id'] as String;
+    return (result as Map)['id'] as String;
   }
 }

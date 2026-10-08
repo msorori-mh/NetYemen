@@ -1,3 +1,5 @@
+import '../../../core/utils/digits.dart';
+
 enum RequestedAccountType { customer, networkOwner }
 
 extension RequestedAccountTypeWire on RequestedAccountType {
@@ -52,18 +54,10 @@ class TestAccountRegistration {
 }
 
 String normalizeYemeniPhone(String input) {
-  const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
-  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
   final buffer = StringBuffer();
-  for (final rune in input.trim().runes) {
+  for (final rune in normalizeDigits(input.trim()).runes) {
     final character = String.fromCharCode(rune);
-    final arabicIndex = arabicDigits.indexOf(character);
-    final persianIndex = persianDigits.indexOf(character);
-    if (arabicIndex >= 0) {
-      buffer.write(arabicIndex);
-    } else if (persianIndex >= 0) {
-      buffer.write(persianIndex);
-    } else if ('0123456789+'.contains(character)) {
+    if ('0123456789+'.contains(character)) {
       buffer.write(character);
     }
   }
