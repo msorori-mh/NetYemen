@@ -4,16 +4,10 @@ import '../../../core/config/app_config_provider.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../data/fake_notification_repository.dart';
 import '../data/notification_repository.dart';
-import '../data/notification_transport_adapter.dart';
 import '../data/supabase_notification_repository.dart';
 import '../domain/entities.dart';
 import '../deep_link/deep_link_parser.dart';
 import 'notification_permission_service.dart';
-
-final notificationTransportAdapterProvider =
-    Provider<NotificationTransportAdapter>((ref) {
-  return const UnboundNotificationTransportAdapter();
-});
 
 final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
   return const DeepLinkParser();
@@ -28,7 +22,7 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   // Per-user data: rebuild (and drop cached data) when the account changes.
   ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakeNotificationRepository();
   }
   return SupabaseNotificationRepository(Supabase.instance.client);

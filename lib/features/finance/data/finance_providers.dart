@@ -8,7 +8,7 @@ import 'supabase_finance_repository.dart';
 
 final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakeFinanceRepository();
   }
   return SupabaseFinanceRepository(Supabase.instance.client);

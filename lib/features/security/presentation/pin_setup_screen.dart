@@ -37,6 +37,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
   }
 
   Future<void> _onSubmit() async {
+    if (_loading) return;
     final pin = _isConfirming ? _confirmController.text : _pinController.text;
 
     if (pin.length != 6) {
@@ -74,10 +75,11 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
 
     try {
       final repo = ref.read(pinRepositoryProvider);
+      // Read before the await: `ref` must not be used after an unmount.
+      final user = ref.read(currentUserProvider);
       await repo.setPin(pin);
 
       // تأشير الجهاز كموثوق
-      final user = ref.read(currentUserProvider);
       if (user != null) {
         await repo.trustDevice(user.id);
       }
@@ -88,6 +90,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
         (_) => false,
       );
     } catch (e) {
+      if (!mounted) return;
       final msg = e.toString();
       setState(() {
         _loading = false;
@@ -168,6 +171,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
                       maxLength: 6,
                       obscureText: true,
                       autofocus: true,
+                      readOnly: _loading,
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,

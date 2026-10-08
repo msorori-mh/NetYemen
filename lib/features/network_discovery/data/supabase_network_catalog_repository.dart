@@ -7,6 +7,20 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
 
   SupabaseNetworkCatalogRepository(this._client);
 
+  /// Maximum number of network ids sent in one alias query.
+  static const int aliasQueryChunkSize = 100;
+
+  /// Splits [ids] into consecutive lists of at most [size] elements.
+  static List<List<String>> chunkIds(List<String> ids, int size) {
+    assert(size > 0, 'chunk size must be positive');
+    final chunks = <List<String>>[];
+    for (var start = 0; start < ids.length; start += size) {
+      final end = start + size < ids.length ? start + size : ids.length;
+      chunks.add(ids.sublist(start, end));
+    }
+    return chunks;
+  }
+
   @override
   Future<List<NetworkEntity>> fetchApprovedNetworks() async {
     final networkResponse = await _client
@@ -23,22 +37,27 @@ class SupabaseNetworkCatalogRepository implements NetworkCatalogRepository {
 
     final networkIds = networks.map((n) => n.id).toList();
 
-    final aliasResponse = await _client
-        .from('network_ssid_aliases')
-        .select('id, network_id, ssid_display, ssid_normalized')
-        .eq('status', 'active')
-        .inFilter('network_id', networkIds);
+    // Every id travels in the request URL, so a growing catalogue must be
+    // asked for in bounded chunks or the URL eventually exceeds server limits.
+    final aliases = <SsidAlias>[];
+    for (final chunk in chunkIds(networkIds, aliasQueryChunkSize)) {
+      final aliasResponse = await _client
+          .from('network_ssid_aliases')
+          .select('id, network_id, ssid_display, ssid_normalized')
+          .eq('status', 'active')
+          .inFilter('network_id', chunk);
 
-    final aliases = (aliasResponse as List)
-        .map(
+      aliases.addAll(
+        (aliasResponse as List).map(
           (j) => SsidAlias(
             id: j['id'] as String,
             networkId: j['network_id'] as String,
             ssidDisplay: j['ssid_display'] as String,
             ssidNormalized: j['ssid_normalized'] as String,
           ),
-        )
-        .toList();
+        ),
+      );
+    }
 
     final aliasMap = <String, List<SsidAlias>>{};
     for (final alias in aliases) {

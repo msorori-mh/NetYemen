@@ -7,8 +7,17 @@ import '../domain/entities.dart';
 class FakePurchaseRepository implements PurchaseRepository {
   final List<PurchaseOrder> _orders = [];
   final List<FulfillmentRecord> _fulfillments = [];
-  final Map<String, ({String packageId, Map<String, dynamic> result})>
-      _idempotentResults = {};
+  final Map<
+      String,
+      ({
+        String packageId,
+        int expectedPrice,
+        Map<String, dynamic> result,
+      })> _idempotentResults = {};
+
+  /// Test hook mirroring the server: when set, a purchase whose
+  /// `expectedPrice` differs is refused with `PRICE_CHANGED`.
+  int? currentPriceOverride;
 
   List<PurchaseOrder> get orders => List.unmodifiable(_orders);
 
@@ -16,25 +25,33 @@ class FakePurchaseRepository implements PurchaseRepository {
   Future<Map<String, dynamic>> purchasePackage({
     required String packageId,
     required String idempotencyKey,
+    required int expectedPrice,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
     final existing = _idempotentResults[idempotencyKey];
     if (existing != null) {
-      if (existing.packageId != packageId) {
+      if (existing.packageId != packageId ||
+          existing.expectedPrice != expectedPrice) {
         throw StateError('IDEMPOTENCY_CONFLICT');
       }
       return {...existing.result, 'replayed': true};
+    }
+
+    final currentPrice = currentPriceOverride;
+    if (currentPrice != null && currentPrice != expectedPrice) {
+      throw StateError('PRICE_CHANGED: package price changed');
     }
 
     final purchaseId = UuidGenerator.generateV4();
     final fulfillmentId = UuidGenerator.generateV4();
     final now = DateTime.now();
 
-    const gross = 1000;
+    // Whole YER, exactly the price the customer confirmed.
+    final gross = expectedPrice;
     const rate = 0.03;
-    const commission = 30;
-    const net = 970;
+    final commission = (gross * rate).floor();
+    final net = gross - commission;
 
     _orders.add(
       PurchaseOrder(
@@ -72,15 +89,25 @@ class FakePurchaseRepository implements PurchaseRepository {
       'purchase_id': purchaseId,
       'fulfillment_id': fulfillmentId,
       'status': 'completed',
-      'amount_paid': 1000,
-      'new_balance': 4000,
+      'amount_paid': gross,
+      'currency': 'YER',
       'fulfillment_status': 'pending_secret',
     };
     _idempotentResults[idempotencyKey] = (
       packageId: packageId,
+      expectedPrice: expectedPrice,
       result: result,
     );
     return result;
+  }
+
+  @override
+  Future<PurchaseOrder?> getMyPurchaseOrder(String purchaseId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    for (final order in _orders) {
+      if (order.id == purchaseId) return order;
+    }
+    return null;
   }
 
   @override

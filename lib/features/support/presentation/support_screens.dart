@@ -484,13 +484,15 @@ class SupportCaseScreen extends ConsumerWidget {
     String label,
     Future<void> Function(String) fn,
   ) async {
-    final c = TextEditingController();
+    // The field owns its own controller (none is passed in), so nothing is
+    // disposed while the dialog is still animating out. Only the text leaves.
+    var text = '';
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
         title: Text(label),
         content: TextField(
-          controller: c,
+          onChanged: (value) => text = value,
           maxLines: 4,
           maxLength: SupportOperationPolicy.maximumActionTextLength,
           decoration: InputDecoration(labelText: label),
@@ -507,14 +509,11 @@ class SupportCaseScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (!context.mounted) {
-      c.dispose();
-      return;
+    if (!context.mounted) return;
+    final trimmed = text.trim();
+    if (ok == true && trimmed.isNotEmpty) {
+      await _act(context, ref, () => fn(trimmed));
     }
-    if (ok == true && c.text.trim().isNotEmpty) {
-      await _act(context, ref, () => fn(c.text.trim()));
-    }
-    c.dispose();
   }
 
   Future<void> _workflow(
@@ -523,7 +522,8 @@ class SupportCaseScreen extends ConsumerWidget {
     SupportCase c,
   ) async {
     String status = c.status == 'open' ? 'assigned' : c.status;
-    final resolution = TextEditingController();
+    // As above: the dialog's field owns its controller; only text is kept.
+    var resolution = '';
     String? outcome;
     final ok = await showDialog<bool>(
       context: context,
@@ -553,7 +553,7 @@ class SupportCaseScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: resolution,
+                onChanged: (value) => resolution = value,
                 decoration: const InputDecoration(
                   labelText: 'الحل (مطلوب للحل/الإغلاق)',
                 ),
@@ -593,14 +593,11 @@ class SupportCaseScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (!context.mounted) {
-      resolution.dispose();
-      return;
-    }
+    if (!context.mounted) return;
     if (ok == true) {
       final validationMessage = SupportOperationPolicy.validateResolution(
         status,
-        resolution.text,
+        resolution,
       );
       if (validationMessage != null) {
         ScaffoldMessenger.of(
@@ -614,14 +611,13 @@ class SupportCaseScreen extends ConsumerWidget {
                 caseId,
                 status,
                 resolution: SupportOperationPolicy.normalizeActionText(
-                  resolution.text,
+                  resolution,
                 ),
                 outcome: outcome,
               ),
         );
       }
     }
-    resolution.dispose();
   }
 }
 

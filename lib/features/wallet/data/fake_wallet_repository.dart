@@ -58,10 +58,24 @@ class FakeWalletRepository implements WalletRepository {
   Future<String> createDepositRequest({
     required int amount,
     required String idempotencyKey,
-    String? paymentDestinationId,
-    String? proofReference,
+    required String paymentDestinationId,
+    required String referenceNumber,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
+    // Mirror the server contract so the demo cannot accept what production
+    // rejects.
+    if (amount <= 0) {
+      throw StateError('INVALID_AMOUNT: Deposit amount must be positive.');
+    }
+    final proofReference = referenceNumber.trim();
+    if (proofReference.isEmpty) {
+      throw StateError('INVALID_REFERENCE: Reference number is required.');
+    }
+    if (paymentDestinationId.trim().isEmpty) {
+      throw StateError(
+        'PAYMENT_DESTINATION_REQUIRED: A payment destination is required.',
+      );
+    }
     final existing = _idempotentRequests[idempotencyKey];
     if (existing != null) {
       final isSameRequest = existing.amount == amount &&
@@ -79,7 +93,7 @@ class FakeWalletRepository implements WalletRepository {
         id: id,
         amount: amount,
         currency: 'YER',
-        status: 'submitted',
+        status: 'pending',
         channelId: paymentDestinationId,
         proofReference: proofReference,
         createdAt: DateTime.now(),
@@ -97,8 +111,8 @@ class FakeWalletRepository implements WalletRepository {
 
 class _FakeDepositReplay {
   final int amount;
-  final String? paymentDestinationId;
-  final String? proofReference;
+  final String paymentDestinationId;
+  final String proofReference;
   final String requestId;
 
   const _FakeDepositReplay({

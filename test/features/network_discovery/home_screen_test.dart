@@ -28,7 +28,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('مرحبًا بك في واصل نت'), findsOneWidget);
-    expect(find.text('5000 YER'), findsOneWidget);
+    expect(find.text('5,000 YER'), findsOneWidget);
     expect(find.text('واصل ون'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('home-open-wasel-one')));

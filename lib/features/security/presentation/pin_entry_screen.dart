@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_shell.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/presentation/customer_auth_providers.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import 'pin_providers.dart';
 
@@ -34,6 +35,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   }
 
   Future<void> _onSubmit() async {
+    // Auto-submit and the button can both fire: verify one PIN at a time.
+    if (_loading) return;
     final pin = _pinController.text;
     if (pin.length != 6) {
       setState(() => _error = 'أدخل 6 أرقام');
@@ -72,6 +75,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
         _pinFocus.requestFocus();
       }
     } catch (e) {
+      if (!mounted) return;
       final msg = e.toString();
       setState(() {
         _loading = false;
@@ -88,8 +92,34 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     }
   }
 
+  /// Lets a customer who cannot pass the PIN leave this account instead of
+  /// being stuck: signs out (which also forgets device trust) and returns to
+  /// the guest shell, where they can sign in again or use another account.
+  Future<void> _onSignOut() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await ref.read(customerAuthRepositoryProvider).signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AppShell()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'تعذّر تسجيل الخروج — تحقق من الاتصال ثم حاول مجدداً';
+      });
+    }
+  }
+
   Future<void> _onForgotPin() async {
-    if (_resetRequested) return;
+    if (_resetRequested || _loading) return;
 
     setState(() {
       _loading = true;
@@ -175,6 +205,9 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                       maxLength: 6,
                       obscureText: true,
                       autofocus: true,
+                      // Locked while a PIN is being verified so a seventh
+                      // keystroke cannot change what was submitted.
+                      readOnly: _loading,
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -256,6 +289,17 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                           color: _resetRequested
                               ? AppTheme.textOnPrimary.withValues(alpha: 0.5)
                               : AppTheme.textOnPrimary.withValues(alpha: 0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      key: const Key('pin-entry-sign-out'),
+                      onPressed: _onSignOut,
+                      child: Text(
+                        'تسجيل الخروج أو تبديل الحساب',
+                        style: TextStyle(
+                          color: AppTheme.textOnPrimary.withValues(alpha: 0.8),
                           fontSize: 14,
                         ),
                       ),

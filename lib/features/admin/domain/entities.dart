@@ -323,11 +323,8 @@ class AdminPackageInventory {
 
   bool get isOutOfStock => availableUnits <= 0;
 
-  String get displayPrice {
-    final value = price / 100;
-    final rounded = value == value.toInt() ? value.toInt() : value;
-    return '$rounded $currency';
-  }
+  /// Price exactly as charged: whole Yemeni rials, never scaled.
+  String get displayPrice => formatYer(price, currency: currency);
 
   String get durationText {
     if (durationValue == null || durationUnit == null || durationValue == 0) {

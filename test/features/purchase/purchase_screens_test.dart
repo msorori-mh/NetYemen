@@ -20,6 +20,7 @@ void main() {
     final purchase = repository.purchasePackage(
       packageId: 'package-1',
       idempotencyKey: 'history-key',
+      expectedPrice: 1000,
     );
     await tester.pump(const Duration(milliseconds: 300));
     await purchase;
@@ -60,6 +61,7 @@ void main() {
     final purchase = repository.purchasePackage(
       packageId: 'package-1',
       idempotencyKey: 'detail-key',
+      expectedPrice: 1000,
     );
     await tester.pump(const Duration(milliseconds: 300));
     final result = await purchase;

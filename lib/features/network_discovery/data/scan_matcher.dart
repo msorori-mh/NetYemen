@@ -83,18 +83,21 @@ class ScanMatcher {
 
     for (final ssid in deduped) {
       final normalized = normalizeForMatching(ssid);
+      final lowered = ssid.toLowerCase();
+      // Check every network: one SSID may belong to several networks, and a
+      // network may be seen under several of its SSIDs.
       for (final network in networks) {
-        if (matchedNetworkIds.contains(network.id)) continue;
-        for (final alias in network.ssidAliases) {
-          if (alias.ssidNormalized == normalized ||
-              alias.ssidDisplay.toLowerCase() == ssid.toLowerCase()) {
-            matchedNetworkIds.add(network.id);
-            matchedSsidSet.add(ssid.toLowerCase());
-            matchedNetworks.add(network);
-            break;
-          }
-        }
-        if (matchedNetworkIds.contains(network.id)) break;
+        final matches = network.ssidAliases.any(
+          (alias) =>
+              alias.ssidNormalized == normalized ||
+              alias.ssidDisplay.toLowerCase() == lowered,
+        );
+        if (!matches) continue;
+        // Every scanned SSID that equals an alias is approved, even when its
+        // network was already matched through another SSID.
+        matchedSsidSet.add(lowered);
+        // A network is listed once however many of its SSIDs are in range.
+        if (matchedNetworkIds.add(network.id)) matchedNetworks.add(network);
       }
     }
 

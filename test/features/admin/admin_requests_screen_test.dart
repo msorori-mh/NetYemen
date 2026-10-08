@@ -111,7 +111,7 @@ class _FakeAdminRepository extends AdminRepository {
     required String networkId,
     required String packageId,
     required List<Map<String, dynamic>> cards,
-    String keyVersion = 'v1-test',
+    String? batchKey,
   }) async =>
       {'batch_id': 'fake-batch', 'ingested_count': cards.length};
 }

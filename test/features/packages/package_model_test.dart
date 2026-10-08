@@ -45,8 +45,11 @@ void main() {
       expect(parsed.isAvailableForPublic, isTrue);
     });
 
-    test('displayPrice formats correctly', () {
-      expect(package.displayPrice, '10 YER');
+    test('displayPrice shows whole YER without scaling', () {
+      // 1000 is one thousand rials, not ten: nothing divides by 100.
+      expect(package.displayPrice, '1,000 YER');
+      expect(package.copyWith(price: 500).displayPrice, '500 YER');
+      expect(package.copyWith(price: 125000).displayPrice, '125,000 YER');
     });
 
     test('durationText localizes duration', () {

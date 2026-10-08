@@ -20,6 +20,15 @@ class AppConfig {
 
   bool get isDemoMode => !isConfigured && kDebugMode;
 
+  /// The single demo predicate: true whenever the app is not bound to a real
+  /// backend, so repositories serve built-in demo data instead of customer
+  /// data. Every place that selects a fake repository or shows a demo notice
+  /// must use this getter so the two can never disagree.
+  ///
+  /// [isDemoMode] is narrower (debug builds only) and is reserved for
+  /// privilege decisions such as previewing the admin console.
+  bool get usesDemoData => isDemoMode || !isConfigured;
+
   bool get isReleaseUnconfigured => !isConfigured && kReleaseMode;
 
   static AppConfig fromEnvironment() {
@@ -48,6 +57,12 @@ class AppConfig {
       accountDeletionUrl: accountDeletionUrl,
     );
   }
+
+  static const Set<String> _localDevelopmentHosts = {
+    'localhost',
+    '127.0.0.1',
+    '10.0.2.2',
+  };
 
   static const AppConfig demo = AppConfig(
     supabaseUrl: '',
@@ -84,7 +99,12 @@ class AppConfig {
   bool get hasValidSupabaseUrl {
     if (!isConfigured) return false;
     final uri = supabaseUri;
-    return uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+    if (uri == null || !uri.hasAuthority || uri.host.isEmpty) return false;
+    if (uri.scheme == 'https') return true;
+    // Plain HTTP would expose sessions and wallet traffic; it is accepted
+    // only for a local development backend (10.0.2.2 is the Android
+    // emulator's alias for the host machine).
+    return uri.scheme == 'http' && _localDevelopmentHosts.contains(uri.host);
   }
 
   Uri? get privacyPolicyUri => _publicHttpsUri(privacyPolicyUrl);

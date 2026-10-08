@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config_provider.dart';
+import '../../../core/security/secure_screen.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/money_format.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../wallet/presentation/wallet_providers.dart';
@@ -16,10 +18,11 @@ class WaselOneScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
-    final isDemo = config.isDemoMode || !config.isConfigured;
+    final isDemo = config.usesDemoData;
     final hasSession = ref.watch(currentUserProvider) != null || isDemo;
     final plans = ref.watch(waselOnePlansProvider);
     final purchaseState = ref.watch(waselOnePurchaseProvider);
+    final isIssuingCredential = ref.watch(waselOneCredentialProvider).isLoading;
     final entitlements = hasSession
         ? ref.watch(waselOneEntitlementsProvider)
         : const AsyncValue<List<AccessEntitlement>>.data([]);
@@ -54,6 +57,7 @@ class WaselOneScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _EntitlementsSection(
                 entitlements: entitlements,
+                isIssuing: isIssuingCredential,
                 onIssue: (entitlement) =>
                     _issueCredential(context, ref, entitlement),
               ),
@@ -84,23 +88,30 @@ class WaselOneScreen extends ConsumerWidget {
     WidgetRef ref,
     AccessEntitlement entitlement,
   ) async {
+    // Captured before any await: `ref` must not be used after this widget is
+    // unmounted, and the notifier outlives the screen.
+    final notifier = ref.read(waselOneCredentialProvider.notifier);
+    // Issuing a credential invalidates the previous one, so a double tap must
+    // never issue twice while one is being created or is still on screen.
+    if (!notifier.tryBegin()) return;
     try {
-      final credential = await ref
-          .read(waselOneCredentialProvider.notifier)
-          .issue(entitlement.id);
+      final credential = await notifier.issue(entitlement.id);
       if (!context.mounted) return;
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (_) => _CredentialSheet(credential: credential),
+        // The credential is a secret: block screenshots while it is shown.
+        builder: (_) => SecureScreenScope(
+          child: _CredentialSheet(credential: credential),
+        ),
       );
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(_friendlyError(error))));
     } finally {
-      ref.read(waselOneCredentialProvider.notifier).clear();
+      notifier.finish();
     }
   }
 
@@ -151,12 +162,13 @@ class WaselOneScreen extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
 
+    // Captured before the await: `ref` must not be used after unmount.
+    final notifier = ref.read(waselOnePurchaseProvider.notifier);
     try {
-      final result =
-          await ref.read(waselOnePurchaseProvider.notifier).purchase(plan.id);
+      final result = await notifier.purchase(plan.id);
+      if (!context.mounted) return;
       ref.invalidate(walletSummaryProvider);
       ref.invalidate(waselOneEntitlementsProvider);
-      if (!context.mounted) return;
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -185,7 +197,7 @@ class WaselOneScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(_friendlyPurchaseError(error))));
     } finally {
-      ref.read(waselOnePurchaseProvider.notifier).clear();
+      notifier.clear();
     }
   }
 }
@@ -396,10 +408,12 @@ class _SignInRequired extends StatelessWidget {
 
 class _EntitlementsSection extends StatelessWidget {
   final AsyncValue<List<AccessEntitlement>> entitlements;
+  final bool isIssuing;
   final ValueChanged<AccessEntitlement> onIssue;
 
   const _EntitlementsSection({
     required this.entitlements,
+    required this.isIssuing,
     required this.onIssue,
   });
 
@@ -421,6 +435,7 @@ class _EntitlementsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _EntitlementCard(
                     entitlement: item,
+                    isIssuing: isIssuing,
                     onIssue: () => onIssue(item),
                   ),
                 ),
@@ -434,9 +449,14 @@ class _EntitlementsSection extends StatelessWidget {
 
 class _EntitlementCard extends StatelessWidget {
   final AccessEntitlement entitlement;
+  final bool isIssuing;
   final VoidCallback onIssue;
 
-  const _EntitlementCard({required this.entitlement, required this.onIssue});
+  const _EntitlementCard({
+    required this.entitlement,
+    required this.isIssuing,
+    required this.onIssue,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +515,7 @@ class _EntitlementCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 key: const Key('wasel-one-issue-credential'),
-                onPressed: onIssue,
+                onPressed: isIssuing ? null : onIssue,
                 icon: const Icon(Icons.key_outlined),
                 label: const Text('إنشاء بيانات دخول آمنة'),
               ),
@@ -854,14 +874,14 @@ class _CredentialSheet extends StatelessWidget {
   }
 }
 
-class _SecretField extends StatelessWidget {
+class _SecretField extends ConsumerWidget {
   final String label;
   final String value;
 
   const _SecretField({required this.label, required this.value});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
@@ -893,10 +913,15 @@ class _SecretField extends StatelessWidget {
           IconButton(
             tooltip: 'نسخ',
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: value));
+              // Wiped from the clipboard after a minute by the app-level
+              // service, even if this sheet is closed first.
+              await ref.read(sensitiveClipboardProvider).copy(value);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text('تم نسخ $label')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('تم نسخ $label — سيُمسح من الحافظة بعد دقيقة'),
+                ),
+              );
             },
             icon: const Icon(Icons.copy_outlined),
           ),
@@ -935,15 +960,7 @@ String _formatDateTime(DateTime value) {
 
 String _two(int value) => value.toString().padLeft(2, '0');
 
-String _formatMoney(int amount) {
-  final digits = amount.toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < digits.length; index++) {
-    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
-    buffer.write(digits[index]);
-  }
-  return '${buffer.toString()} ر.ي';
-}
+String _formatMoney(int amount) => formatYer(amount, currency: 'ر.ي');
 
 String _friendlyError(Object error) {
   final value = error.toString();

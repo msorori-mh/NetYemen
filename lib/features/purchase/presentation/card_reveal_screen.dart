@@ -1,10 +1,9 @@
 // lib/features/purchase/presentation/card_reveal_screen.dart
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/security/secure_screen.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../domain/entities.dart';
 import 'purchase_providers.dart';
 
@@ -22,12 +21,10 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   bool _disputing = false;
   bool _disputeSubmitted = false;
   final _reasonController = TextEditingController();
-  Timer? _clipboardClearTimer;
   String? _message;
 
   @override
   void dispose() {
-    _clipboardClearTimer?.cancel();
     _reasonController.dispose();
     super.dispose();
   }
@@ -50,6 +47,13 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The card secret is on this screen: block screenshots and recording.
+    return SecureScreenScope(
+      child: _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('كرتك')),
       body: Directionality(
@@ -185,14 +189,9 @@ class _CardRevealScreenState extends ConsumerState<CardRevealScreen> {
   }
 
   Future<void> _copyToClipboard(String text) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    _clipboardClearTimer?.cancel();
-    _clipboardClearTimer = Timer(const Duration(seconds: 60), () async {
-      final current = await Clipboard.getData(Clipboard.kTextPlain);
-      if (current?.text == text) {
-        await Clipboard.setData(const ClipboardData(text: ''));
-      }
-    });
+    // The wipe is owned by an app-level service, so it still happens when
+    // the customer leaves this screen right after copying.
+    await ref.read(sensitiveClipboardProvider).copy(text);
     if (mounted) {
       ScaffoldMessenger.of(
         context,

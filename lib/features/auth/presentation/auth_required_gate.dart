@@ -20,7 +20,7 @@ class AuthRequiredGate extends ConsumerWidget {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
 
-    if (config.isDemoMode || !config.isConfigured || user != null) {
+    if (config.usesDemoData || user != null) {
       return child;
     }
 

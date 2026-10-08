@@ -46,6 +46,37 @@ void main() {
       expect(config.isDemoMode || config.isReleaseUnconfigured, isTrue);
     });
 
+    test('one predicate decides when demo data is in use', () {
+      const unbound = AppConfig(supabaseUrl: '', supabasePublishableKey: '');
+      const bound = AppConfig(
+        supabaseUrl: 'https://example.supabase.co',
+        supabasePublishableKey: 'anon-key',
+      );
+
+      expect(unbound.usesDemoData, isTrue);
+      expect(AppConfig.demo.usesDemoData, isTrue);
+      expect(bound.usesDemoData, isFalse);
+      expect(bound.isDemoMode, isFalse);
+    });
+
+    test('plain HTTP is only accepted for a local development backend', () {
+      AppConfig withUrl(String url) =>
+          AppConfig(supabaseUrl: url, supabasePublishableKey: 'anon-key');
+
+      expect(withUrl('https://example.supabase.co').hasValidSupabaseUrl, isTrue);
+      expect(withUrl('http://localhost:54321').hasValidSupabaseUrl, isTrue);
+      expect(withUrl('http://127.0.0.1:54321').hasValidSupabaseUrl, isTrue);
+      expect(withUrl('http://10.0.2.2:54321').hasValidSupabaseUrl, isTrue);
+      expect(withUrl('http://example.supabase.co').hasValidSupabaseUrl, isFalse);
+      expect(withUrl('ftp://example.supabase.co').hasValidSupabaseUrl, isFalse);
+      expect(withUrl('not-a-url').hasValidSupabaseUrl, isFalse);
+
+      expect(
+        AppEnvironment.fromConfig(withUrl('http://example.supabase.co')).state,
+        AppBootstrapState.invalidUrl,
+      );
+    });
+
     test(
       'admin recovery redirect requires HTTPS outside local development',
       () {

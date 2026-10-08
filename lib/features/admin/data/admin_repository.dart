@@ -91,11 +91,16 @@ abstract class AdminRepository {
   /// Fetch audit events.
   Future<List<AdminAuditEvent>> fetchAuditEvents();
 
-  /// Ingest an encrypted card vault batch for a package.
+  /// Ingest a card vault batch for a package.
+  ///
+  /// [batchKey] is a UUID identifying this logical batch. Sending the same
+  /// key again returns the first result with `replayed: true` instead of
+  /// inserting the cards twice. The result carries `batch_id`,
+  /// `ingested_count`, `duplicates_skipped` and `replayed`.
   Future<Map<String, dynamic>> ingestCardVaultBatch({
     required String networkId,
     required String packageId,
     required List<Map<String, dynamic>> cards,
-    String keyVersion,
+    String? batchKey,
   });
 }

@@ -1,6 +1,7 @@
 // lib/features/purchase/presentation/purchase_result_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../../core/utils/money_format.dart';
 import 'purchase_detail_screen.dart';
 
 class PurchaseResultScreen extends StatelessWidget {
@@ -42,9 +43,11 @@ class PurchaseResultScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text('الباقة: $packageName'),
               if (success && purchaseResult != null) ...[
-                Text(
-                  'السعر الإجمالي: ${purchaseResult!['amount_paid'] ?? purchaseResult!['total_price']} YER',
-                ),
+                if (_amountPaid != null)
+                  Text(
+                    'السعر الإجمالي: ${formatYer(_amountPaid!, currency: _currency)}',
+                    key: const Key('purchase-result-amount'),
+                  ),
                 Text(
                   'حالة التسليم: ${_fulfillmentText(
                     purchaseResult!['fulfillment_status'] as String? ??
@@ -90,6 +93,16 @@ class PurchaseResultScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  int? get _amountPaid {
+    final value = purchaseResult?['amount_paid'] ?? purchaseResult?['total_price'];
+    return value is num ? value.toInt() : null;
+  }
+
+  String get _currency {
+    final value = purchaseResult?['currency'];
+    return value is String && value.isNotEmpty ? value : 'YER';
   }
 
   String? get _purchaseId {
