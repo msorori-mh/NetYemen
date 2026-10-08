@@ -673,9 +673,11 @@ class FakeAdminRepository implements AdminRepository {
     required String networkId,
     required String packageId,
     required List<Map<String, dynamic>> cards,
-    String keyVersion = 'v1-test',
+    String? batchKey,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
+    final replay = batchKey == null ? null : _ingestedBatches[batchKey];
+    if (replay != null) return {...replay, 'replayed': true};
     for (final card in cards) {
       if (card['ciphertext'] == null ||
           (card['ciphertext'] as String).isEmpty) {
@@ -686,11 +688,17 @@ class FakeAdminRepository implements AdminRepository {
       }
     }
     _recordAudit('ADMIN_INGEST_CARD_VAULT_BATCH', 'card_vault', packageId);
-    return {
+    final result = <String, dynamic>{
       'batch_id': 'batch-${UuidGenerator.generateV4()}',
       'ingested_count': cards.length,
+      'duplicates_skipped': 0,
+      'replayed': false,
     };
+    if (batchKey != null) _ingestedBatches[batchKey] = result;
+    return result;
   }
+
+  final Map<String, Map<String, dynamic>> _ingestedBatches = {};
 
   void _recordAudit(String action, String entityType, String entityId) {
     _auditEvents.add(

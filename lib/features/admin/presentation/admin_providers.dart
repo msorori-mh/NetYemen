@@ -8,7 +8,7 @@ import '../domain/entities.dart';
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakeAdminRepository();
   }
   return SupabaseAdminRepository(Supabase.instance.client);
@@ -62,7 +62,12 @@ class AdminRequestDetailNotifier
   Future<AdminNetworkRequest> build(String requestId) async {
     final repo = ref.read(adminRepositoryProvider);
     final requests = await repo.fetchPendingRequests();
-    return requests.firstWhere((r) => r.id == requestId);
+    for (final request in requests) {
+      if (request.id == requestId) return request;
+    }
+    // The request was resolved or removed meanwhile: a clear, typed failure
+    // instead of an anonymous "No element".
+    throw StateError('ADMIN_REQUEST_NOT_FOUND');
   }
 
   Future<void> resolve(
@@ -134,7 +139,10 @@ class AdminNetworkDetailNotifier
   Future<AdminNetwork> build(String networkId) async {
     final repo = ref.read(adminRepositoryProvider);
     final networks = await repo.fetchNetworks();
-    return networks.firstWhere((n) => n.id == networkId);
+    for (final network in networks) {
+      if (network.id == networkId) return network;
+    }
+    throw StateError('ADMIN_NETWORK_NOT_FOUND');
   }
 
   Future<void> approve({String? note}) async {

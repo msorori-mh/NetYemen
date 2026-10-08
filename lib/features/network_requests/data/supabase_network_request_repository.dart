@@ -16,7 +16,8 @@ class SupabaseNetworkRequestRepository implements NetworkRequestRepository {
           'governorate, city, district, notes, resolution_note, '
           'matched_network_id, created_at, resolved_at',
         )
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(100);
 
     return (response as List)
         .map((j) => NetworkAdditionRequest.fromJson(j as Map<String, dynamic>))

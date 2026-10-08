@@ -347,12 +347,15 @@ class _AdminForgotPasswordScreenState
           );
       if (mounted) setState(() => _emailSent = true);
     } on AuthException catch (error) {
-      debugPrint(
-        'ADMIN_AUTH_RECOVERY_FAILURE '
-        'code=${error.code ?? 'none'} '
-        'status=${error.statusCode ?? 'none'} '
-        'message=${error.message}',
-      );
+      if (kDebugMode) {
+        // Debug builds only: never write auth failure details to a release
+        // console. The server message is deliberately left out.
+        debugPrint(
+          'ADMIN_AUTH_RECOVERY_FAILURE '
+          'code=${error.code ?? 'none'} '
+          'status=${error.statusCode ?? 'none'}',
+        );
+      }
       if (mounted) {
         setState(() {
           _errorMessage = _adminRecoveryDisplayMessage(error);

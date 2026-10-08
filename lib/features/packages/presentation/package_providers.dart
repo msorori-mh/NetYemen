@@ -9,7 +9,7 @@ import '../domain/entities.dart';
 
 final packageRepositoryProvider = Provider<PackageRepository>((ref) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakePackageRepository();
   }
   return SupabasePackageRepository(Supabase.instance.client);

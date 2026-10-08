@@ -18,7 +18,7 @@ class WaselOneScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
-    final isDemo = config.isDemoMode || !config.isConfigured;
+    final isDemo = config.usesDemoData;
     final hasSession = ref.watch(currentUserProvider) != null || isDemo;
     final plans = ref.watch(waselOnePlansProvider);
     final purchaseState = ref.watch(waselOnePurchaseProvider);

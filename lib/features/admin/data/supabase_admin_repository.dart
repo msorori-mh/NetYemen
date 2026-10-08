@@ -333,7 +333,7 @@ class SupabaseAdminRepository implements AdminRepository {
     required String networkId,
     required String packageId,
     required List<Map<String, dynamic>> cards,
-    String keyVersion = 'v1-test',
+    String? batchKey,
   }) async {
     final result = await _client.rpc<Map<String, dynamic>>(
       'admin_ingest_card_vault_batch',
@@ -341,7 +341,7 @@ class SupabaseAdminRepository implements AdminRepository {
         'p_network_id': networkId,
         'p_package_id': packageId,
         'p_cards': cards,
-        'p_key_version': keyVersion,
+        'p_batch_key': batchKey,
       },
     );
     return result;

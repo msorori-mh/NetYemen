@@ -15,7 +15,7 @@ final waselOneRepositoryProvider = Provider<WaselOneRepository>((ref) {
   // Per-user data: rebuild (and drop cached data) when the account changes.
   ref.watch(currentUserIdProvider);
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakeWaselOneRepository(ref.watch(demoWalletStoreProvider));
   }
   return SupabaseWaselOneRepository(Supabase.instance.client);

@@ -5,7 +5,7 @@ import '../../../core/config/app_config_provider.dart';
 
 final authStateProvider = StreamProvider<AuthState>((ref) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return const Stream<AuthState>.empty();
   }
   return Supabase.instance.client.auth.onAuthStateChange;
@@ -13,7 +13,7 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 
 final currentUserProvider = Provider<User?>((ref) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) return null;
+  if (config.usesDemoData) return null;
 
   final authAsync = ref.watch(authStateProvider);
   final client = Supabase.instance.client;

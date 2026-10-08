@@ -7,11 +7,17 @@ class SupabaseSupportRepository implements SupportRepository {
   SupabaseSupportRepository(this.client);
   static const fields =
       'id,case_number,case_type,category,priority,subject,description,status,network_id,package_id,network_request_id,assigned_agent_id,resolution,resolution_outcome,due_at,created_at,reopened_count';
+
+  /// Newest-first page size for the case list (customer history and agent
+  /// queue share this query), so it never downloads an unbounded history.
+  static const int caseListLimit = 200;
+
   @override
   Future<List<SupportCase>> fetchCases() async => ((await client
           .from('support_cases')
           .select(fields)
-          .order('created_at', ascending: false)) as List)
+          .order('created_at', ascending: false)
+          .limit(caseListLimit)) as List)
       .map((e) => SupportCase.fromJson(e))
       .toList();
   @override

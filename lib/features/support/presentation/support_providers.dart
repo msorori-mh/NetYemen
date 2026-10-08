@@ -11,7 +11,7 @@ final supportRepositoryProvider = Provider<SupportRepository>((ref) {
   // Per-user data: rebuild (and drop cached data) when the account changes.
   ref.watch(currentUserIdProvider);
   final c = ref.watch(appConfigProvider);
-  return c.isDemoMode || !c.isConfigured
+  return c.usesDemoData
       ? FakeSupportRepository()
       : SupabaseSupportRepository(Supabase.instance.client);
 });
