@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/money_format.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../wallet/presentation/wallet_providers.dart';
@@ -935,15 +936,7 @@ String _formatDateTime(DateTime value) {
 
 String _two(int value) => value.toString().padLeft(2, '0');
 
-String _formatMoney(int amount) {
-  final digits = amount.toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < digits.length; index++) {
-    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
-    buffer.write(digits[index]);
-  }
-  return '${buffer.toString()} ر.ي';
-}
+String _formatMoney(int amount) => formatYer(amount, currency: 'ر.ي');
 
 String _friendlyError(Object error) {
   final value = error.toString();

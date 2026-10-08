@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/money_format.dart';
 import '../../../core/widgets/customer_load_error.dart';
 import 'wallet_providers.dart';
 
@@ -45,7 +46,9 @@ class DepositHistoryScreen extends ConsumerWidget {
                       vertical: 8,
                     ),
                     child: ListTile(
-                      title: Text('${deposit.amount} ${deposit.currency}'),
+                      title: Text(
+                        formatYer(deposit.amount, currency: deposit.currency),
+                      ),
                       subtitle: Text(
                         'المرجع: ${deposit.proofReference ?? '-'}'
                         '${deposit.createdAt == null ? '' : '\nالتاريخ: ${_formatDate(deposit.createdAt!)}'}'
@@ -75,7 +78,8 @@ class DepositHistoryScreen extends ConsumerWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final local = date.toLocal();
+    return '${local.day}/${local.month}/${local.year}';
   }
 }
 
@@ -87,7 +91,7 @@ class _DepositStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      'submitted' => ('مقدم', Colors.orange),
+      'pending' || 'submitted' => ('بانتظار المراجعة', Colors.orange),
       'under_review' => ('قيد المراجعة', Colors.blue),
       'approved' => ('مقبول', Colors.green),
       'rejected' => ('مرفوض', Colors.red),

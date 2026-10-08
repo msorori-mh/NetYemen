@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:netyemen/core/config/app_config.dart';
+import 'package:netyemen/core/config/app_config_provider.dart';
 import 'package:netyemen/features/network_discovery/domain/entities.dart';
 import 'package:netyemen/features/packages/data/package_repository.dart';
 import 'package:netyemen/features/packages/domain/entities.dart';
@@ -198,6 +200,60 @@ void main() {
       );
       expect(purchaseButton.onPressed, isNotNull);
       expect(outOfStockButton.onPressed, isNull);
+    });
+
+    testWidgets('list price equals the price on the confirmation screen', (
+      tester,
+    ) async {
+      const package = NetworkPackage(
+        id: 'pkg-1',
+        networkId: 'net-1',
+        name: 'باقة يومية',
+        price: 1000,
+        currency: 'YER',
+        durationValue: 1,
+        durationUnit: 'day',
+        packageType: 'time',
+        status: 'active',
+        isPublic: true,
+        sortOrder: 1,
+      );
+      final repository = _FakeRepository(
+        publicPackages: const [package],
+        balances: {
+          'pkg-1': const PackageInventoryBalance(
+            packageId: 'pkg-1',
+            networkId: 'net-1',
+            totalUnits: 10,
+            availableUnits: 10,
+            isAvailable: true,
+          ),
+        },
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appConfigProvider.overrideWithValue(AppConfig.demo),
+            packageRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: NetworkPackagesSection(networkId: 'net-1')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Whole YER: 1000 is shown as 1,000 — never divided by 100.
+      const listPrice = '1,000 YER';
+      expect(package.displayPrice, listPrice);
+      expect(find.text(listPrice), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'شراء'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('تأكيد الشراء'), findsWidgets);
+      expect(find.text('السعر: $listPrice'), findsOneWidget);
     });
   });
 }

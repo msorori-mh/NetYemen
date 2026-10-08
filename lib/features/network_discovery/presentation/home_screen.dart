@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/money_format.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
@@ -210,7 +211,7 @@ class _WalletOverviewCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     walletAsync.when(
                       data: (wallet) => Text(
-                        '${wallet.balance} ${wallet.currency}',
+                        formatYer(wallet.balance, currency: wallet.currency),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
