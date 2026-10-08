@@ -5,6 +5,7 @@ import '../../../core/config/app_config_provider.dart';
 import '../../../core/demo/demo_wallet_store.dart';
 import '../../../core/utils/uuid_generator.dart';
 import '../../auth/presentation/customer_session_providers.dart';
+import '../../wallet/presentation/wallet_providers.dart';
 import '../data/fake_wasel_one_repository.dart';
 import '../data/supabase_wasel_one_repository.dart';
 import '../data/wasel_one_repository.dart';
@@ -94,6 +95,9 @@ class WaselOnePurchaseNotifier extends AsyncNotifier<WaselOnePurchaseResult?> {
       _pendingSession = null;
       state = AsyncValue.data(result);
       ref.invalidate(waselOneEntitlementsProvider);
+      // The plan was paid from the wallet: refresh the balance even when the
+      // screen that started the purchase is no longer mounted.
+      ref.invalidate(walletSummaryProvider);
       return result;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -118,7 +122,22 @@ class WaselOneCredentialNotifier
     return null;
   }
 
+  Future<RadiusAccessCredential>? _issuing;
+
   Future<RadiusAccessCredential> issue(String entitlementId) async {
+    // Coalesce overlapping calls: one tap, one issued credential.
+    final active = _issuing;
+    if (active != null) return await active;
+    final request = _issueOnce(entitlementId);
+    _issuing = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_issuing, request)) _issuing = null;
+    }
+  }
+
+  Future<RadiusAccessCredential> _issueOnce(String entitlementId) async {
     state = const AsyncValue.loading();
     try {
       final credential = await ref
@@ -133,6 +152,25 @@ class WaselOneCredentialNotifier
   }
 
   void clear() => state = const AsyncValue.data(null);
+
+  bool _busy = false;
+
+  /// Claims the single "issue and show a credential" slot.
+  ///
+  /// Returns false when a credential is already being issued or is still
+  /// displayed. Issuing a new credential revokes the previous one, so a
+  /// second tap must not go through. Balance with [finish].
+  bool tryBegin() {
+    if (_busy) return false;
+    _busy = true;
+    return true;
+  }
+
+  /// Releases the slot claimed by [tryBegin] and drops the shown credential.
+  void finish() {
+    _busy = false;
+    clear();
+  }
 }
 
 final waselOneCredentialProvider =

@@ -55,6 +55,43 @@ void main() {
           repository.idempotencyKeys[1], isNot(repository.idempotencyKeys[0]));
     });
   });
+
+  group('WaselOneCredentialNotifier', () {
+    test('a double tap issues a single credential', () async {
+      final gate = Completer<void>();
+      final repository = _RecordingRepository(gate: gate);
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      await container.read(waselOneCredentialProvider.future);
+
+      final notifier = container.read(waselOneCredentialProvider.notifier);
+      final first = notifier.issue('entitlement-1');
+      final second = notifier.issue('entitlement-1');
+      gate.complete();
+
+      final results = await Future.wait([first, second]);
+      expect(results[0].credentialId, results[1].credentialId);
+      expect(
+        repository.issuedFor,
+        ['entitlement-1'],
+        reason: 'issuing again would invalidate the credential on screen',
+      );
+    });
+
+    test('the issue slot is exclusive until it is released', () async {
+      final container = _container(_RecordingRepository());
+      addTearDown(container.dispose);
+      await container.read(waselOneCredentialProvider.future);
+
+      final notifier = container.read(waselOneCredentialProvider.notifier);
+      expect(notifier.tryBegin(), isTrue);
+      expect(notifier.tryBegin(), isFalse);
+
+      notifier.finish();
+      expect(container.read(waselOneCredentialProvider).value, isNull);
+      expect(notifier.tryBegin(), isTrue);
+    });
+  });
 }
 
 ProviderContainer _container(WaselOneRepository repository) {
@@ -97,8 +134,19 @@ class _RecordingRepository implements WaselOneRepository {
   @override
   Future<List<AccessEntitlement>> getMyEntitlements() async => const [];
 
+  final List<String> issuedFor = [];
+
   @override
-  Future<RadiusAccessCredential> issueAccessCredential(String entitlementId) {
-    throw UnimplementedError();
+  Future<RadiusAccessCredential> issueAccessCredential(
+    String entitlementId,
+  ) async {
+    issuedFor.add(entitlementId);
+    await gate?.future;
+    return RadiusAccessCredential(
+      credentialId: 'credential-${issuedFor.length}',
+      username: 'w1-test',
+      password: 'TEST-ONLY',
+      expiresAt: DateTime.utc(2030),
+    );
   }
 }
