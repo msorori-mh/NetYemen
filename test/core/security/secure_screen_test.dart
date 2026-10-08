@@ -6,21 +6,21 @@ import 'package:netyemen/core/security/secure_screen.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late List<String> calls;
 
   setUp(() {
     calls = <String>[];
     SecureScreen.debugReset();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SecureScreen.channel, (call) async {
+    messenger.setMockMethodCallHandler(SecureScreen.channel, (call) async {
       calls.add(call.method);
       return null;
     });
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SecureScreen.channel, null);
+    messenger.setMockMethodCallHandler(SecureScreen.channel, null);
     SecureScreen.debugReset();
   });
 
@@ -88,8 +88,7 @@ void main() {
   });
 
   test('a missing native handler is ignored', () async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SecureScreen.channel, (call) async {
+    messenger.setMockMethodCallHandler(SecureScreen.channel, (call) async {
       calls.add(call.method);
       throw MissingPluginException();
     });
