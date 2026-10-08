@@ -103,7 +103,15 @@ void main() {
     await tester.tap(find.byKey(const Key('deposit-submit')));
     await settle(tester);
 
-    expect(find.byKey(const Key('deposit-message')), findsOneWidget);
+    final shown = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((text) => text.data)
+        .toList();
+    expect(
+      find.byKey(const Key('deposit-message')),
+      findsOneWidget,
+      reason: 'texts on screen: $shown',
+    );
     expect(find.textContaining('5,000 YER'), findsOneWidget);
 
     final deposits = await _deposits(tester, repository);
