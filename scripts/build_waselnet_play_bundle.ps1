@@ -49,7 +49,7 @@ if ($LASTEXITCODE -ne 0) { throw 'HOLD: Locked dependency install failed.' }
 dart format --output=none --set-exit-if-changed lib test
 if ($LASTEXITCODE -ne 0) { throw 'HOLD: Dart formatting failed.' }
 
-flutter analyze
+flutter analyze lib test
 if ($LASTEXITCODE -ne 0) { throw 'HOLD: Flutter analysis failed.' }
 
 flutter test --timeout 2m

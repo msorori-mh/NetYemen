@@ -1,5 +1,14 @@
 # NetYemen Local Supabase Configuration
 # NY-GOV-BE-001 / NY-GOV-BE-001C Foundation Configuration
+#
+# ============================================================================
+# LOCAL DEVELOPMENT AND CI ONLY.  NEVER run `supabase config push` (or any
+# other command that applies this file to a hosted project) with this file.
+# It deliberately contains fixed test OTP codes, disabled email confirmation,
+# dummy SMS provider credentials and unauthenticated function entry points.
+# Pushing it would let anyone sign in to the listed phone numbers with a
+# public code. Hosted Auth settings are managed in the Supabase dashboard.
+# ============================================================================
 
 project_id = "netyemen-local"
 
@@ -14,6 +23,13 @@ max_rows = 1000
 port = 54322
 shadow_port = 54320
 major_version = 15
+
+# supabase/seed.sql creates TEST_ONLY privileged accounts and is never applied
+# automatically (not by `supabase start`, `db reset` or `db push --include-seed`).
+# The only supported path is scripts/reset_netyemen_local_pilot.ps1, which opts
+# in explicitly; seed.sql itself refuses to run without that opt-in.
+[db.seed]
+enabled = false
 
 [studio]
 enabled = false
@@ -36,10 +52,13 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = true
+minimum_password_length = 8
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
+# LOCAL ONLY -- never `supabase config push`. Email confirmation is disabled
+# only because the local stack has no SMTP server ([local_smtp] is off).
 enable_confirmations = false
 
 # TEST_ONLY local SMS config for physical pilot. No real gateway is used;
@@ -49,6 +68,9 @@ enable_signup = true
 enable_confirmations = true
 max_frequency = "5s"
 
+# LOCAL ONLY -- never `supabase config push`. Anyone who knows these numbers
+# can sign in with the fixed code below; they exist only for the synthetic
+# TEST_ONLY identities created by supabase/seed.sql on a local stack.
 [auth.sms.test_otp]
 "+967771111111" = "123456"
 "+967772222222" = "123456"
@@ -62,8 +84,9 @@ account_sid = "TEST_ONLY_ACCOUNT_SID"
 message_service_sid = "TEST_ONLY_MESSAGE_SERVICE_SID"
 auth_token = "TEST_ONLY_AUTH_TOKEN"
 
-# The function is intentionally callable before login. Its own expiring invite,
-# optional phone allowlist, and disabled-by-default server switch are mandatory.
+# The function is intentionally callable before login. Its own expiring invite
+# (at most 14 days), mandatory phone allowlist, and disabled-by-default server
+# switch are enforced inside the function. Pilot-only; see its README.
 [functions.test-onboarding]
 verify_jwt = false
 
