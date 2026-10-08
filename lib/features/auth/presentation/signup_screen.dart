@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../security/presentation/pin_gate.dart';
+import '../../security/presentation/sign_in_gate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/customer_auth.dart';
 import 'customer_auth_providers.dart';
@@ -53,6 +54,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
 
     setState(() => _isLoading = true);
+    // Registration signs the new account in; this screen then routes to the
+    // PIN gate itself (after its confirmation dialog), so claim the sign-in.
+    final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
+    signInClaim.state = true;
     try {
       await ref.read(customerAuthRepositoryProvider).registerTestAccount(
             TestAccountRegistration(
@@ -97,6 +102,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     } catch (error) {
       _showError(_friendlyRegistrationError(error));
     } finally {
+      signInClaim.state = false;
       if (mounted) setState(() => _isLoading = false);
     }
   }

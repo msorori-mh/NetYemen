@@ -67,5 +67,55 @@ void main() {
 
       expect(find.text('رمز التحقق غير صحيح'), findsOneWidget);
     });
+
+    testWidgets('resend is locked for the cooldown, then sends a new code', (
+      tester,
+    ) async {
+      final service = FakeCustomerAuthRepository();
+      await tester.pumpWidget(buildScreen(service: service));
+
+      TextButton resendButton() =>
+          tester.widget<TextButton>(find.byKey(const Key('otp-resend')));
+
+      expect(resendButton().onPressed, isNull);
+      expect(find.textContaining('60'), findsOneWidget);
+      expect(service.phoneOtpRequest, isNull);
+
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pump();
+      expect(resendButton().onPressed, isNull);
+
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump();
+      expect(resendButton().onPressed, isNotNull);
+      expect(find.text('إعادة إرسال الرمز'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('otp-resend')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(service.phoneOtpRequest, '+967770000000');
+      expect(
+        resendButton().onPressed,
+        isNull,
+        reason: 'a new cooldown starts after each resend',
+      );
+    });
+
+    testWidgets('accepts a code typed with Arabic-Indic digits', (
+      tester,
+    ) async {
+      final service = FakeCustomerAuthRepository()
+        ..otpException = Exception('invalid token');
+
+      await tester.pumpWidget(buildScreen(service: service));
+
+      await tester.enterText(find.byType(TextField), '١٢٣٤٥٦');
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+      await tester.pump();
+
+      expect(service.otpValue, '123456');
+    });
   });
 }
