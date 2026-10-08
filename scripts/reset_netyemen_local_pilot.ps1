@@ -3,12 +3,24 @@ $ErrorActionPreference = 'Continue'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-$status = npx supabase status --output json 2>$null | ConvertFrom-Json
+# Same CLI version as .github/workflows/supabase-core-ci.yml. An unpinned
+# `npx supabase` resolves to whatever is latest that day, which may not match
+# the containers the workflow started with the pinned version.
+$supabaseCli = 'supabase@2.109.1'
+
+# The CLI may print notices around the JSON document; parse only the object.
+$rawStatus = (npx --yes $supabaseCli status --output json 2>$null) -join "`n"
+$jsonStart = $rawStatus.IndexOf('{')
+$jsonEnd = $rawStatus.LastIndexOf('}')
+if ($jsonStart -lt 0 -or $jsonEnd -le $jsonStart) {
+    throw 'Could not parse Supabase status JSON.'
+}
+$status = $rawStatus.Substring($jsonStart, $jsonEnd - $jsonStart + 1) | ConvertFrom-Json
 if (-not $status.DB_URL -or $status.DB_URL -notmatch '127\.0\.0\.1|localhost') {
     throw 'LOCAL_ONLY guard failed: Supabase DB_URL is not loopback.'
 }
 
-npx supabase db reset --no-seed 2>&1 | Out-Null
+npx --yes $supabaseCli db reset --no-seed 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Local database reset failed.' }
 
 # supabase/seed.sql refuses to run unless the session opts in explicitly with
