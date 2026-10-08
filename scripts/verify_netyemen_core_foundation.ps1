@@ -11,13 +11,21 @@ Write-Host "================================================================" -F
 
 $violations = @()
 
+# All paths below are relative to the repository root.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
+. (Join-Path $PSScriptRoot 'lib/netyemen_sql.ps1')
+
 # -----------------------------------------------------------------------------
 # 1. Branch Validation
 # -----------------------------------------------------------------------------
 $rawBranch = (git branch --show-current)
 $currentBranch = if ($rawBranch) { $rawBranch.ToString().Trim() } else { "" }
 Write-Host "[1/8] Checking Git Branch: $currentBranch" -ForegroundColor Yellow
-if ($currentBranch -eq "main") {
+# The rule is for local work (do not develop directly on main). In CI the
+# workflow also runs on pushes to main, where the checked-out branch IS main;
+# that run verifies the merged result and must not be rejected for it.
+if ($currentBranch -eq "main" -and $env:GITHUB_ACTIONS -ne "true") {
     $violations += "CRITICAL: Script must not be executed directly on 'main' branch."
 }
 
@@ -114,21 +122,25 @@ $combinedSql = $mig1Content + "`n" + $mig2Content
 # 5 and 6 inspected only the first two files, so a later migration could add a
 # table without RLS, a permissive policy, GRANT ALL to a client role or a
 # SECURITY DEFINER function without a pinned search_path and still pass.
-$allMigrationFiles = @(Get-ChildItem -Path "supabase/migrations" -File -Filter *.sql | Sort-Object Name)
-if ($allMigrationFiles.Count -eq 0) {
-    $violations += "No migration files found under supabase/migrations (run this script from the repository root)."
-}
+# Whole-line SQL comments are blanked by Get-SqlMigrations (line numbers are
+# preserved), so a commented-out statement can neither satisfy nor violate a rule.
+$migrations = @()
 $allSql = ""
-foreach ($migrationFile in $allMigrationFiles) {
-    $migrationSql = Get-Content -LiteralPath $migrationFile.FullName -Raw
-    if (-not [string]::IsNullOrWhiteSpace($migrationSql)) {
-        $allSql += $migrationSql + "`n"
+foreach ($migration in (Get-SqlMigrations -Directory (Join-Path $repoRoot "supabase/migrations"))) {
+    if ([string]::IsNullOrEmpty($migration.Sql)) {
+        $violations += "Migration file is empty: $($migration.Name)"
+        continue
     }
+    $migrations += $migration
+    $allSql += $migration.Sql + "`n"
 }
-Write-Host "  Migrations inspected: $($allMigrationFiles.Count)" -ForegroundColor Cyan
+if ($migrations.Count -eq 0) {
+    $violations += "No migration files found under supabase/migrations."
+}
+Write-Host "  Migrations inspected: $($migrations.Count)" -ForegroundColor Cyan
 
 foreach ($table in $coreTables) {
-    $pattern = "(?i)ALTER\s+TABLE\s+public\.$table\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
+    $pattern = '(?i)ALTER\s+TABLE\s+public\.' + $table + '\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY'
     if ($allSql -notmatch $pattern) {
         $violations += "RLS not enabled on table public.$table"
     } else {
@@ -136,35 +148,66 @@ foreach ($table in $coreTables) {
     }
 }
 
-# Every table created in the public schema by any migration must have RLS enabled
-# by some migration.
-$createdTables = @{}
-foreach ($tableMatch in [regex]::Matches($allSql, '(?i)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.([a-z_0-9]+)')) {
-    $createdTables[$tableMatch.Groups[1].Value.ToLowerInvariant()] = $true
+# Every table created in the public schema by ANY migration must have RLS
+# enabled by SOME migration (it may be a later one). A table that is renamed
+# is also accepted when RLS is enabled under its new name.
+$createTablePattern = '(?i)\bCREATE\s+(?:UNLOGGED\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s*(?:\(|AS\b)'
+$renameTablePattern = '(?i)\bALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s+RENAME\s+TO\s+"?([a-z_][a-z_0-9]*)"?'
+$tableRenames = @{}
+foreach ($renameMatch in [regex]::Matches($allSql, $renameTablePattern)) {
+    $tableRenames[$renameMatch.Groups[1].Value.ToLowerInvariant()] = $renameMatch.Groups[2].Value.ToLowerInvariant()
 }
+
+$createdTables = @{}
+foreach ($migration in $migrations) {
+    foreach ($tableMatch in [regex]::Matches($migration.Sql, $createTablePattern)) {
+        $tableName = $tableMatch.Groups[1].Value.ToLowerInvariant()
+        if (-not $createdTables.ContainsKey($tableName)) {
+            $createdTables[$tableName] = "$($migration.Name):$(Get-SqlLineNumber -Text $migration.Sql -Index $tableMatch.Index)"
+        }
+    }
+}
+
 $tablesWithoutRls = 0
 foreach ($tableName in ($createdTables.Keys | Sort-Object)) {
-    $rlsPattern = "(?i)ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?public\.$tableName\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
-    if ($allSql -notmatch $rlsPattern) {
-        $violations += "RLS not enabled on table public.$tableName"
+    # The created name plus every name it was later renamed to.
+    $candidateNames = @($tableName)
+    $currentName = $tableName
+    while ($tableRenames.ContainsKey($currentName) -and $candidateNames.Count -lt 10) {
+        $currentName = $tableRenames[$currentName]
+        $candidateNames += $currentName
+    }
+    $hasRls = $false
+    foreach ($candidateName in $candidateNames) {
+        $rlsPattern = '(?i)\bALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?(?:public\.)?"?' + $candidateName + '"?\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY'
+        if ($allSql -match $rlsPattern) { $hasRls = $true }
+    }
+    if (-not $hasRls) {
+        $violations += "RLS not enabled on table public.$tableName (created at $($createdTables[$tableName]))"
         $tablesWithoutRls++
     }
 }
 Write-Host "  public tables created by migrations: $($createdTables.Count) (without RLS: $tablesWithoutRls)" -ForegroundColor Cyan
+if ($migrations.Count -gt 0 -and $createdTables.Count -eq 0) {
+    $violations += "No CREATE TABLE statement was recognised in any migration (the RLS check inspected nothing)."
+}
 
 # -----------------------------------------------------------------------------
 # 6. Security Red Flags & Audit Write Locks Search (ALL migrations)
 # -----------------------------------------------------------------------------
 Write-Host "[6/8] Auditing Security Red Flags & Audit Write Locks..." -ForegroundColor Yellow
 
-$grantAllAnyPattern = '(?i)(?<!REVOKE\s)GRANT\s+ALL\b'
-$grantAllStatementPattern = '(?i)(?<!REVOKE\s)GRANT\s+ALL\b[^;]*?\bTO\s+([^;]+);'
-$functionStartPattern = '(?i)CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([^\(\s]+)'
+$grantAllAnyPattern = '(?i)(?<!REVOKE\s)\bGRANT\s+ALL\b'
+$grantAllStatementPattern = '(?i)(?<!REVOKE\s)\bGRANT\s+ALL\b[^;]*?\bTO\s+([^;]+);'
 
-foreach ($migrationFile in $allMigrationFiles) {
-    $migrationSql = Get-Content -LiteralPath $migrationFile.FullName -Raw
-    if ([string]::IsNullOrWhiteSpace($migrationSql)) { continue }
-    $migrationName = $migrationFile.Name
+# Get-SqlFunctionStatements (scripts/lib/netyemen_sql.ps1) understands function
+# options written before the body (pg_get_functiondef layout) and after it,
+# and keeps the body separate so words inside it are never taken for options.
+$functionStatementCount = 0
+$securityDefinerCount = 0
+foreach ($migration in $migrations) {
+    $migrationSql = $migration.Sql
+    $migrationName = $migration.Name
 
     # GRANT ALL is acceptable only when every grantee is the trusted server
     # role service_role. Any other grantee (authenticated, anon, PUBLIC, ...)
@@ -174,7 +217,7 @@ foreach ($migrationFile in $allMigrationFiles) {
         foreach ($grantee in $grantMatch.Groups[1].Value.Split(',')) {
             $granteeName = $grantee.Trim().ToLowerInvariant()
             if ($granteeName -ne "service_role") {
-                $violations += "Security Red Flag: 'GRANT ALL' to '$granteeName' in $migrationName."
+                $violations += "Security Red Flag: 'GRANT ALL' to '$granteeName' in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $grantMatch.Index)."
             }
         }
     }
@@ -184,34 +227,39 @@ foreach ($migrationFile in $allMigrationFiles) {
     }
 
     # USING (FALSE) / WITH CHECK (FALSE) are deny-all and intentionally allowed.
-    if ($migrationSql -match "(?i)USING\s*\(\s*true\s*\)") {
-        $violations += "Security Warning: Permissive 'USING (true)' policy discovered in $migrationName."
+    foreach ($permissiveMatch in [regex]::Matches($migrationSql, '(?i)\bUSING\s*\(\s*true\s*\)')) {
+        $violations += "Security Warning: Permissive 'USING (true)' policy in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $permissiveMatch.Index)."
     }
-    if ($migrationSql -match "(?i)WITH\s+CHECK\s*\(\s*true\s*\)") {
-        $violations += "Security Warning: Permissive 'WITH CHECK (true)' policy discovered in $migrationName."
+    foreach ($permissiveMatch in [regex]::Matches($migrationSql, '(?i)\bWITH\s+CHECK\s*\(\s*true\s*\)')) {
+        $violations += "Security Warning: Permissive 'WITH CHECK (true)' policy in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $permissiveMatch.Index)."
     }
 
     # Verify audit write RPC (record_audit_event) is NOT granted to anon or authenticated
-    if ($migrationSql -match "(?i)GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.record_audit_event[^\n;]*TO\s+[^;\n]*\b(authenticated|anon|public)\b") {
+    if ($migrationSql -match '(?i)\bGRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.record_audit_event[^;]*\bTO\s+[^;]*\b(authenticated|anon|public)\b') {
         $violations += "Security Red Flag: record_audit_event is granted to client roles (authenticated/anon/public) in $migrationName."
     }
 
-    # Verify SECURITY DEFINER functions pin search_path. A function's text is
-    # everything from its CREATE FUNCTION up to the next CREATE FUNCTION (or the
-    # end of the file); this also covers functions that declare SECURITY DEFINER
-    # after the body, which the previous single-statement regex could not see.
-    $functionStarts = [regex]::Matches($migrationSql, $functionStartPattern)
-    for ($functionIndex = 0; $functionIndex -lt $functionStarts.Count; $functionIndex++) {
-        $chunkStart = $functionStarts[$functionIndex].Index
-        $chunkEnd = $migrationSql.Length
-        if (($functionIndex + 1) -lt $functionStarts.Count) {
-            $chunkEnd = $functionStarts[$functionIndex + 1].Index
+    # Every SECURITY DEFINER function must pin its search_path in the SAME
+    # CREATE FUNCTION statement.
+    $functionStatements = Get-SqlFunctionStatements -Sql $migrationSql
+    foreach ($functionStatement in $functionStatements) {
+        $functionStatementCount++
+        $functionLocation = "$($functionStatement.Name) at ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $functionStatement.Index)"
+        if (-not $functionStatement.Parsed) {
+            $violations += "Security Red Flag: CREATE FUNCTION statement could not be parsed (unterminated body): $functionLocation"
+            continue
         }
-        $functionChunk = $migrationSql.Substring($chunkStart, $chunkEnd - $chunkStart)
-        if ($functionChunk -match "(?i)SECURITY\s+DEFINER" -and $functionChunk -notmatch "(?i)SET\s+search_path\s*(=|TO)") {
-            $violations += "Security Red Flag: SECURITY DEFINER function missing fixed search_path: " + $functionStarts[$functionIndex].Groups[1].Value + " in $migrationName"
+        if ($functionStatement.Options -match '(?i)\bSECURITY\s+DEFINER\b') {
+            $securityDefinerCount++
+            if ($functionStatement.Options -notmatch '(?i)\bSET\s+search_path\s*(=|TO\b)') {
+                $violations += "Security Red Flag: SECURITY DEFINER function missing fixed search_path: $functionLocation"
+            }
         }
     }
+}
+Write-Host "  CREATE FUNCTION statements inspected: $functionStatementCount (SECURITY DEFINER: $securityDefinerCount)" -ForegroundColor Cyan
+if ($migrations.Count -gt 0 -and $functionStatementCount -eq 0) {
+    $violations += "No CREATE FUNCTION statement was recognised in any migration (the search_path check inspected nothing)."
 }
 
 # -----------------------------------------------------------------------------
@@ -316,7 +364,7 @@ if ($violations.Count -gt 0) {
     Write-Host "================================================================" -ForegroundColor Green
     Write-Host "STATIC VERIFICATION RESULT: PASS (All Rules Satisfied)" -ForegroundColor Green
     Write-Host "  Files Verified : $($allRequiredFiles.Count + $expectedMigrations.Count)" -ForegroundColor Green
-    Write-Host "  Migrations Scanned for Security Red Flags: $($allMigrationFiles.Count)" -ForegroundColor Green
+    Write-Host "  Migrations Scanned for Security Red Flags: $($migrations.Count)" -ForegroundColor Green
     Write-Host "  Positive Tests : $posTestCount" -ForegroundColor Green
     Write-Host "  Negative Tests : $negTestCount" -ForegroundColor Green
     Write-Host "  Invariant Tests: $invTestCount" -ForegroundColor Green
