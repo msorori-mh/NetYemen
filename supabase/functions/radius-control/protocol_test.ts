@@ -139,3 +139,85 @@ Deno.test("RADIUS gigawords extend counters beyond 32 bits", () => {
   assert(body.p_input_bytes === 4_294_967_306, "input gigaword conversion mismatch");
   assert(body.p_output_bytes === 8_589_934_612, "output gigaword conversion mismatch");
 });
+
+function accountingBody(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    action: "accounting",
+    session_id: "99000000-0000-4000-8000-000000000001",
+    nas_identifier: "wasel-pilot-nas-01",
+    event_key: "hs-a-000001:Start:0:0:0:0:0",
+    event_type: "start",
+    event_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function rejectionCode(body: Record<string, unknown>): string {
+  try {
+    parseRadiusRequest(body);
+  } catch (error) {
+    return error instanceof Error ? error.message : "UNKNOWN";
+  }
+  return "";
+}
+
+Deno.test("a real Accounting-Start without counters is recorded as zero", () => {
+  for (
+    const counters of [
+      {},
+      { input_bytes: null, output_bytes: null, session_seconds: null },
+      { input_bytes: "", output_bytes: "", session_seconds: "" },
+      { input_bytes: 0, output_bytes: 0, session_seconds: 0 },
+    ]
+  ) {
+    const request = parseRadiusRequest(accountingBody(counters));
+    if (request.action !== "accounting") throw new Error("accounting action expected");
+    assert(request.input_bytes === 0, "start input_bytes must default to 0");
+    assert(request.output_bytes === 0, "start output_bytes must default to 0");
+    assert(request.session_seconds === 0, "start session_seconds must default to 0");
+    const body = accountingRpcBody(request);
+    assert(body.p_event_type === "start", "start event type mismatch");
+    assert(body.p_input_bytes === 0, "RPC must receive numeric 0 input bytes");
+    assert(body.p_output_bytes === 0, "RPC must receive numeric 0 output bytes");
+    assert(body.p_session_seconds === 0, "RPC must receive numeric 0 session seconds");
+  }
+});
+
+Deno.test("a start with a malformed counter is still rejected", () => {
+  assert(
+    rejectionCode(accountingBody({ input_bytes: -1 })) === "INVALID_INPUT_BYTES",
+    "negative start counter must be rejected",
+  );
+  assert(
+    rejectionCode(accountingBody({ session_seconds: "12" })) === "INVALID_SESSION_SECONDS",
+    "string start counter must be rejected",
+  );
+});
+
+Deno.test("interim and stop events still require every counter", () => {
+  for (const eventType of ["interim-update", "interim_update", "stop"]) {
+    assert(
+      rejectionCode(accountingBody({ event_type: eventType })) === "INVALID_INPUT_BYTES",
+      `${eventType} without counters must be rejected`,
+    );
+    assert(
+      rejectionCode(
+        accountingBody({ event_type: eventType, input_bytes: 1, output_bytes: null, session_seconds: 60 }),
+      ) === "INVALID_OUTPUT_BYTES",
+      `${eventType} with a null counter must be rejected`,
+    );
+    assert(
+      rejectionCode(
+        accountingBody({ event_type: eventType, input_bytes: 1, output_bytes: 2 }),
+      ) === "INVALID_SESSION_SECONDS",
+      `${eventType} without session time must be rejected`,
+    );
+  }
+});
+
+Deno.test("NAS reboot signals are not accounting events for the control plane", () => {
+  assert(
+    rejectionCode(accountingBody({ event_type: "accounting-on" })) === "INVALID_EVENT_TYPE",
+    "accounting-on must be rejected",
+  );
+});

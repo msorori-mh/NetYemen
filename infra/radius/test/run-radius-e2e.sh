@@ -62,29 +62,99 @@ EOF
 set -e
 printf '%s\n' "$auth_reject" | grep -q "Access-Reject"
 
-accounting=$(docker exec -i "$radius_container" sh -c \
+# The daemon must not keep running as root after reading its configuration.
+radius_uid=$(docker exec "$radius_container" sh -c "grep '^Uid:' /proc/1/status" | awk '{print $2}')
+if [ -z "$radius_uid" ] || [ "$radius_uid" = "0" ]; then
+  echo "FAIL: FreeRADIUS (PID 1) runs as uid '${radius_uid:-unknown}'; expected the unprivileged freerad user." >&2
+  exit 1
+fi
+
+# A real MikroTik / RFC 2866 Accounting-Start carries NO octet counters,
+# gigawords or session time. Do not add them here: explicit zeros previously hid
+# an invalid-JSON bug in the rlm_rest accounting template.
+accounting_start=$(docker exec -i "$radius_container" sh -c \
   "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
 User-Name = "w1-0123456789abcdef01234567"
 NAS-Identifier = "wasel-e2e-nas-01"
 Acct-Session-Id = "hs-e2e-000001"
 Acct-Status-Type = Start
 Class = "99000000-0000-4000-8000-000000000001"
-Acct-Input-Octets = 0
-Acct-Output-Octets = 0
-Acct-Input-Gigawords = 0
-Acct-Output-Gigawords = 0
-Acct-Session-Time = 0
+Calling-Station-Id = "02:00:00:00:00:01"
 Message-Authenticator = 0x00
 EOF
 )
-printf '%s\n' "$accounting" | grep -q "Accounting-Response"
+printf '%s\n' "$accounting_start" | grep -q "Accounting-Response"
+
+accounting_interim=$(docker exec -i "$radius_container" sh -c \
+  "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
+User-Name = "w1-0123456789abcdef01234567"
+NAS-Identifier = "wasel-e2e-nas-01"
+Acct-Session-Id = "hs-e2e-000001"
+Acct-Status-Type = Interim-Update
+Class = "99000000-0000-4000-8000-000000000001"
+Acct-Input-Octets = 1024
+Acct-Output-Octets = 2048
+Acct-Session-Time = 60
+Message-Authenticator = 0x00
+EOF
+)
+printf '%s\n' "$accounting_interim" | grep -q "Accounting-Response"
+
+accounting_stop=$(docker exec -i "$radius_container" sh -c \
+  "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
+User-Name = "w1-0123456789abcdef01234567"
+NAS-Identifier = "wasel-e2e-nas-01"
+Acct-Session-Id = "hs-e2e-000001"
+Acct-Status-Type = Stop
+Class = "99000000-0000-4000-8000-000000000001"
+Acct-Input-Octets = 4096
+Acct-Output-Octets = 8192
+Acct-Input-Gigawords = 1
+Acct-Output-Gigawords = 2
+Acct-Session-Time = 120
+Message-Authenticator = 0x00
+EOF
+)
+printf '%s\n' "$accounting_stop" | grep -q "Accounting-Response"
+
+# NAS reboot signal: no Class, no session. FreeRADIUS must acknowledge it
+# locally (so the NAS stops retransmitting) without calling the control plane.
+accounting_on=$(docker exec -i "$radius_container" sh -c \
+  "radclient -x -r 1 -t 3 127.0.0.1:1813 acct '$radius_secret'" <<'EOF'
+NAS-Identifier = "wasel-e2e-nas-01"
+Acct-Session-Id = "00000000"
+Acct-Status-Type = Accounting-On
+Message-Authenticator = 0x00
+EOF
+)
+printf '%s\n' "$accounting_on" | grep -q "Accounting-Response"
 
 stats=$(curl --fail --silent --show-error http://127.0.0.1:18787/stats)
 node -e '
 const stats = JSON.parse(process.argv[1]);
-if (stats.authorizeAccepted !== 1 || stats.authorizeDenied !== 1 || stats.accounting !== 1) {
-  throw new Error(`unexpected mock stats: ${JSON.stringify(stats)}`);
+const fail = (message) => {
+  throw new Error(`${message}: ${JSON.stringify(stats)}`);
+};
+if (stats.invalidJson !== 0) fail("FreeRADIUS sent invalid JSON to the control plane");
+if (stats.invalidAccounting !== 0) fail("FreeRADIUS sent an invalid accounting request");
+if (stats.authorizeAccepted !== 1 || stats.authorizeDenied !== 1) fail("unexpected authorize stats");
+// Start + Interim-Update + Stop reach the control plane; Accounting-On does not.
+if (stats.accounting !== 3) fail("unexpected accounting count");
+const [start, interim, stop] = stats.accountingEvents;
+const same = (event, expected) =>
+  Object.entries(expected).every(([key, value]) => event[key] === value);
+if (!same(start, { event_type: "start", input_bytes: 0, output_bytes: 0, input_gigawords: 0, output_gigawords: 0, session_seconds: 0 })) {
+  fail("Accounting-Start without counters must arrive as numeric zeros");
+}
+if (!same(interim, { event_type: "interim-update", input_bytes: 1024, output_bytes: 2048, input_gigawords: 0, output_gigawords: 0, session_seconds: 60 })) {
+  fail("Interim-Update counters mismatch");
+}
+if (!same(stop, { event_type: "stop", input_bytes: 4096, output_bytes: 8192, input_gigawords: 1, output_gigawords: 2, session_seconds: 120 })) {
+  fail("Stop counters mismatch");
+}
+if (new Set(stats.accountingEvents.map((event) => event.event_key)).size !== 3) {
+  fail("accounting event keys must be unique per packet");
 }
 ' "$stats"
 
-echo "PASS: RADIUS packet E2E accepted=1 rejected=1 accounting=1"
+echo "PASS: RADIUS packet E2E accepted=1 rejected=1 accounting=3 (start without counters, interim, stop) accounting-on=acknowledged"

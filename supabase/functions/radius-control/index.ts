@@ -34,8 +34,18 @@ Deno.serve(async (request) => {
     return json({ error: "INVALID_BODY" }, 400);
   }
 
+  // Malformed JSON is a client (FreeRADIUS template) error, never a 500: a 500
+  // here would be indistinguishable from a control-plane outage.
+  let decoded: unknown;
   try {
-    const body = parseRadiusRequest(JSON.parse(raw));
+    decoded = JSON.parse(raw);
+  } catch {
+    console.error("radius-control rejected a malformed JSON body", { bytes: raw.length });
+    return json({ error: "INVALID_JSON" }, 400);
+  }
+
+  try {
+    const body = parseRadiusRequest(decoded);
     if (body.action === "authorize") {
       const requestId = await authorizationRequestId(body);
       const result = await callRpc(

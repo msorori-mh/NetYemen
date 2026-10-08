@@ -38,12 +38,42 @@ server wasel {
     }
 
     accounting {
-        if (!&Class || !&NAS-Identifier || !&Acct-Session-Id || !&Acct-Status-Type) {
+        # NAS reboot signals (Accounting-On / Accounting-Off) carry no Class and
+        # no session. Acknowledge them locally with an Accounting-Response so
+        # the NAS stops retransmitting, WITHOUT calling the control plane.
+        # Sessions orphaned by a NAS reboot are closed server-side by the
+        # stale-session reaper in PostgreSQL, not from this packet.
+        if (&Acct-Status-Type == Accounting-On || &Acct-Status-Type == Accounting-Off) {
+            ok
+        }
+        elsif (!&Class || !&NAS-Identifier || !&Acct-Session-Id || !&Acct-Status-Type) {
             reject
         }
-        update control {
-            REST-HTTP-Header := "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
+        else {
+            # A real Accounting-Start has no counters (RFC 2866 section 5).
+            # Send explicit zeros for Start only; a missing counter on an
+            # Interim-Update or Stop is left absent and fails closed upstream.
+            if (&Acct-Status-Type == Start) {
+                if (!&Acct-Input-Octets) {
+                    update request {
+                        &Acct-Input-Octets := 0
+                    }
+                }
+                if (!&Acct-Output-Octets) {
+                    update request {
+                        &Acct-Output-Octets := 0
+                    }
+                }
+                if (!&Acct-Session-Time) {
+                    update request {
+                        &Acct-Session-Time := 0
+                    }
+                }
+            }
+            update control {
+                REST-HTTP-Header := "x-wasel-radius-key: $ENV{WASEL_RADIUS_INTERNAL_KEY}"
+            }
+            wasel_rest
         }
-        wasel_rest
     }
 }

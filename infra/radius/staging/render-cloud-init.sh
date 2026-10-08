@@ -40,4 +40,19 @@ sed \
   "$template" > "$output"
 
 chmod 0600 "$output"
+
+# Generic guard: no template placeholder of any name may survive rendering.
+if grep -Eq '__[A-Z][A-Z0-9_]*__' "$output"; then
+  echo "ERROR: unreplaced placeholder left in $output:" >&2
+  grep -En '__[A-Z][A-Z0-9_]*__' "$output" >&2 || true
+  rm -f "$output"
+  exit 65
+fi
+# The DOCKER-USER restriction must be rendered with the same NAS network that
+# the ufw rules use; published Docker ports bypass ufw entirely.
+grep -Fq "WASEL_ROUTER_CIDR=$WASEL_ROUTER_CIDR" "$output" || {
+  echo "ERROR: rendered cloud-init lacks the DOCKER-USER NAS network restriction." >&2
+  rm -f "$output"
+  exit 65
+}
 echo "PASS: rendered $output"
