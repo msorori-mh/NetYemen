@@ -31,7 +31,7 @@ dependencies:
 
   # Wi-Fi discovery (Android only; iOS stub)
   wifi_scan: ^0.4.1+2
-  unorm_dart: ^0.3.2
+  unorm_dart: ^0.3.3
 
   # Android notification permission UX (no push-provider SDK / secrets)
   permission_handler: ^11.3.1
