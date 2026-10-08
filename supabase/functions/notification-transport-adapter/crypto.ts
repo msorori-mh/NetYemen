@@ -3,7 +3,9 @@
  *
  * - Production keys are read from environment variables only.
  * - LOCAL tests may explicitly enable a deterministic TEST_ONLY key derived
- *   from a fixed seed. Missing production keys always fail closed.
+ *   from a fixed seed, and only when isTestKeyAllowed() holds (explicit
+ *   non-production marker, never on a hosted Supabase project). Missing
+ *   production keys always fail closed.
  */
 
 const LOCAL_TEST_SEED = "TEST_ONLY_NY_V1_LOCAL_SEED";
@@ -27,7 +29,7 @@ export async function getCardMasterKey(keyVersion: CardKeyVersion): Promise<Cryp
     return importAes256GcmKeyFromBase64(envKey);
   }
 
-  if (Deno.env.get("CARD_CRYPTO_ALLOW_TEST_KEY") !== "true") {
+  if (!isTestKeyAllowed()) {
     throw new Error("CARD_KEY_NOT_CONFIGURED: CARD_MASTER_KEY_v1 is required.");
   }
 
@@ -36,6 +38,52 @@ export async function getCardMasterKey(keyVersion: CardKeyVersion): Promise<Cryp
       "NEVER deploy this fallback to production or the physical pilot.",
   );
   return deriveTestMasterKey();
+}
+
+/**
+ * The deterministic TEST_ONLY key is derived from constants in this public
+ * repository, so anyone can reproduce it. It may be used only when ALL of the
+ * following hold; a single stray `CARD_CRYPTO_ALLOW_TEST_KEY=true` secret on a
+ * hosted project is not enough:
+ *
+ *   1. CARD_CRYPTO_ALLOW_TEST_KEY is exactly "true";
+ *   2. CARD_CRYPTO_ENVIRONMENT is exactly "local" or "test" (an explicit
+ *      non-production marker that must be set separately);
+ *   3. SUPABASE_URL does not point at a Supabase hosted project
+ *      (`*.supabase.co` / `*.supabase.in`). Hosted Edge Functions always
+ *      receive that URL from the platform; it cannot be overridden by a secret.
+ */
+export function isTestKeyAllowed(): boolean {
+  if (Deno.env.get("CARD_CRYPTO_ALLOW_TEST_KEY") !== "true") return false;
+
+  const environment = Deno.env.get("CARD_CRYPTO_ENVIRONMENT");
+  if (environment !== "local" && environment !== "test") {
+    console.error(
+      "CARD_CRYPTO_ALLOW_TEST_KEY ignored: CARD_CRYPTO_ENVIRONMENT must be 'local' or 'test'.",
+    );
+    return false;
+  }
+
+  if (isHostedSupabaseUrl(Deno.env.get("SUPABASE_URL"))) {
+    console.error(
+      "CARD_CRYPTO_ALLOW_TEST_KEY ignored: refusing the TEST_ONLY key on a hosted Supabase project.",
+    );
+    return false;
+  }
+  return true;
+}
+
+export function isHostedSupabaseUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  let hostname: string;
+  try {
+    hostname = new URL(value).hostname.toLowerCase();
+  } catch {
+    // An unparseable URL is not provably local: fail closed.
+    return true;
+  }
+  return hostname === "supabase.co" || hostname.endsWith(".supabase.co") ||
+    hostname === "supabase.in" || hostname.endsWith(".supabase.in");
 }
 
 async function importAes256GcmKeyFromBase64(b64: string): Promise<CryptoKey> {
