@@ -18,7 +18,21 @@ rest wasel_rest {
         uri = "${..connect_uri}"
         method = "post"
         body = "json"
-        data = '{"action":"accounting","session_id":"%{jsonquote:%{string:&Class}}","nas_identifier":"%{jsonquote:%{NAS-Identifier}}","event_key":"%{jsonquote:%{Acct-Session-Id}}:%{Acct-Status-Type}:%{Acct-Session-Time}:%{Acct-Input-Gigawords}:%{Acct-Input-Octets}:%{Acct-Output-Gigawords}:%{Acct-Output-Octets}","event_type":"%{tolower:%{Acct-Status-Type}}","event_at":"%S","input_bytes":%{integer:Acct-Input-Octets},"output_bytes":%{integer:Acct-Output-Octets},"input_gigawords":%{integer:Acct-Input-Gigawords},"output_gigawords":%{integer:Acct-Output-Gigawords},"session_seconds":%{integer:Acct-Session-Time}}'
+        # RFC 2866 Accounting-Start packets (and every MikroTik Start) carry no
+        # octet counters, gigawords or session time. `%{integer:Attr}` expands
+        # to an EMPTY string for a missing attribute, which produced invalid
+        # JSON (`"input_bytes":,`). Every numeric field therefore uses the
+        # FreeRADIUS 3.x alternation `%{%{Attr}:-default}` on a plain attribute
+        # reference, which is the documented, long-standing idiom
+        # (cf. `%{%{Stripped-User-Name}:-%{User-Name}}`); these attributes are
+        # un-enumerated integers, so `%{Attr}` already prints plain decimal.
+        #   - Gigawords are legitimately absent in any packet -> default 0.
+        #   - Octets / Session-Time default to JSON `null`. The virtual server
+        #     sets them to 0 for Start packets before calling this module, so a
+        #     Start always sends numeric 0. For Interim-Update / Stop a missing
+        #     counter stays `null` and the control plane rejects it (400)
+        #     instead of silently recording a zero-usage session.
+        data = '{"action":"accounting","session_id":"%{jsonquote:%{string:&Class}}","nas_identifier":"%{jsonquote:%{NAS-Identifier}}","event_key":"%{jsonquote:%{Acct-Session-Id}}:%{Acct-Status-Type}:%{%{Acct-Session-Time}:-0}:%{%{Acct-Input-Gigawords}:-0}:%{%{Acct-Input-Octets}:-0}:%{%{Acct-Output-Gigawords}:-0}:%{%{Acct-Output-Octets}:-0}","event_type":"%{tolower:%{Acct-Status-Type}}","event_at":"%S","input_bytes":%{%{Acct-Input-Octets}:-null},"output_bytes":%{%{Acct-Output-Octets}:-null},"input_gigawords":%{%{Acct-Input-Gigawords}:-0},"output_gigawords":%{%{Acct-Output-Gigawords}:-0},"session_seconds":%{%{Acct-Session-Time}:-null}}'
         tls = ${..tls}
     }
 

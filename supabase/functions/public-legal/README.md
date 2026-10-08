@@ -8,9 +8,13 @@ Edge Function domains to `text/plain`.
 - `/functions/v1/public-legal/privacy`
 - `/functions/v1/public-legal/delete-account`
 
-The deletion form never logs or stores a password. It signs in directly through
-Supabase Auth, invokes `request_my_account_deletion`, signs out, and reports a
-generic failure message. The database RPC closes access, disables push tokens,
+The deletion form never logs or stores a password. It loads **no third-party
+script**: the inline, nonce-protected script calls Supabase Auth
+(`/auth/v1/token?grant_type=password`), then
+`/rest/v1/rpc/request_my_account_deletion`, then `/auth/v1/logout` with plain
+`fetch`, exactly like `legal/delete-account.template.js`. The
+Content-Security-Policy allows scripts only by nonce and connections only to
+this project's own origin, and reports a generic failure message. The database RPC closes access, disables push tokens,
 and creates an immutable audit event.
 
 The approved release pages are generated into the administration web artifact:

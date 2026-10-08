@@ -20,6 +20,7 @@ packages:
   - docker-compose-v2
   - fail2ban
   - git
+  - iptables
   - ufw
   - unattended-upgrades
 
@@ -41,6 +42,70 @@ write_files:
       findtime = 10m
       bantime = 1h
 
+  # Docker publishes container ports with DNAT + FORWARD rules, which never
+  # traverse the ufw INPUT chain: the `ufw allow from ... port 1812` rules below
+  # do NOT restrict the published RADIUS ports. The restriction that actually
+  # applies to published ports lives in the DOCKER-USER chain and is installed
+  # by the unit below before Docker starts, on every boot.
+  - path: /etc/wasel-radius/firewall.env
+    permissions: '0644'
+    content: |
+      WASEL_ROUTER_CIDR=__ROUTER_CIDR__
+  - path: /usr/local/sbin/wasel-radius-firewall
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      # Restricts the Docker-published RADIUS ports (UDP 1812/1813) to the NAS
+      # source network. Usage: wasel-radius-firewall apply|check|print-cidr
+      set -eu
+      . /etc/wasel-radius/firewall.env
+      : "${WASEL_ROUTER_CIDR:?WASEL_ROUTER_CIDR is not set}"
+      mode=${1:-apply}
+      # conntrack "original" tuple = the packet as it arrived from the internet,
+      # before Docker's DNAT. The rule therefore matches both directions of any
+      # flow that was opened towards host port 1812/1813 by a source outside
+      # the NAS network, and never matches flows opened by the NAS itself.
+      rule() {
+        iptables -w "$1" DOCKER-USER -p udp -m conntrack \
+          ! --ctorigsrc "$WASEL_ROUTER_CIDR" --ctorigdstport 1812:1813 -j DROP
+      }
+      case "$mode" in
+        apply)
+          # Create the chain if Docker has not created it yet; Docker keeps
+          # existing DOCKER-USER rules when it starts.
+          iptables -w -N DOCKER-USER 2>/dev/null || true
+          rule -C 2>/dev/null || rule -I
+          ;;
+        check)
+          rule -C
+          ;;
+        print-cidr)
+          printf '%s\n' "$WASEL_ROUTER_CIDR"
+          ;;
+        *)
+          echo "usage: $0 apply|check|print-cidr" >&2
+          exit 64
+          ;;
+      esac
+  - path: /etc/systemd/system/wasel-radius-firewall.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Restrict Docker-published WASEL RADIUS ports to the NAS network
+      Before=docker.service
+      After=network-pre.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/wasel-radius-firewall apply
+
+      [Install]
+      WantedBy=multi-user.target
+      # Fail closed: Docker (and therefore FreeRADIUS) does not start when the
+      # restriction cannot be installed.
+      RequiredBy=docker.service
+
 runcmd:
   - install -d -m 0750 -o wasel -g wasel /opt/wasel-radius
   - systemctl enable --now docker
@@ -52,7 +117,11 @@ runcmd:
   - ufw allow from __ROUTER_CIDR__ to any port 1812 proto udp comment 'WASEL RADIUS auth'
   - ufw allow from __ROUTER_CIDR__ to any port 1813 proto udp comment 'WASEL RADIUS accounting'
   - ufw --force enable
-  - touch /opt/wasel-radius/CLOUD_INIT_COMPLETE
-  - chown wasel:wasel /opt/wasel-radius/CLOUD_INIT_COMPLETE
+  - systemctl daemon-reload
+  - systemctl enable --now wasel-radius-firewall.service
+  # The completion marker is written only when the published-port restriction
+  # is verifiably in place; preflight.sh refuses to continue without it.
+  - /usr/local/sbin/wasel-radius-firewall check && touch /opt/wasel-radius/CLOUD_INIT_COMPLETE
+  - test ! -f /opt/wasel-radius/CLOUD_INIT_COMPLETE || chown wasel:wasel /opt/wasel-radius/CLOUD_INIT_COMPLETE
 
 final_message: 'WASEL One staging bootstrap complete.'

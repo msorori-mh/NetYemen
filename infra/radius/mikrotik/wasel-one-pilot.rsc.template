@@ -1,17 +1,60 @@
 # WASEL One RouterOS pilot template. Replace every {{...}} value offline.
-# Export the current configuration before applying this file.
+# Export the current configuration before applying this file:
+#   /export file=before-wasel-one-pilot
+#
+# Every placeholder is read into a variable exactly once, below. Do not use a
+# placeholder anywhere else in this file: the generic guard only inspects these
+# variables.
 
-:if ([:len "{{RADIUS_IP}}"] = 0 || "{{RADIUS_IP}}" = "RADIUS_IP") do={ :error "Set RADIUS_IP" }
-:if ([:len "{{RADIUS_SHARED_SECRET}}"] < 24) do={ :error "Set a strong RADIUS_SHARED_SECRET" }
-:if ([:len "{{HOTSPOT_PROFILE}}"] = 0) do={ :error "Set HOTSPOT_PROFILE" }
-:if ([:len "{{HOTSPOT_SSL_CERTIFICATE}}"] = 0) do={ :error "Set HOTSPOT_SSL_CERTIFICATE" }
+:local waselRadiusIp "{{RADIUS_IP}}"
+:local waselRadiusSecret "{{RADIUS_SHARED_SECRET}}"
+:local waselHotspotProfile "{{HOTSPOT_PROFILE}}"
+:local waselSslCertificate "{{HOTSPOT_SSL_CERTIFICATE}}"
 
-/radius add service=hotspot address={{RADIUS_IP}} secret="{{RADIUS_SHARED_SECRET}}" \
-    authentication-port=1812 accounting-port=1813 timeout=1s \
+# Generic placeholder guard: refuse to run while ANY value is empty or still
+# contains template braces, whatever the placeholder is called. (The previous
+# guard compared against the literal text RADIUS_IP and so accepted an
+# unreplaced {{RADIUS_IP}}.) The brace pairs are built at run time so that a
+# global search-and-replace cannot rewrite the guard itself.
+:local waselOpen ("{" . "{")
+:local waselClose ("}" . "}")
+:foreach waselValue in={$waselRadiusIp; $waselRadiusSecret; $waselHotspotProfile; $waselSslCertificate} do={
+    :if ([:len $waselValue] = 0) do={ :error "WASEL One: a template value is empty" }
+    :if ([:typeof [:find $waselValue $waselOpen]] != "nil") do={ :error "WASEL One: an unreplaced template placeholder is left" }
+    :if ([:typeof [:find $waselValue $waselClose]] != "nil") do={ :error "WASEL One: an unreplaced template placeholder is left" }
+}
+:if ([:typeof [:toip $waselRadiusIp]] != "ip") do={ :error "Set RADIUS_IP to an IPv4 address" }
+:if ([:len $waselRadiusSecret] < 24) do={ :error "Set a strong RADIUS_SHARED_SECRET" }
+
+:local waselProfileId [/ip hotspot profile find where name=$waselHotspotProfile]
+:if ([:len $waselProfileId] != 1) do={ :error "HOTSPOT_PROFILE does not match exactly one Hotspot server profile" }
+:if ([:len [/certificate find where name=$waselSslCertificate]] != 1) do={ :error "HOTSPOT_SSL_CERTIFICATE does not match exactly one certificate" }
+
+# Idempotency and rollback safety.
+:if ([:len [/radius find where comment="WASEL_ONE_PILOT"]] != 0) do={ :error "WASEL_ONE_PILOT RADIUS entry already exists; run the rollback script first" }
+:if ([:len [/system script find where name="wasel-one-pilot-state"]] != 0) do={ :error "wasel-one-pilot-state already exists; run the rollback script first" }
+# The rollback restores use-radius=no. That is only correct when the profile
+# was not using RADIUS before this change, so refuse to touch a profile that
+# already depends on another RADIUS server.
+:if ([/ip hotspot profile get $waselProfileId use-radius]) do={ :error "Hotspot profile already has use-radius=yes; this pilot template must not take over an existing RADIUS setup" }
+
+# Rollback state: the profile name is kept in the comment of an inert script
+# entry so rollback-wasel-one-pilot.rsc can find the exact profile it changed.
+/system script add name="wasel-one-pilot-state" comment=$waselHotspotProfile \
+    source="# WASEL One pilot rollback state. Inert; read by rollback-wasel-one-pilot.rsc."
+
+# timeout=3s (RouterOS default is 300ms; this template previously used 1s).
+# One Access-Request traverses FreeRADIUS -> HTTPS Edge Function -> PostgreSQL
+# RPC -> bcrypt password verification. On an Edge Function cold start that
+# chain regularly exceeds 1s, and RouterOS then retries and finally rejects a
+# valid login. 3s covers a cold start while keeping a failed login attempt
+# bounded. Keep the FreeRADIUS side (rlm_rest timeouts) below this value.
+/radius add service=hotspot address=$waselRadiusIp secret=$waselRadiusSecret \
+    authentication-port=1812 accounting-port=1813 timeout=3s \
     require-message-auth=yes-for-request-resp comment="WASEL_ONE_PILOT"
 
-/ip hotspot profile set [find where name="{{HOTSPOT_PROFILE}}"] \
+/ip hotspot profile set $waselProfileId \
     use-radius=yes radius-accounting=yes radius-interim-update=1m \
-    login-by=https,cookie ssl-certificate="{{HOTSPOT_SSL_CERTIFICATE}}"
+    login-by=https,cookie ssl-certificate=$waselSslCertificate
 
 :put "WASEL One pilot RADIUS enabled. Verify with /radius monitor [find where comment=\"WASEL_ONE_PILOT\"]"

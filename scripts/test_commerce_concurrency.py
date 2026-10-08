@@ -4,16 +4,59 @@ NetYemen Commerce Core Concurrency Harness
 Task ID: NY-V1-COMMERCE-CORE-001
 
 Verifies that two concurrent purchasers cannot both buy the last available
-package unit. Uses the local Supabase Postgres container via docker exec psql.
+package unit.
+
+Connection (LOCAL / disposable databases only -- the test inserts synthetic
+users, a network, a package, wallet credit and a card):
+
+  * default: `docker exec` into the local Supabase Postgres container
+    (override the container name with NETYEMEN_DB_CONTAINER);
+  * if DATABASE_URL is set: a host `psql` connects to that URL instead, e.g.
+    DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    A non-loopback host is refused unless NETYEMEN_ALLOW_REMOTE_TEST_DB=1.
+
+The setup is not idempotent: run it once against a freshly reset database that
+has the `card_master_key` vault secret (as scripts/verify_netyemen_v1_pilot.ps1
+does).
 """
 
+import os
 import subprocess
 import threading
-import json
 import sys
-import time
+from urllib.parse import urlsplit
 
-DB_CONTAINER = "supabase_db_netyemen-local"
+DB_CONTAINER = os.environ.get("NETYEMEN_DB_CONTAINER", "supabase_db_netyemen-local")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
+def psql_command(*extra_args: str) -> list:
+    """psql invocation for the configured target (URL via host psql, else docker exec)."""
+    if DATABASE_URL:
+        return ["psql", DATABASE_URL, "-v", "ON_ERROR_STOP=1", *extra_args]
+    return [
+        "docker", "exec", "-i", DB_CONTAINER,
+        "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", *extra_args,
+    ]
+
+
+def refuse_remote_database() -> None:
+    """This harness writes synthetic rows; never point it at a hosted project."""
+    if not DATABASE_URL:
+        return
+    host = (urlsplit(DATABASE_URL).hostname or "").lower()
+    if host in LOOPBACK_HOSTS:
+        return
+    if os.environ.get("NETYEMEN_ALLOW_REMOTE_TEST_DB") == "1":
+        print(f"WARNING: running against non-loopback database host {host!r}.")
+        return
+    print(
+        f"REFUSED: DATABASE_URL host {host!r} is not loopback. This test inserts "
+        "synthetic data and must only run against a local disposable database."
+    )
+    sys.exit(2)
+
 
 SETUP_SQL = r"""
 DO $$
@@ -101,7 +144,7 @@ LOCK = threading.Lock()
 
 
 def run_psql(role: str, user_id: str, pkg_id: str, key: str):
-    """Run purchase_package in a docker psql session."""
+    """Run purchase_package in its own psql session."""
     sql = f"""
 BEGIN;
 SET ROLE authenticated;
@@ -111,7 +154,7 @@ SELECT public.purchase_package('{pkg_id}'::UUID, '{key}'::UUID);
 COMMIT;
 """
     proc = subprocess.run(
-        ["docker", "exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A"],
+        psql_command("-t", "-A"),
         input=sql,
         text=True,
         capture_output=True,
@@ -138,9 +181,11 @@ def main():
     key_a = "d1d1d1d1-d1d1-4d1d-dd1d-d1d1d1d1d1d1"
     key_b = "d2d2d2d2-d2d2-4d2d-dd2d-d2d2d2d2d2d2"
 
+    refuse_remote_database()
+
     # Run setup
     setup = subprocess.run(
-        ["docker", "exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1"],
+        psql_command(),
         input=SETUP_SQL,
         text=True,
         capture_output=True,

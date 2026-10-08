@@ -143,6 +143,11 @@ function parseAccounting(value: Record<string, unknown>): AccountingRequest {
     throw new Error("INVALID_EVENT_TYPE");
   }
   if (Number.isNaN(Date.parse(eventAt))) throw new Error("INVALID_EVENT_AT");
+  // RFC 2866 Accounting-Start packets carry no octet counters or session time,
+  // so a missing/null/empty counter means 0 for `start` ONLY. An Interim-Update
+  // or Stop without counters stays invalid: recording it as zero usage would
+  // silently under-bill the session.
+  const counter = eventType === "start" ? startCounter : nonNegativeInt;
   return {
     action: "accounting",
     session_id: sessionId,
@@ -150,12 +155,18 @@ function parseAccounting(value: Record<string, unknown>): AccountingRequest {
     event_key: eventKey,
     event_type: eventType as AccountingRequest["event_type"],
     event_at: eventAt,
-    input_bytes: nonNegativeInt(value.input_bytes, "input_bytes"),
-    output_bytes: nonNegativeInt(value.output_bytes, "output_bytes"),
+    input_bytes: counter(value.input_bytes, "input_bytes"),
+    output_bytes: counter(value.output_bytes, "output_bytes"),
+    // Gigawords are optional in every accounting packet type.
     input_gigawords: nonNegativeInt(value.input_gigawords ?? 0, "input_gigawords"),
     output_gigawords: nonNegativeInt(value.output_gigawords ?? 0, "output_gigawords"),
-    session_seconds: nonNegativeInt(value.session_seconds, "session_seconds"),
+    session_seconds: counter(value.session_seconds, "session_seconds"),
   };
+}
+
+function startCounter(value: unknown, name: string): number {
+  if (value === undefined || value === null || value === "") return 0;
+  return nonNegativeInt(value, name);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

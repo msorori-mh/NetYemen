@@ -34,9 +34,41 @@ These variables must be configured as Edge Function secrets (never committed):
 - `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, and `FCM_PRIVATE_KEY` may be omitted.
   The function returns `accepted: false, status: 'credential_required'` and does
   **not** fake a successful dispatch.
-- `CARD_MASTER_KEY_v1` may be omitted only when local crypto tests explicitly
-  set `CARD_CRYPTO_ALLOW_TEST_KEY=true`. Without that explicit flag the function
-  fails closed. **Never set this flag in production or the physical pilot.**
+- `CARD_MASTER_KEY_v1` may be omitted only by local crypto tests. The
+  deterministic TEST_ONLY key (derived from constants in this repository, so it
+  is public) is used only when **all** of these hold, otherwise the function
+  fails closed with `CARD_KEY_NOT_CONFIGURED`:
+  1. `CARD_CRYPTO_ALLOW_TEST_KEY=true`;
+  2. `CARD_CRYPTO_ENVIRONMENT` is exactly `local` or `test`;
+  3. `SUPABASE_URL` is not a hosted project URL (`*.supabase.co`,
+     `*.supabase.in`).
+
+  **Never set either flag on a hosted project.** Even if both are set there,
+  condition 3 refuses the key.
+
+### Optional
+
+| Variable | Purpose |
+|---|---|
+| `INTERNAL_FUNCTION_SECRET` | Dedicated bearer secret accepted for `dispatch_push` / `decrypt_card_secret` instead of the service-role key. Compared in constant time. |
+| `ALLOWED_ORIGINS` | Comma-separated browser origins (for example `https://admin.example.com`). Unset: `Access-Control-Allow-Origin: *` (legacy behaviour). Set: only listed origins are echoed and any other `Origin` receives `403 ORIGIN_NOT_ALLOWED`. Requests without an `Origin` header (mobile app, server-to-server) are unaffected. |
+
+## Response and failure semantics
+
+- Every response carries `Cache-Control: no-store`; the reveal/decrypt
+  responses contain a card PIN.
+- `dispatch_push` outcomes:
+
+| FCM result | `status` | HTTP | Device token |
+|---|---|---|---|
+| success | `sent` | 200 | kept |
+| `UNREGISTERED` / HTTP 404, or `INVALID_ARGUMENT` about the registration token | `permanent_failure` | 200 | **deactivated** |
+| other `INVALID_ARGUMENT` / other 4xx (message rejected) | `permanent_failure`, `token_deactivated: false` | 200 | kept |
+| HTTP 401 / 403 (credentials, project or sender misconfigured) | `configuration_error`, `retryable: false` | 503 | kept -- the caller must stop the batch |
+| HTTP 429 / 5xx / network | `transient_failure`, `retryable: true` | 502 | kept |
+
+  A credential or quota problem therefore can no longer deactivate every
+  user's push token.
 
 ## Deploy / configure
 

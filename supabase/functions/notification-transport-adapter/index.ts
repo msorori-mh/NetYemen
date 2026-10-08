@@ -13,21 +13,61 @@
  *   - FCM_PRIVATE_KEY                   (FCM service account PEM private key)
  *   - CARD_MASTER_KEY_v1                (Base64-encoded 32-byte AES-256 key)
  *
+ * Optional:
+ *   - INTERNAL_FUNCTION_SECRET          (dedicated bearer secret for internal actions)
+ *   - ALLOWED_ORIGINS                   (comma-separated browser origins; when set,
+ *                                        CORS is restricted to exactly these origins)
+ *
  * For local/source-only builds, FCM credentials may be omitted; the function
  * returns `credential_required` and does NOT fake success. CARD_MASTER_KEY_v1
- * may be omitted for local tests, in which case a deterministic TEST_ONLY key
- * is derived and a loud warning is logged.
+ * has no production fallback: the deterministic TEST_ONLY key is available only
+ * to local tests under the conditions enforced in crypto.ts.
  */
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 import { aes256GcmDecrypt, CardKeyVersion, getCardMasterKey } from "./crypto.ts";
 import { extractRevealedCardPin } from "./reveal.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// CORS is limited to the single method and the request headers that
+// supabase-js / supabase_flutter actually send to an Edge Function.
+const CORS_ALLOW_HEADERS = "authorization, x-client-info, apikey, content-type";
+const CORS_ALLOW_METHODS = "POST, OPTIONS";
+
+/**
+ * Returns the CORS headers for this request, or null when the request comes
+ * from a browser origin that is not allowed.
+ *
+ * - ALLOWED_ORIGINS unset/empty: unchanged legacy behaviour (`*`). Every action
+ *   still requires a bearer credential, and no cookies are used.
+ * - ALLOWED_ORIGINS set: only the listed origins are echoed back. A request
+ *   that carries any other Origin is refused. Requests without an Origin
+ *   header (mobile apps, server-to-server) are not browser requests and are
+ *   unaffected.
+ */
+function resolveCors(req: Request): Record<string, string> | null {
+  const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+  const base: Record<string, string> = {
+    "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+    "Access-Control-Allow-Methods": CORS_ALLOW_METHODS,
+  };
+  if (allowedOrigins.length === 0) {
+    return { ...base, "Access-Control-Allow-Origin": "*" };
+  }
+  const origin = req.headers.get("origin");
+  if (origin === null) return { ...base, "Vary": "Origin" };
+  if (!allowedOrigins.includes(origin)) return null;
+  return { ...base, "Access-Control-Allow-Origin": origin, "Vary": "Origin" };
+}
+
+function withCors(response: Response, cors: Record<string, string>): Response {
+  for (const [name, value] of Object.entries(cors)) {
+    response.headers.set(name, value);
+  }
+  return response;
+}
 
 interface DispatchPushPayload {
   action: "dispatch_push";
@@ -65,10 +105,17 @@ interface FcmCredentials {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  const cors = resolveCors(req);
+  if (cors === null) {
+    return jsonResponse({ error: "ORIGIN_NOT_ALLOWED" }, 403);
   }
+  if (req.method === "OPTIONS") {
+    return withCors(new Response("ok"), cors);
+  }
+  return withCors(await handleRequest(req), cors);
+});
 
+async function handleRequest(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405);
   }
@@ -84,7 +131,7 @@ Deno.serve(async (req) => {
   // Anon or customer JWTs must never be able to dispatch pushes or decrypt
   // card secrets generically.
   if (body.action === "dispatch_push" || body.action === "decrypt_card_secret") {
-    const authError = requireInternalAuth(req);
+    const authError = await requireInternalAuth(req);
     if (authError) return authError;
   }
 
@@ -103,14 +150,14 @@ Deno.serve(async (req) => {
     console.error("Unhandled error in notification-transport-adapter:", e);
     return jsonResponse({ error: "INTERNAL_ERROR" }, 500);
   }
-});
+}
 
 /**
  * Verifies that the request carries the service-role key (or a dedicated
  * internal function secret). This prevents anon/customer JWTs from reaching
  * dispatch_push / decrypt_card_secret.
  */
-function requireInternalAuth(req: Request): Response | null {
+async function requireInternalAuth(req: Request): Promise<Response | null> {
   const authHeader = req.headers.get("authorization") || "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   if (!match) {
@@ -122,8 +169,11 @@ function requireInternalAuth(req: Request): Response | null {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
 
-  const isServiceRole = serviceRoleKey && token === serviceRoleKey;
-  const isInternalSecret = internalSecret && token === internalSecret;
+  // Constant-time comparison (both sides hashed first): `===` on secrets leaks
+  // the length of the matching prefix through response timing. Both candidates
+  // are always evaluated so the timing does not reveal which one is configured.
+  const isServiceRole = await secretMatches(token, serviceRoleKey);
+  const isInternalSecret = await secretMatches(token, internalSecret);
 
   if (!isServiceRole && !isInternalSecret) {
     console.error("Authorization rejected for sensitive action");
@@ -131,6 +181,25 @@ function requireInternalAuth(req: Request): Response | null {
   }
 
   return null;
+}
+
+async function secretMatches(supplied: string, expected: string | undefined): Promise<boolean> {
+  // Always run the comparison, even when the secret is not configured.
+  const matches = await constantTimeEqual(supplied, expected || "");
+  return Boolean(expected) && matches;
+}
+
+async function constantTimeEqual(left: string, right: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(left)),
+    crypto.subtle.digest("SHA-256", encoder.encode(right)),
+  ]);
+  const a = new Uint8Array(leftHash);
+  const b = new Uint8Array(rightHash);
+  let difference = 0;
+  for (let index = 0; index < a.length; index++) difference |= a[index] ^ b[index];
+  return difference === 0;
 }
 
 async function handleDispatchPush(payload: DispatchPushPayload): Promise<Response> {
@@ -178,22 +247,46 @@ async function handleDispatchPush(payload: DispatchPushPayload): Promise<Respons
       { accepted: true, status: "sent", provider_message_id: result.name },
       200,
     );
-  } catch (e: any) {
-    console.error("FCM send failed:", e);
-    if (e.isPermanent) {
+  } catch (e) {
+    const failure = e instanceof FcmSendError ? e.failure : "transient";
+    const message = errorMessage(e);
+    console.error("FCM send failed:", { failure, message });
+
+    if (failure === "token_invalid") {
+      // The ONLY case in which the device token is deactivated: FCM stated that
+      // this specific token is unregistered or malformed.
       await deactivatePushToken(payload.user_id, payload.token);
       await recordDeliveryResponse(payload.delivery_id, "failed", null, "permanent_failure");
       return jsonResponse(
-        { accepted: false, status: "permanent_failure", error: e.message },
+        { accepted: false, status: "permanent_failure", error: message },
         200,
       );
-    } else {
-      await recordDeliveryResponse(payload.delivery_id, "failed", null, "transient_failure");
+    }
+    if (failure === "message_rejected") {
+      // FCM rejected this message (payload problem), not the token. Do not
+      // retry this delivery and do not touch the token.
+      await recordDeliveryResponse(payload.delivery_id, "failed", null, "permanent_failure");
       return jsonResponse(
-        { accepted: false, status: "transient_failure", error: e.message },
-        502,
+        { accepted: false, status: "permanent_failure", token_deactivated: false, error: message },
+        200,
       );
     }
+    if (failure === "configuration") {
+      // 401/403: our credentials, project or sender are wrong. Every token
+      // would fail the same way, so the caller must stop the batch. Tokens stay
+      // active: deactivating them here would silently unsubscribe every user.
+      await recordDeliveryResponse(payload.delivery_id, "failed", null, "configuration_error");
+      return jsonResponse(
+        { accepted: false, status: "configuration_error", retryable: false, error: message },
+        503,
+      );
+    }
+    // 429 quota, 5xx and network errors: retry later, token stays active.
+    await recordDeliveryResponse(payload.delivery_id, "failed", null, "transient_failure");
+    return jsonResponse(
+      { accepted: false, status: "transient_failure", retryable: true, error: message },
+      502,
+    );
   }
 }
 
@@ -330,13 +423,63 @@ async function sendFcmMessage(
     return { name: String(responseJson.name || "") };
   }
 
-  const errorMessage =
-    (responseJson.error as { message?: string })?.message || responseText || `HTTP ${response.status}`;
-  const error = new Error(errorMessage);
-  (error as any).status = response.status;
-  // 4xx client errors are permanent for this token; 5xx and network errors are transient.
-  (error as any).isPermanent = response.status >= 400 && response.status < 500;
-  throw error;
+  const fcmError = (responseJson.error ?? {}) as FcmErrorBody;
+  const message = fcmError.message || responseText || `HTTP ${response.status}`;
+  throw new FcmSendError(message, response.status, classifyFcmFailure(response.status, fcmError));
+}
+
+type FcmFailure = "token_invalid" | "message_rejected" | "configuration" | "transient";
+
+interface FcmErrorBody {
+  message?: string;
+  status?: string;
+  details?: Array<{
+    "@type"?: string;
+    errorCode?: string;
+    fieldViolations?: Array<{ field?: string; description?: string }>;
+  }>;
+}
+
+class FcmSendError extends Error {
+  readonly status: number;
+  readonly failure: FcmFailure;
+
+  constructor(message: string, status: number, failure: FcmFailure) {
+    super(message);
+    this.name = "FcmSendError";
+    this.status = status;
+    this.failure = failure;
+  }
+}
+
+/**
+ * Maps an FCM HTTP v1 error to what the caller may do about it.
+ * https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode
+ *
+ *   UNREGISTERED / HTTP 404          -> token_invalid   (deactivate the token)
+ *   INVALID_ARGUMENT about the token -> token_invalid   (deactivate the token)
+ *   other INVALID_ARGUMENT / 4xx     -> message_rejected (keep the token)
+ *   HTTP 401 / 403                   -> configuration   (fail the batch, keep tokens)
+ *   HTTP 429 / 5xx                   -> transient       (retry, keep tokens)
+ */
+function classifyFcmFailure(httpStatus: number, error: FcmErrorBody): FcmFailure {
+  const details = Array.isArray(error.details) ? error.details : [];
+  const errorCode = details.find((detail) => typeof detail?.errorCode === "string")?.errorCode ||
+    error.status || "";
+
+  if (httpStatus === 401 || httpStatus === 403) return "configuration";
+  if (httpStatus === 429 || httpStatus >= 500) return "transient";
+  if (errorCode === "UNREGISTERED" || httpStatus === 404) return "token_invalid";
+  if (errorCode === "INVALID_ARGUMENT" || httpStatus === 400) {
+    const tokenFieldViolation = details.some((detail) =>
+      Array.isArray(detail?.fieldViolations) &&
+      detail.fieldViolations.some((violation) => violation?.field === "message.token")
+    );
+    const tokenMessage = /registration token/i.test(error.message || "");
+    return tokenFieldViolation || tokenMessage ? "token_invalid" : "message_rejected";
+  }
+  if (httpStatus >= 400 && httpStatus < 500) return "message_rejected";
+  return "transient";
 }
 
 async function getFcmAccessToken(credentials: FcmCredentials): Promise<string> {
@@ -498,9 +641,16 @@ function getSupabaseServiceClient(): SupabaseClient {
 }
 
 function jsonResponse(body: object, status: number): Response {
+  // CORS headers are added once, in the request entry point (withCors).
+  // `no-store` on every response: reveal_card_secret / decrypt_card_secret
+  // carry a card PIN that must never be written to an HTTP cache.
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache",
+    },
   });
 }
 

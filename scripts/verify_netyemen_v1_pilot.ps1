@@ -14,11 +14,17 @@ if (-not $status.DB_URL -or $status.DB_URL -notmatch '127\.0\.0\.1|localhost') {
     throw 'LOCAL_ONLY guard failed: refusing to run without loopback Supabase.'
 }
 
-$expectedTests = 1..25 | ForEach-Object { '{0:D3}' -f $_ }
-$tests = Get-ChildItem 'supabase/tests/*.sql' | Sort-Object Name
-$actualTests = $tests | ForEach-Object { $_.BaseName.Substring(0,3) }
+# Suites must be numbered uniquely and contiguously from 001. The upper bound
+# follows the files that exist (at least the 25 baseline suites), so adding
+# 026, 027, ... does not require editing this script, while a gap, a duplicate
+# number or a deleted baseline suite still fails.
+$minimumTestCount = 25
+$tests = @(Get-ChildItem 'supabase/tests/*.sql' | Sort-Object Name)
+$actualTests = @($tests | ForEach-Object { $_.BaseName.Substring(0,3) })
+$expectedTestCount = [Math]::Max($tests.Count, $minimumTestCount)
+$expectedTests = @(1..$expectedTestCount | ForEach-Object { '{0:D3}' -f $_ })
 if (Compare-Object $expectedTests $actualTests) {
-    throw "SQL suite numbering must be unique and contiguous 001..025: $($actualTests -join ', ')"
+    throw "SQL suite numbering must be unique and contiguous 001..$('{0:D3}' -f $expectedTestCount): $($actualTests -join ', ')"
 }
 
 npx supabase db reset --no-seed 2>&1 | Out-Null

@@ -12,8 +12,25 @@ $violations = @()
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $migrationsRoot = Join-Path $repoRoot "supabase/migrations"
-$commerceMigrations = Get-ChildItem -Path $migrationsRoot -Filter *commerce*.sql -ErrorAction SilentlyContinue
-$allSql = ($commerceMigrations | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+# ALL migrations are scanned. The previous `*commerce*.sql` filter ignored every
+# later migration, so a follow-up file could add a mutable ledger policy, a
+# client write grant or a direct UPDATE on the ledger without being noticed.
+$migrationFiles = @(Get-ChildItem -Path $migrationsRoot -File -Filter *.sql | Sort-Object Name)
+if ($migrationFiles.Count -eq 0) {
+    Write-Host "RESULT: HOLD (no migration files found under $migrationsRoot)" -ForegroundColor Red
+    exit 1
+}
+$allSql = ""
+foreach ($migrationFile in $migrationFiles) {
+    $migrationSql = Get-Content -LiteralPath $migrationFile.FullName -Raw
+    if (-not [string]::IsNullOrWhiteSpace($migrationSql)) {
+        $allSql += $migrationSql + "`n"
+    }
+}
+Write-Host "Scanning $($migrationFiles.Count) migration files under $migrationsRoot"
+
+# Tables whose rows may only be written by controlled SECURITY DEFINER RPCs.
+$protectedMoneyTables = @("customer_wallet_ledger", "wallet_accounts")
 
 # Required tables
 $requiredTables = @(
@@ -31,12 +48,31 @@ foreach ($table in $requiredTables) {
     }
 }
 
-# Ledger immutability: no UPDATE/DELETE policies on customer_wallet_ledger
-if ($allSql -match "customer_wallet_ledger.*FOR\s+(UPDATE|DELETE)") {
-    $violations += "customer_wallet_ledger has a mutable UPDATE/DELETE policy."
-}
-if ($allSql -notmatch "--\s*No\s+direct\s+INSERT/UPDATE/DELETE\.\s*Entries\s+created\s+exclusively\s+by\s+controlled\s+RPCs") {
-    # Comment-based sentinel is optional; the policy check above is the real guard.
+# Ledger immutability and no direct client balance mutation.
+#
+# The previous checks were single-line regexes ("table.*FOR UPDATE"): `.` does
+# not cross a line break, so they could never see a normal multi-line
+# CREATE POLICY, and they could false-positive on a `SELECT ... FOR UPDATE` row
+# lock. The checks below parse whole statements ([^;] crosses line breaks).
+foreach ($table in $protectedMoneyTables) {
+    # (a) Every RLS policy on the table must be explicitly FOR SELECT. A policy
+    #     without a FOR clause means FOR ALL and would allow writes.
+    $policyPattern = "(?i)CREATE\s+POLICY\s+[^;]*?\bON\s+public\.$table\b[^;]*;"
+    foreach ($policyMatch in [regex]::Matches($allSql, $policyPattern)) {
+        if ($policyMatch.Value -notmatch "(?i)\bFOR\s+SELECT\b") {
+            $violations += "$table has an RLS policy that is not FOR SELECT (mutable policy)."
+        }
+    }
+
+    # (b) No INSERT/UPDATE/DELETE/TRUNCATE/ALL table privilege for client roles.
+    $grantPattern = "(?i)(?<!REVOKE\s)GRANT\s+([^;]*?)\bON\s+(?:TABLE\s+)?[^;]*?public\.$table\b[^;]*?\bTO\s+([^;]+);"
+    foreach ($grantMatch in [regex]::Matches($allSql, $grantPattern)) {
+        $privileges = $grantMatch.Groups[1].Value
+        $grantees = $grantMatch.Groups[2].Value
+        if ($privileges -match "(?i)\b(INSERT|UPDATE|DELETE|TRUNCATE|ALL)\b" -and $grantees -match "(?i)\b(authenticated|anon|public)\b") {
+            $violations += "$table grants a write privilege to a client role (authenticated/anon/public)."
+        }
+    }
 }
 
 # Non-negative wallet balance
@@ -63,11 +99,6 @@ if ($allSql -match "p_client_price") {
     $violations += "purchase_package accepts a client price parameter (server-side price authority violated)."
 }
 
-# No direct client balance mutation
-if ($allSql -match "wallet_accounts.*FOR\s+UPDATE") {
-    $violations += "wallet_accounts has a direct UPDATE policy."
-}
-
 # Refund creates compensating CREDIT, never mutates historical ledger
 if ($allSql -notmatch "CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.review_refund_request") {
     $violations += "review_refund_request RPC not found."
@@ -75,10 +106,10 @@ if ($allSql -notmatch "CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.review_re
 if ($allSql -notmatch "'CREDIT'\s*,") {
     $violations += "Refund compensating CREDIT entry not found."
 }
-if ($allSql -match "UPDATE\s+public\.customer_wallet_ledger") {
+if ($allSql -match "UPDATE\s+(?:ONLY\s+)?public\.customer_wallet_ledger") {
     $violations += "Direct UPDATE on customer_wallet_ledger detected (refund should INSERT only)."
 }
-if ($allSql -match "DELETE\s+FROM\s+public\.customer_wallet_ledger") {
+if ($allSql -match "DELETE\s+FROM\s+(?:ONLY\s+)?public\.customer_wallet_ledger") {
     $violations += "Direct DELETE on customer_wallet_ledger detected."
 }
 
@@ -87,6 +118,6 @@ if ($violations.Count -gt 0) {
     foreach ($v in $violations) { Write-Host "  [FAIL] $v" -ForegroundColor Red }
     exit 1
 } else {
-    Write-Host "RESULT: PASS (financial invariants present in source)" -ForegroundColor Green
+    Write-Host "RESULT: PASS (financial invariants present in $($migrationFiles.Count) migrations)" -ForegroundColor Green
     exit 0
 }
