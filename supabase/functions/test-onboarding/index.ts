@@ -1,4 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import {
+  createClient,
+  SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,7 +158,10 @@ function allowedPhoneNumbers(): string[] {
 }
 
 async function cleanupNewIdentity(
-  admin: ReturnType<typeof createClient>,
+  // Same client type the notification adapter uses (and CI type-checks).
+  // ReturnType<typeof createClient> resolves the generic parameters to their
+  // constraints, which the client created above is not assignable to.
+  admin: SupabaseClient,
   userId: string,
 ): Promise<void> {
   // Exact, newly-created identity cleanup. profiles and wallet_accounts use

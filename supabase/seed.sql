@@ -9,7 +9,8 @@
 --      (scripts/reset_netyemen_local_pilot.ps1 does this; the Supabase CLI
 --      never does, and automatic seeding is disabled in supabase/config.toml)
 --   2. the database is the local stack's `postgres` database, reached over a
---      Unix socket, loopback or a private Docker bridge address;
+--      Unix socket, loopback or a private (RFC 1918, e.g. Docker bridge)
+--      address; a public server address is always refused;
 --   3. the database holds no account other than this seed's own synthetic
 --      *@pilot.netyemen.test identities (a database with real users is never
 --      a seed target).
@@ -35,8 +36,10 @@ BEGIN
     OR host(v_address) LIKE '127.%'
     OR host(v_address) = '::1'
     OR v_address << inet '172.16.0.0/12'
+    OR v_address << inet '192.168.0.0/16'
+    OR v_address << inet '10.0.0.0/8'
   ) THEN
-    RAISE EXCEPTION 'LOCAL_ONLY seed refused: server address % is not loopback or a local Docker bridge.', host(v_address);
+    RAISE EXCEPTION 'LOCAL_ONLY seed refused: server address % is not loopback or a private local address.', host(v_address);
   END IF;
 
   IF EXISTS (

@@ -8,7 +8,12 @@ $ErrorActionPreference = 'Continue'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-$rawStatus = (npx supabase status --output json 2>$null) -join "`n"
+# Same CLI version as .github/workflows/supabase-core-ci.yml. An unpinned
+# `npx supabase` resolves to whatever is latest that day, which may not match
+# the containers the workflow started with the pinned version.
+$supabaseCli = 'supabase@2.109.1'
+
+$rawStatus = (npx --yes $supabaseCli status --output json 2>$null) -join "`n"
 $jsonStart = $rawStatus.IndexOf('{')
 $jsonEnd = $rawStatus.LastIndexOf('}')
 if ($jsonStart -lt 0 -or $jsonEnd -le $jsonStart) {
