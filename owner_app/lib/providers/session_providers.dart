@@ -61,6 +61,9 @@ Future<bool> signOutOwner(WidgetRef ref) async {
       error: error,
       stackTrace: stackTrace,
     );
+    // مكتبة Supabase تمسح الجلسة المحلية قبل مخاطبة الخادم: بلا اتصال يفشل
+    // الطلب لكن المستخدم خرج فعلاً من هذا الجهاز، وهذا نجاح من وجهة نظره.
+    if (service.currentUser == null) return true;
     ref.invalidate(pinTrustedProvider);
     return false;
   }
