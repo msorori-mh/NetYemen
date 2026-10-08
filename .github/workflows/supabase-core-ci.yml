@@ -3,6 +3,7 @@ name: NetYemen Supabase Core CI
 on:
   push:
     branches:
+      - 'main'
       - 'antigravity/*'
       - 'kimi/*'
       - 'codex/*'
@@ -11,6 +12,10 @@ on:
       - 'main'
       - 'antigravity/*'
       - 'codex/*'
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +42,16 @@ jobs:
             supabase/tests/004_core_invariants.sql \
             supabase/tests/019_hosted_admin_review_verifiers.sql \
             supabase/tests/025_platform_commission_config_rls.sql \
+            supabase/tests/026_settlement_refund_integrity.sql \
+            supabase/tests/027_purchase_card_ingest_integrity.sql \
+            supabase/tests/028_identity_role_audit_hardening.sql \
+            supabase/tests/029_wasel_one_accounting_hardening.sql \
+            supabase/tests/030_operations_closure.sql \
+            supabase/migrations/20261008090000_settlement_refund_integrity.sql \
+            supabase/migrations/20261008091000_purchase_card_ingest_commission_integrity.sql \
+            supabase/migrations/20261008092000_identity_role_audit_hardening.sql \
+            supabase/migrations/20261008093000_wasel_one_accounting_hardening.sql \
+            supabase/migrations/20261008094000_operations_closure.sql \
             supabase/verification/017_hosted_admin_review_production_preflight.sql \
             supabase/verification/017_hosted_admin_review_production_postverify.sql \
             supabase/verification/018_account_deletion_production_preflight.sql \
@@ -65,11 +80,13 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Check Public Legal Edge Function
+      - name: Type-Check and Test Edge Functions
         run: |
+          set -euo pipefail
           deno check supabase/functions/public-legal/index.ts
           deno check supabase/functions/notification-transport-adapter/index.ts
           deno check supabase/functions/radius-control/index.ts
+          deno check supabase/functions/test-onboarding/index.ts
           deno test supabase/functions/radius-control/protocol_test.ts
           deno test supabase/functions/notification-transport-adapter/reveal_test.ts
           deno run --allow-env supabase/functions/notification-transport-adapter/test_crypto.ts
@@ -187,16 +204,42 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/verification/018_account_deletion_production_postverify.sql
 
+      # Real concurrent sessions against purchase_package and
+      # review_wallet_deposit_request (last unit, single balance, same
+      # idempotency key, double approval). Standard library + psql only.
+      - name: Run Commerce Concurrency Harness
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: python3 scripts/test_commerce_concurrency.py
+
+      # A PowerShell `run:` block only reports the exit code of its LAST
+      # command: a script that ends with `exit 1` does not stop the block. Every
+      # script is therefore run through this loop, which stops at the first
+      # non-zero exit code.
       - name: Execute PowerShell Static Verification Script
         shell: pwsh
         run: |
-          ./scripts/verify_netyemen_core_foundation.ps1
-          ./scripts/verify_netyemen_commerce_v1.ps1
-          ./scripts/verify_netyemen_v1_pilot.ps1
-          ./scripts/scan_netyemen_secrets.ps1
-          ./scripts/scan_netyemen_card_secrets.ps1
-          ./scripts/scan_netyemen_financial_invariants.ps1
-          ./scripts/scan_netyemen_fcm_credentials.ps1
+          $verifiers = @(
+            './scripts/verify_netyemen_core_foundation.ps1',
+            './scripts/verify_netyemen_commerce_v1.ps1',
+            './scripts/verify_netyemen_v1_pilot.ps1',
+            './scripts/scan_netyemen_secrets.ps1',
+            './scripts/scan_netyemen_card_secrets.ps1',
+            './scripts/scan_netyemen_financial_invariants.ps1',
+            './scripts/scan_netyemen_fcm_credentials.ps1'
+          )
+          foreach ($verifier in $verifiers) {
+            Write-Host "::group::$verifier"
+            $global:LASTEXITCODE = 0
+            & $verifier
+            $verifierExitCode = $LASTEXITCODE
+            Write-Host "::endgroup::"
+            if ($verifierExitCode -ne 0) {
+              Write-Host "::error::$verifier failed with exit code $verifierExitCode"
+              exit 1
+            }
+          }
+          exit 0
 
       - name: Cleanup Local Supabase Stack
         if: always()
