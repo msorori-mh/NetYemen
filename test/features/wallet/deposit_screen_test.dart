@@ -98,10 +98,17 @@ void main() {
       find.byKey(const Key('deposit-reference-field')),
       'REF-900',
     );
+    // Drop the text focus first: a focused field scrolls itself back into
+    // view on the next frame and can move the button from under the tap.
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('deposit-submit')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('deposit-submit')));
     await settle(tester);
+    // The confirmation is the last row of a lazily built list.
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pump();
 
     final shown = tester
         .widgetList<Text>(find.byType(Text))
