@@ -8,8 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// The service is owned by the app's provider scope, not by a screen, so the
 /// wipe still happens when the customer leaves the screen right after
-/// copying. The clipboard is only cleared when it still holds the copied
-/// value; anything the customer copied afterwards is left alone.
+/// copying. Text the customer is seen to have copied afterwards is left
+/// alone; when the clipboard cannot be read, the secret is wiped anyway.
 class SensitiveClipboard {
   SensitiveClipboard({this.clearAfter = const Duration(seconds: 60)});
 
@@ -26,13 +26,23 @@ class SensitiveClipboard {
 
   Future<void> _clearIfUnchanged(String text) async {
     _timer = null;
+    if (await _replacedByCustomer(text)) return;
     try {
-      final current = await Clipboard.getData(Clipboard.kTextPlain);
-      if (current?.text == text) {
-        await Clipboard.setData(const ClipboardData(text: ''));
-      }
+      await Clipboard.setData(const ClipboardData(text: ''));
     } catch (_) {
       // Best effort: the platform may refuse clipboard access in background.
+    }
+  }
+
+  /// True only when the clipboard can be read and now holds other text.
+  Future<bool> _replacedByCustomer(String text) async {
+    try {
+      final current = await Clipboard.getData(Clipboard.kTextPlain);
+      final value = current?.text;
+      return value != null && value.isNotEmpty && value != text;
+    } catch (_) {
+      // Reading was refused: wipe anyway rather than leave the secret behind.
+      return false;
     }
   }
 

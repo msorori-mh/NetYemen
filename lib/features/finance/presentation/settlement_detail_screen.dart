@@ -18,7 +18,11 @@ class SettlementDetailScreen extends ConsumerStatefulWidget {
 
 class _SettlementDetailScreenState
     extends ConsumerState<SettlementDetailScreen> {
+  static const _paymentReferenceRequired =
+      'مرجع الدفع مطلوب. أدخل رقم مرجع التحويل قبل تسجيل الدفع.';
+
   bool _processing = false;
+  String? _referenceError;
   final _notesController = TextEditingController();
 
   @override
@@ -49,8 +53,10 @@ class _SettlementDetailScreenState
               status: _status,
               processing: _processing,
               notesController: _notesController,
+              referenceError: _referenceError,
               onApprove: _approve,
               onMarkPaid: _markPaid,
+              onCancel: _cancel,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -83,20 +89,23 @@ class _SettlementDetailScreenState
           context,
         ).showSnackBar(const SnackBar(content: Text('تم اعتماد الدفعة')));
       }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر تنفيذ عملية التسوية. حاول مرة أخرى.'),
-          ),
-        );
-      }
+    } catch (error) {
+      if (mounted) _showError(error);
     } finally {
       if (mounted) setState(() => _processing = false);
     }
   }
 
   Future<void> _markPaid() async {
+    final reference = _notesController.text.trim();
+    if (reference.isEmpty) {
+      // The server refuses to mark a batch paid without the transfer
+      // reference, so ask for it before anything is sent.
+      setState(() => _referenceError = _paymentReferenceRequired);
+      return;
+    }
+    setState(() => _referenceError = null);
+
     final confirmed = await _confirmAction(
       title: 'تسجيل الدفعة كمدفوعة',
       message: 'هذا الإجراء مالي حساس. تأكد من إتمام التحويل قبل المتابعة.',
@@ -106,29 +115,93 @@ class _SettlementDetailScreenState
     setState(() => _processing = true);
     try {
       final repo = ref.read(financeRepositoryProvider);
-      await repo.markSettlementPaid(
-        _batchId,
-        notes: FinanceOperationPolicy.normalizePaymentNotes(
-          _notesController.text,
-        ),
-      );
+      await repo.markSettlementPaid(_batchId, paymentReference: reference);
       ref.invalidate(settlementBatchesProvider(null));
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('تم التسجيل كمدفوع')));
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر تنفيذ عملية التسوية. حاول مرة أخرى.'),
-          ),
-        );
+        if (error.toString().contains('PAYMENT_REFERENCE_REQUIRED')) {
+          setState(() => _referenceError = _paymentReferenceRequired);
+        }
+        _showError(error);
       }
     } finally {
       if (mounted) setState(() => _processing = false);
     }
+  }
+
+  Future<void> _cancel() async {
+    final reason = await _askCancellationReason();
+    if (reason == null || !mounted) return;
+    setState(() => _processing = true);
+    try {
+      final repo = ref.read(financeRepositoryProvider);
+      await repo.cancelSettlementBatch(_batchId, reason: reason);
+      ref.invalidate(settlementBatchesProvider(null));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إلغاء الدفعة وتحرير بنودها')),
+        );
+        await Navigator.of(context).maybePop();
+      }
+    } catch (error) {
+      if (mounted) _showError(error);
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  /// Asks for the cancellation reason the server requires. Returns null when
+  /// the dialog is dismissed or the reason is left blank.
+  Future<String?> _askCancellationReason() async {
+    var reason = '';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إلغاء دفعة التسوية'),
+        content: TextField(
+          key: const Key('settlement-cancel-reason'),
+          onChanged: (value) => reason = value,
+          maxLines: 3,
+          maxLength: FinanceOperationPolicy.maximumCancellationReasonLength,
+          decoration: const InputDecoration(
+            labelText: 'سبب الإلغاء (مطلوب)',
+            helperText: 'تعود بنود الدفعة متاحة لدفعة لاحقة.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            key: const Key('settlement-cancel-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('تأكيد الإلغاء'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return null;
+
+    final trimmed = reason.trim();
+    if (trimmed.isNotEmpty) return trimmed;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('سبب الإلغاء مطلوب لإلغاء الدفعة.')),
+      );
+    }
+    return null;
+  }
+
+  void _showError(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(settlementErrorMessage(error))),
+    );
   }
 
   Future<bool> _confirmAction({
@@ -155,6 +228,30 @@ class _SettlementDetailScreenState
         ) ??
         false;
   }
+}
+
+/// Arabic message for a failed settlement action, by server error code.
+String settlementErrorMessage(Object error) {
+  final message = error.toString();
+  if (message.contains('PAYMENT_REFERENCE_REQUIRED')) {
+    return 'مرجع الدفع مطلوب. أدخل رقم مرجع التحويل قبل تسجيل الدفع.';
+  }
+  if (message.contains('PAYMENT_REFERENCE_TOO_LONG')) {
+    return 'مرجع الدفع أطول من المسموح. اختصره ثم أعد المحاولة.';
+  }
+  if (message.contains('REASON_REQUIRED')) {
+    return 'سبب الإلغاء مطلوب وبحد أقصى 500 حرف.';
+  }
+  if (message.contains('INVALID_STATE')) {
+    return 'حالة الدفعة تغيّرت ولم تعد تسمح بهذا الإجراء. حدّث القائمة.';
+  }
+  if (message.contains('NOT_FOUND')) {
+    return 'لم يتم العثور على الدفعة. حدّث القائمة ثم حاول مجدداً.';
+  }
+  if (message.contains('FORBIDDEN') || message.contains('UNAUTHENTICATED')) {
+    return 'لا تملك صلاحية تنفيذ هذا الإجراء أو انتهت الجلسة.';
+  }
+  return 'تعذر تنفيذ عملية التسوية. حاول مرة أخرى.';
 }
 
 class _SummaryCard extends StatelessWidget {
@@ -187,6 +284,12 @@ class _SummaryCard extends StatelessWidget {
             _row('المرتجعات', '${batch['total_refunds']}'),
             _row('التعديلات', '${batch['total_adjustments']}'),
             _row('الصافي', '${batch['net_settlement']}', bold: true),
+            if (_isNegative(batch['net_settlement']))
+              const Text(
+                'الصافي سالب: المرتجعات تتجاوز المبيعات والمبلغ مستحق على المالك.',
+                key: Key('settlement-negative-net'),
+                style: TextStyle(color: AppTheme.error),
+              ),
             if (batch['notes'] != null && (batch['notes'] as String).isNotEmpty)
               _row('ملاحظات', batch['notes'] as String),
           ],
@@ -194,6 +297,8 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
+
+  static bool _isNegative(Object? value) => value is num && value < 0;
 
   Widget _row(String label, String value, {bool bold = false}) {
     return Padding(
@@ -234,20 +339,26 @@ class _ActionsSection extends StatelessWidget {
   final String status;
   final bool processing;
   final TextEditingController notesController;
+  final String? referenceError;
   final VoidCallback onApprove;
   final VoidCallback onMarkPaid;
+  final VoidCallback onCancel;
 
   const _ActionsSection({
     required this.status,
     required this.processing,
     required this.notesController,
+    required this.referenceError,
     required this.onApprove,
     required this.onMarkPaid,
+    required this.onCancel,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (status == 'paid') {
+    final canApprove = status == 'draft' || status == 'ready_for_review';
+    if (!canApprove && status != 'approved') {
+      // Paid, cancelled and corrected batches are final.
       return const SizedBox.shrink();
     }
 
@@ -257,7 +368,7 @@ class _ActionsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (status == 'draft' || status == 'ready_for_review')
+            if (canApprove) ...[
               ElevatedButton.icon(
                 onPressed: processing ? null : onApprove,
                 icon: const Icon(Icons.check),
@@ -275,17 +386,29 @@ class _ActionsSection extends StatelessWidget {
                       )
                     : const Text('اعتماد الدفعة'),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const Key('settlement-cancel'),
+                onPressed: processing ? null : onCancel,
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('إلغاء الدفعة'),
+              ),
+            ],
             if (status == 'approved') ...[
               TextField(
+                key: const Key('settlement-payment-reference'),
                 controller: notesController,
                 maxLength: FinanceOperationPolicy.maximumPaymentNotesLength,
-                decoration: const InputDecoration(
-                  labelText: 'ملاحظات الدفع',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'مرجع الدفع (مطلوب)',
+                  helperText: 'رقم مرجع التحويل الذي دُفعت به التسوية.',
+                  border: const OutlineInputBorder(),
+                  errorText: referenceError,
                 ),
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
+                key: const Key('settlement-mark-paid'),
                 onPressed: processing ? null : onMarkPaid,
                 icon: const Icon(Icons.paid),
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.info),

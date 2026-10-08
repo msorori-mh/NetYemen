@@ -17,6 +17,8 @@ class DepositScreen extends ConsumerStatefulWidget {
 }
 
 class _DepositScreenState extends ConsumerState<DepositScreen> {
+  static const _referenceRequired = 'رقم المرجع مطلوب. انسخه من إيصال التحويل.';
+
   final _amountController = TextEditingController();
   final _referenceController = TextEditingController();
   String? _selectedDestinationId;
@@ -72,9 +74,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         : null;
     final destinationError =
         destination == null ? 'اختر وجهة الدفع التي حوّلت إليها.' : null;
-    final referenceError = reference.isEmpty
-        ? 'رقم المرجع مطلوب. انسخه من إيصال التحويل.'
-        : null;
+    final referenceError = reference.isEmpty ? _referenceRequired : null;
 
     setState(() {
       _amountError = amountError;
@@ -114,7 +114,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
         _messageIsSuccess = false;
         _message = depositErrorMessage(error);
         if (isDepositReferenceError(error)) {
-          _referenceError = 'رقم المرجع مطلوب. انسخه من إيصال التحويل.';
+          _referenceError = _referenceRequired;
         }
       });
     }

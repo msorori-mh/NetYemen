@@ -151,11 +151,23 @@ class SupabaseFinanceRepository implements FinanceRepository {
   @override
   Future<Map<String, dynamic>> markSettlementPaid(
     String batchId, {
-    String? notes,
+    required String paymentReference,
   }) async {
     final result = await _client.rpc(
       'finance_mark_settlement_paid',
-      params: {'p_batch_id': batchId, 'p_notes': notes},
+      params: {'p_batch_id': batchId, 'p_notes': paymentReference},
+    );
+    return result as Map<String, dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>> cancelSettlementBatch(
+    String batchId, {
+    required String reason,
+  }) async {
+    final result = await _client.rpc(
+      'finance_cancel_settlement_batch',
+      params: {'p_batch_id': batchId, 'p_reason': reason},
     );
     return result as Map<String, dynamic>;
   }

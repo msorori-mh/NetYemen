@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Declared here, not left to a plugin manifest merge: release builds
+         must reach the backend whichever plugins are present. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!--
       Wi-Fi scan prerequisites. Android still gates WifiManager scan results
       behind precise-location permission and the device Location switch.

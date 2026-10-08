@@ -2,6 +2,7 @@ class FinanceOperationPolicy {
   const FinanceOperationPolicy._();
 
   static const int maximumPaymentNotesLength = 500;
+  static const int maximumCancellationReasonLength = 500;
 
   static bool isValidSettlementPeriod(DateTime start, DateTime end) {
     return !start.isAfter(end);

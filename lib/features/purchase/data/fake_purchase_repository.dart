@@ -7,13 +7,7 @@ import '../domain/entities.dart';
 class FakePurchaseRepository implements PurchaseRepository {
   final List<PurchaseOrder> _orders = [];
   final List<FulfillmentRecord> _fulfillments = [];
-  final Map<
-      String,
-      ({
-        String packageId,
-        int expectedPrice,
-        Map<String, dynamic> result,
-      })> _idempotentResults = {};
+  final Map<String, _FakePurchaseReplay> _idempotentResults = {};
 
   /// Test hook mirroring the server: when set, a purchase whose
   /// `expectedPrice` differs is refused with `PRICE_CHANGED`.
@@ -93,7 +87,7 @@ class FakePurchaseRepository implements PurchaseRepository {
       'currency': 'YER',
       'fulfillment_status': 'pending_secret',
     };
-    _idempotentResults[idempotencyKey] = (
+    _idempotentResults[idempotencyKey] = _FakePurchaseReplay(
       packageId: packageId,
       expectedPrice: expectedPrice,
       result: result,
@@ -145,4 +139,16 @@ class FakePurchaseRepository implements PurchaseRepository {
       throw ArgumentError('REASON_REQUIRED');
     }
   }
+}
+
+class _FakePurchaseReplay {
+  final String packageId;
+  final int expectedPrice;
+  final Map<String, dynamic> result;
+
+  const _FakePurchaseReplay({
+    required this.packageId,
+    required this.expectedPrice,
+    required this.result,
+  });
 }

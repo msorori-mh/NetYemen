@@ -38,6 +38,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // not start a second gate for the same sign-in. Captured before the await
     // because `ref` must not be used once this screen is replaced.
     final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
+    // The navigator is captured too: a claimed sign-in must reach the PIN
+    // gate even when this screen was closed while the request was in flight.
+    final navigator = Navigator.of(context);
     signInClaim.state = true;
     try {
       final phone = normalizeYemeniPhone(_phoneController.text);
@@ -45,8 +48,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             phone: phone,
             password: _passwordController.text,
           );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      if (!navigator.mounted) return;
+      navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const PinGate()),
         (route) => false,
       );

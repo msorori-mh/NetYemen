@@ -102,8 +102,7 @@ void main() {
       );
     });
 
-    test('PRICE_CHANGED surfaces a clear message and closes the session',
-        () async {
+    test('PRICE_CHANGED is explained and closes the session', () async {
       final repository = _RecordingPurchaseRepository(currentPrice: 1500);
       final container = _container(repository);
       addTearDown(container.dispose);
@@ -169,6 +168,34 @@ void main() {
         purchaseErrorMessage(StateError('INSUFFICIENT_BALANCE')),
         contains('غير كافٍ'),
       );
+      expect(
+        purchaseErrorMessage(StateError('INACTIVE_PROFILE: not active')),
+        contains('غير مفعّل'),
+      );
+      expect(
+        purchaseErrorMessage(StateError('IDEMPOTENCY_KEY_REUSED: other')),
+        contains('لم يُخصم'),
+      );
+    });
+
+    test('a key the server refused as reused is never sent again', () async {
+      final repository = _RecordingPurchaseRepository(keyReusedOnce: true);
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      await container.read(purchaseSubmissionProvider.future);
+
+      final notifier = container.read(purchaseSubmissionProvider.notifier);
+      await expectLater(
+        notifier.submit('package-1', expectedPrice: 1000),
+        throwsA(isA<StateError>()),
+      );
+      await notifier.submit('package-1', expectedPrice: 1000);
+
+      expect(repository.idempotencyKeys, hasLength(2));
+      expect(
+        repository.idempotencyKeys[1],
+        isNot(repository.idempotencyKeys[0]),
+      );
     });
   });
 
@@ -210,10 +237,14 @@ class _RecordingPurchaseRepository implements PurchaseRepository {
   /// When set, mirrors the server refusing a stale confirmed price.
   int? currentPrice;
 
+  /// When true, the first attempt is refused with `IDEMPOTENCY_KEY_REUSED`.
+  final bool keyReusedOnce;
+
   _RecordingPurchaseRepository({
     this.failFirstAttempt = false,
     this.gate,
     this.currentPrice,
+    this.keyReusedOnce = false,
   });
 
   @override
@@ -226,6 +257,9 @@ class _RecordingPurchaseRepository implements PurchaseRepository {
     expectedPrices.add(expectedPrice);
     if (failFirstAttempt && idempotencyKeys.length == 1) {
       throw StateError('CONNECTION_LOST_AFTER_SEND');
+    }
+    if (keyReusedOnce && idempotencyKeys.length == 1) {
+      throw StateError('IDEMPOTENCY_KEY_REUSED: used for another package');
     }
     final serverPrice = currentPrice;
     if (serverPrice != null && serverPrice != expectedPrice) {

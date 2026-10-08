@@ -3,8 +3,8 @@ import 'package:netyemen/features/security/presentation/sign_in_gate.dart';
 
 void main() {
   group('SignedInGateTracker', () {
-    test('an unclaimed sign-in (Google OAuth return) must pass the PIN gate',
-        () {
+    test('an unclaimed sign-in must pass the PIN gate', () {
+      // This is the Google OAuth return: no screen is waiting for it.
       final tracker = SignedInGateTracker();
 
       expect(tracker.onSignedIn('user-a', claimedByScreen: false), isTrue);

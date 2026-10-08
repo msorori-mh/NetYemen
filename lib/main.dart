@@ -35,12 +35,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage _) async {
 void _installErrorHandlers() {
   final presentFrameworkError = FlutterError.onError;
   FlutterError.onError = (FlutterErrorDetails details) {
-    logError('Uncaught Flutter framework error', details.exception,
-        details.stack);
+    logError('Uncaught Flutter error', details.exception, details.stack);
     presentFrameworkError?.call(details);
   };
-  WidgetsBinding.instance.platformDispatcher.onError =
-      (Object error, StackTrace stackTrace) {
+  final dispatcher = WidgetsBinding.instance.platformDispatcher;
+  dispatcher.onError = (Object error, StackTrace stackTrace) {
     logError('Uncaught platform error', error, stackTrace);
     return true;
   };
@@ -53,8 +52,7 @@ Future<void> _initializeFirebase() async {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (error, stackTrace) {
-    logError('Firebase initialization failed; push is disabled', error,
-        stackTrace);
+    logError('Firebase init failed; push is disabled', error, stackTrace);
   }
 }
 
