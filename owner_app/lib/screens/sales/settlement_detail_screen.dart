@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/app_theme.dart';
+import '../../utils/settlement_text.dart';
 
 /// شاشة تفاصيل تسوية واحدة — F-OWN-06.
 ///
@@ -25,6 +26,7 @@ class SettlementDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = settlement['lines'] as List? ?? [];
+    final ownerOwes = settlementOwnerOwes(settlement['net_settlement']);
 
     return Scaffold(
       appBar: AppBar(
@@ -42,12 +44,12 @@ class SettlementDetailScreen extends StatelessWidget {
                 children: [
                   _infoRow('الفترة',
                       '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}'),
-                  _infoRow('الحالة', settlement['status']?.toString() ?? '—'),
+                  _infoRow('الحالة', settlementStatusLabel(settlement['status'])),
                   _infoRow('تاريخ الإنشاء', _formatDate(settlement['created_at'])),
                   if (settlement['reviewed_at'] != null)
                     _infoRow('تاريخ المراجعة', _formatDate(settlement['reviewed_at'])),
                   if (settlement['notes'] != null &&
-                      (settlement['notes'] as String).isNotEmpty)
+                      settlement['notes'].toString().isNotEmpty)
                     _infoRow('ملاحظات', settlement['notes'].toString()),
                 ],
               ),
@@ -75,8 +77,24 @@ class SettlementDetailScreen extends StatelessWidget {
                       color: AppTheme.error, negative: true),
                   _finRow('التعديلات', settlement['total_adjustments']),
                   const Divider(),
-                  _finRow('الصافي المستحق', settlement['net_settlement'],
-                      color: AppTheme.accentDark, bold: true),
+                  _finRow(
+                    settlementNetLabel(settlement['net_settlement']),
+                    settlement['net_settlement'],
+                    color: ownerOwes ? AppTheme.error : AppTheme.accentDark,
+                    bold: true,
+                  ),
+                  if (ownerOwes)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        'المرتجعات في هذه الفترة أكبر من المبيعات؛ يُخصم الفرق '
+                        'من مستحقاتك.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -129,8 +147,8 @@ class SettlementDetailScreen extends StatelessWidget {
 
   Widget _finRow(String label, dynamic value,
       {Color? color, bool bold = false, bool negative = false}) {
-    final num = value ?? 0;
-    final display = negative && num != 0 ? '-$num' : '$num';
+    final display =
+        negative ? deductionText(value) : '${settlementAmount(value)}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -186,7 +204,9 @@ class _SettlementLineCard extends StatelessWidget {
                           ),
                           Expanded(
                             child: Text(
-                              '${e.value}',
+                              e.key == 'line_type'
+                                  ? settlementLineTypeLabel(e.value)
+                                  : '${e.value}',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ),
