@@ -29,8 +29,7 @@ Widget _buildScreen({
 }
 
 void main() {
-  testWidgets('a customer who forgot the PIN can sign out instead of being stuck',
-      (tester) async {
+  testWidgets('a customer who forgot the PIN can sign out', (tester) async {
     final auth = FakeCustomerAuthRepository();
     final pins = FakePinRepository(verifyResult: false);
 

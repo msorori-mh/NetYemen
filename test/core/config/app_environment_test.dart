@@ -62,14 +62,15 @@ void main() {
     test('plain HTTP is only accepted for a local development backend', () {
       AppConfig withUrl(String url) =>
           AppConfig(supabaseUrl: url, supabasePublishableKey: 'anon-key');
+      bool isValid(String url) => withUrl(url).hasValidSupabaseUrl;
 
-      expect(withUrl('https://example.supabase.co').hasValidSupabaseUrl, isTrue);
-      expect(withUrl('http://localhost:54321').hasValidSupabaseUrl, isTrue);
-      expect(withUrl('http://127.0.0.1:54321').hasValidSupabaseUrl, isTrue);
-      expect(withUrl('http://10.0.2.2:54321').hasValidSupabaseUrl, isTrue);
-      expect(withUrl('http://example.supabase.co').hasValidSupabaseUrl, isFalse);
-      expect(withUrl('ftp://example.supabase.co').hasValidSupabaseUrl, isFalse);
-      expect(withUrl('not-a-url').hasValidSupabaseUrl, isFalse);
+      expect(isValid('https://example.supabase.co'), isTrue);
+      expect(isValid('http://localhost:54321'), isTrue);
+      expect(isValid('http://127.0.0.1:54321'), isTrue);
+      expect(isValid('http://10.0.2.2:54321'), isTrue);
+      expect(isValid('http://example.supabase.co'), isFalse);
+      expect(isValid('ftp://example.supabase.co'), isFalse);
+      expect(isValid('not-a-url'), isFalse);
 
       expect(
         AppEnvironment.fromConfig(withUrl('http://example.supabase.co')).state,

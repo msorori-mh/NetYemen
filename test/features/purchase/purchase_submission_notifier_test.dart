@@ -102,8 +102,7 @@ void main() {
       );
     });
 
-    test('PRICE_CHANGED surfaces a clear message and closes the session',
-        () async {
+    test('PRICE_CHANGED is explained and closes the session', () async {
       final repository = _RecordingPurchaseRepository(currentPrice: 1500);
       final container = _container(repository);
       addTearDown(container.dispose);

@@ -30,8 +30,8 @@ void main() {
 
   group('LocalizedDigitsInputFormatter', () {
     TextEditingValue format(String text, {int? maxLength}) {
-      return LocalizedDigitsInputFormatter(maxLength: maxLength)
-          .formatEditUpdate(
+      final formatter = LocalizedDigitsInputFormatter(maxLength: maxLength);
+      return formatter.formatEditUpdate(
         TextEditingValue.empty,
         TextEditingValue(text: text),
       );

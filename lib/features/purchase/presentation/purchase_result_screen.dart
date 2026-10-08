@@ -96,7 +96,9 @@ class PurchaseResultScreen extends StatelessWidget {
   }
 
   int? get _amountPaid {
-    final value = purchaseResult?['amount_paid'] ?? purchaseResult?['total_price'];
+    final result = purchaseResult;
+    if (result == null) return null;
+    final value = result['amount_paid'] ?? result['total_price'];
     return value is num ? value.toInt() : null;
   }
 

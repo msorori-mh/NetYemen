@@ -69,7 +69,8 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
 
     setState(() => _isLoading = true);
 
-    // This screen routes to the PIN gate itself; see [screenRoutedSignInProvider].
+    // This screen routes to the PIN gate itself, so it claims the sign-in
+    // (see screenRoutedSignInProvider).
     final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
     signInClaim.state = true;
     try {

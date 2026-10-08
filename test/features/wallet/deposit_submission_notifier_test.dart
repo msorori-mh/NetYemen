@@ -127,19 +127,19 @@ void main() {
     expect(await repository.getMyDepositRequests(), hasLength(1));
   });
 
-  test('notifier refuses a blank reference before calling the repository',
-      () async {
+  test('notifier refuses a blank reference before any request', () async {
     final repository = _RecordingWalletRepository();
     final container = _container(repository);
     addTearDown(container.dispose);
     await container.read(depositSubmissionProvider.future);
 
+    final notifier = container.read(depositSubmissionProvider.notifier);
     await expectLater(
-      container.read(depositSubmissionProvider.notifier).submit(
-            amount: 1000,
-            paymentDestinationId: 'destination-1',
-            referenceNumber: '  ',
-          ),
+      notifier.submit(
+        amount: 1000,
+        paymentDestinationId: 'destination-1',
+        referenceNumber: '  ',
+      ),
       throwsA(isA<StateError>()),
     );
     expect(repository.idempotencyKeys, isEmpty);
@@ -151,11 +151,12 @@ void main() {
     addTearDown(container.dispose);
     await container.read(depositSubmissionProvider.future);
 
-    await container.read(depositSubmissionProvider.notifier).submit(
-          amount: 1000,
-          paymentDestinationId: 'destination-1',
-          referenceNumber: '  REF-77  ',
-        );
+    final notifier = container.read(depositSubmissionProvider.notifier);
+    await notifier.submit(
+      amount: 1000,
+      paymentDestinationId: 'destination-1',
+      referenceNumber: '  REF-77  ',
+    );
 
     expect(repository.referenceNumbers, ['REF-77']);
   });

@@ -1,6 +1,8 @@
 // lib/features/admin/domain/entities.dart
 // Admin operations domain models for the NetYemen V1 pilot.
 
+import '../../../core/utils/money_format.dart';
+
 class AdminDashboardKpi {
   final int activeNetworks;
   final int pendingRequests;
