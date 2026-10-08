@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -8,18 +8,56 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// إعداد توقيع الإنتاج يُقرأ من owner_app/android/key.properties (غير مرفوع إلى git).
-// إن لم يكن الملف موجوداً نعود إلى مفتاح debug حتى يظل البناء ممكناً على أي جهاز.
+// توقيع الإنتاج إلزامي: يُقرأ من owner_app/android/key.properties (غير مرفوع
+// إلى git) أو من متغيرات البيئة WASELNET_OWNER_UPLOAD_*. بناء release بدون
+// مفتاح يفشل صراحةً ولا يعود أبداً إلى مفتاح debug. بناء debug لا يحتاج مفتاحاً.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-val hasReleaseKeystore = keystorePropertiesFile.exists()
-if (hasReleaseKeystore) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use(keystoreProperties::load)
+}
+
+fun releaseSigningValue(propertyName: String, environmentName: String): String? {
+    return keystoreProperties.getProperty(propertyName)
+        ?: System.getenv(environmentName)
+}
+
+val releaseStoreFile = releaseSigningValue(
+    "storeFile",
+    "WASELNET_OWNER_UPLOAD_STORE_FILE",
+)
+val releaseStorePassword = releaseSigningValue(
+    "storePassword",
+    "WASELNET_OWNER_UPLOAD_STORE_PASSWORD",
+)
+val releaseKeyAlias = releaseSigningValue(
+    "keyAlias",
+    "WASELNET_OWNER_UPLOAD_KEY_ALIAS",
+)
+val releaseKeyPassword = releaseSigningValue(
+    "keyPassword",
+    "WASELNET_OWNER_UPLOAD_KEY_PASSWORD",
+)
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+val releaseTaskRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+
+if (releaseTaskRequested && !hasReleaseSigning) {
+    throw GradleException(
+        "Release signing is required. Configure owner_app/android/key.properties " +
+            "or WASELNET_OWNER_UPLOAD_* environment variables.",
+    )
 }
 
 android {
     namespace = "com.netyemen.owner"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -37,30 +75,26 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     signingConfigs {
-        if (hasReleaseKeystore) {
+        if (hasReleaseSigning) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                // احتياطي: بدون key.properties نوقّع بمفتاح debug ليظل البناء قابلاً للتثبيت.
-                // لا تنشر ملفاً مبنياً بهذا الفرع على المتجر.
-                signingConfigs.getByName("debug")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }

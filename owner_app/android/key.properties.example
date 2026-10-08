@@ -1,0 +1,8 @@
+# Copy to owner_app/android/key.properties. Never commit the real file or keystore.
+# The same values may instead come from WASELNET_OWNER_UPLOAD_STORE_FILE,
+# WASELNET_OWNER_UPLOAD_STORE_PASSWORD, WASELNET_OWNER_UPLOAD_KEY_ALIAS and
+# WASELNET_OWNER_UPLOAD_KEY_PASSWORD.
+storeFile=upload-keystore.jks
+storePassword=replace-locally
+keyAlias=waselnet-owner-upload
+keyPassword=replace-locally
