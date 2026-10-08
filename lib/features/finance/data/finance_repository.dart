@@ -37,10 +37,23 @@ abstract class FinanceRepository {
     String? networkId,
   });
   Future<Map<String, dynamic>> approveSettlementBatch(String batchId);
+
+  /// Marks an approved batch as paid.
+  ///
+  /// [paymentReference] is the reference of the transfer that paid the owner.
+  /// The server requires it (`PAYMENT_REFERENCE_REQUIRED` when blank).
   Future<Map<String, dynamic>> markSettlementPaid(
     String batchId, {
-    String? notes,
+    required String paymentReference,
   });
+
+  /// Cancels a batch that is still a draft or waiting for review and releases
+  /// its items. The server requires [reason] (`REASON_REQUIRED` when blank).
+  Future<Map<String, dynamic>> cancelSettlementBatch(
+    String batchId, {
+    required String reason,
+  });
+
   Future<List<Map<String, dynamic>>> getFinanceSettlementBatches(
     String? status,
   );
