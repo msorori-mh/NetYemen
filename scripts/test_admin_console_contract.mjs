@@ -31,10 +31,7 @@ import path from 'node:path';
 // when an entry is no longer needed). Do NOT add anything else here: an RPC
 // that is neither in the migrations nor in the contract is a real bug.
 // ---------------------------------------------------------------------------
-const PENDING_CONTRACT = new Set([
-  'get_platform_commission_config',
-  'admin_ingest_card_vault_batch.p_batch_key',
-]);
+const PENDING_CONTRACT = new Set([]);
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.dirname(scriptDirectory);
