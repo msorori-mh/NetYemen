@@ -72,18 +72,20 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
     // This screen routes to the PIN gate itself, so it claims the sign-in
     // (see screenRoutedSignInProvider).
     final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
+    // The navigator is captured too: a claimed sign-in must reach the PIN
+    // gate even when this screen was closed while the request was in flight.
+    final navigator = Navigator.of(context);
     signInClaim.state = true;
     try {
       final repository = ref.read(customerAuthRepositoryProvider);
       final response = await repository.verifyOtp(widget.phone, otp);
-      if (!mounted) return;
 
       if (response.user != null) {
         // V1 identity is provisioned automatically by the Supabase auth trigger
         // public.handle_new_user into public.profiles / public.user_roles.
         // No client-side upsert to public.users is required or permitted.
-        Navigator.pushAndRemoveUntil(
-          context,
+        if (!navigator.mounted) return;
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const PinGate()),
           (route) => false,
         );

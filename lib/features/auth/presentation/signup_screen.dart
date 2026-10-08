@@ -57,6 +57,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     // Registration signs the new account in; this screen then routes to the
     // PIN gate itself (after its confirmation dialog), so claim the sign-in.
     final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
+    // The navigator is captured too: a claimed sign-in must reach the PIN
+    // gate even when this screen was closed while the request was in flight.
+    final navigator = Navigator.of(context);
     signInClaim.state = true;
     try {
       await ref.read(customerAuthRepositoryProvider).registerTestAccount(
@@ -72,7 +75,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               inviteCode: _inviteController.text,
             ),
           );
-      if (!mounted) return;
+      if (!mounted) {
+        if (navigator.mounted) _openPinGate(navigator);
+        return;
+      }
 
       await showDialog<void>(
         context: context,
@@ -92,11 +98,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           ],
         ),
       );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const PinGate()),
-        (route) => false,
-      );
+      if (navigator.mounted) _openPinGate(navigator);
     } on FormatException catch (error) {
       _showError(error.message);
     } catch (error) {
@@ -105,6 +107,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       signInClaim.state = false;
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _openPinGate(NavigatorState navigator) {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const PinGate()),
+      (route) => false,
+    );
   }
 
   String _friendlyRegistrationError(Object error) {
