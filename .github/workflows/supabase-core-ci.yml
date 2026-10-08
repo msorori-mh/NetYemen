@@ -158,6 +158,17 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/025_platform_commission_config_rls.sql
 
+      - name: Run Audit Remediation SQL Contracts (026-030)
+        run: |
+          set -euo pipefail
+          for test_file in supabase/tests/{026..030}_*.sql; do
+            echo "Running $test_file"
+            PGPASSWORD=postgres psql \
+              "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+              -v ON_ERROR_STOP=1 \
+              -f "$test_file"
+          done
+
       - name: Run Legacy SQL Contract and E2E Suite (001-019)
         run: |
           set -euo pipefail
