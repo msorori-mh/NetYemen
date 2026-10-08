@@ -43,7 +43,8 @@ class OwnerSupabaseService {
   }
 
   Future<bool> hasPlatformRole(String role) async {
-    final response = await _client.rpc('has_platform_role', params: {'p_role': role});
+    final response =
+        await _client.rpc('has_platform_role', params: {'p_role': role});
     return response == true;
   }
 
@@ -76,7 +77,8 @@ class OwnerSupabaseService {
   }
 
   Future<bool> verifyAccountPin(String pin) async {
-    final response = await _client.rpc('verify_account_pin', params: {'p_pin': pin});
+    final response =
+        await _client.rpc('verify_account_pin', params: {'p_pin': pin});
     return response == true;
   }
 

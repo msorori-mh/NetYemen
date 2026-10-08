@@ -25,7 +25,7 @@ final currentUserProvider = Provider<User?>((ref) {
 final hasNetworkOwnerRoleProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return false;
-  
+
   final service = ref.watch(ownerServiceProvider);
   return await service.hasPlatformRole('network_owner');
 });
@@ -43,7 +43,7 @@ final ownedNetworksProvider = FutureProvider<List<OwnedNetwork>>((ref) async {
 final hasAccountPinProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return false;
-  
+
   final service = ref.watch(ownerServiceProvider);
   return await service.hasAccountPin();
 });

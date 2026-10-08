@@ -14,7 +14,8 @@ class CreateFirstNetworkScreen extends ConsumerStatefulWidget {
       _CreateFirstNetworkScreenState();
 }
 
-class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScreen> {
+class _CreateFirstNetworkScreenState
+    extends ConsumerState<CreateFirstNetworkScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
@@ -124,7 +125,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Commercial Name
                 TextFormField(
                   controller: _commercialNameController,
@@ -140,7 +141,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Governorate
                 DropdownButtonFormField<String>(
                   initialValue: _selectedGovernorate,
@@ -167,7 +168,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // City
                 TextFormField(
                   controller: _cityController,
@@ -177,7 +178,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // District
                 TextFormField(
                   controller: _districtController,
@@ -187,7 +188,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Description
                 TextFormField(
                   controller: _descriptionController,
@@ -198,7 +199,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Submit Button
                 SizedBox(
                   height: 54,

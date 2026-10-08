@@ -7,7 +7,8 @@ class PackageFormScreen extends ConsumerStatefulWidget {
   final String networkId;
   final Map<String, dynamic>? packageData;
 
-  const PackageFormScreen({super.key, required this.networkId, this.packageData});
+  const PackageFormScreen(
+      {super.key, required this.networkId, this.packageData});
 
   @override
   ConsumerState<PackageFormScreen> createState() => _PackageFormScreenState();
@@ -15,7 +16,7 @@ class PackageFormScreen extends ConsumerStatefulWidget {
 
 class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameCtrl;
   late TextEditingController _descCtrl;
   late TextEditingController _priceCtrl;
@@ -35,8 +36,10 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
     _nameCtrl = TextEditingController(text: p?['name'] ?? '');
     _descCtrl = TextEditingController(text: p?['description'] ?? '');
     _priceCtrl = TextEditingController(text: p?['price']?.toString() ?? '');
-    _durationValCtrl = TextEditingController(text: p?['duration_value']?.toString() ?? '');
-    _speedCtrl = TextEditingController(text: p?['speed_mbps']?.toString() ?? '');
+    _durationValCtrl =
+        TextEditingController(text: p?['duration_value']?.toString() ?? '');
+    _speedCtrl =
+        TextEditingController(text: p?['speed_mbps']?.toString() ?? '');
 
     if (p != null) {
       _currency = p['currency'] ?? 'YER';
@@ -57,40 +60,44 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final name = _nameCtrl.text.trim();
       final desc = _descCtrl.text.trim();
       final price = int.parse(_priceCtrl.text.trim());
-      final durVal = _durationValCtrl.text.trim().isNotEmpty ? int.parse(_durationValCtrl.text.trim()) : null;
-      final speed = _speedCtrl.text.trim().isNotEmpty ? int.parse(_speedCtrl.text.trim()) : null;
+      final durVal = _durationValCtrl.text.trim().isNotEmpty
+          ? int.parse(_durationValCtrl.text.trim())
+          : null;
+      final speed = _speedCtrl.text.trim().isNotEmpty
+          ? int.parse(_speedCtrl.text.trim())
+          : null;
 
       if (widget.packageData == null) {
         await ref.read(networksServiceProvider).createNetworkPackage(
-          networkId: widget.networkId,
-          name: name,
-          description: desc.isNotEmpty ? desc : null,
-          price: price,
-          currency: _currency,
-          durationValue: durVal,
-          durationUnit: _durationUnit,
-          speedMbps: speed,
-          packageType: _packageType,
-        );
+              networkId: widget.networkId,
+              name: name,
+              description: desc.isNotEmpty ? desc : null,
+              price: price,
+              currency: _currency,
+              durationValue: durVal,
+              durationUnit: _durationUnit,
+              speedMbps: speed,
+              packageType: _packageType,
+            );
       } else {
         await ref.read(networksServiceProvider).updateNetworkPackage(
-          packageId: widget.packageData!['id'],
-          name: name,
-          description: desc.isNotEmpty ? desc : null,
-          price: price,
-          currency: _currency,
-          durationValue: durVal,
-          durationUnit: _durationUnit,
-          speedMbps: speed,
-          packageType: _packageType,
-        );
+              packageId: widget.packageData!['id'],
+              name: name,
+              description: desc.isNotEmpty ? desc : null,
+              price: price,
+              currency: _currency,
+              durationValue: durVal,
+              durationUnit: _durationUnit,
+              speedMbps: speed,
+              packageType: _packageType,
+            );
       }
       // مزوّد واحد لباقات الشبكة: يحدّث قائمة الباقات وقائمة رفع الكروت معاً.
       ref.invalidate(networkPackagesProvider(widget.networkId));
@@ -150,7 +157,8 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
               items: const [
                 DropdownMenuItem(value: 'time', child: Text('وقت (Time)')),
                 DropdownMenuItem(value: 'volume', child: Text('حجم (Volume)')),
-                DropdownMenuItem(value: 'unlimited', child: Text('غير محدود (Unlimited)')),
+                DropdownMenuItem(
+                    value: 'unlimited', child: Text('غير محدود (Unlimited)')),
               ],
               onChanged: (v) => setState(() => _packageType = v!),
             ),
@@ -159,7 +167,8 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _durationValCtrl,
-                    decoration: const InputDecoration(labelText: 'المدة (اختياري)'),
+                    decoration:
+                        const InputDecoration(labelText: 'المدة (اختياري)'),
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -181,7 +190,8 @@ class _PackageFormScreenState extends ConsumerState<PackageFormScreen> {
             ),
             TextFormField(
               controller: _speedCtrl,
-              decoration: const InputDecoration(labelText: 'السرعة Mbps (اختياري)'),
+              decoration:
+                  const InputDecoration(labelText: 'السرعة Mbps (اختياري)'),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 24),

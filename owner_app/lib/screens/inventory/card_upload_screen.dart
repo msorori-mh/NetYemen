@@ -242,33 +242,34 @@ class _CardUploadScreenState extends ConsumerState<CardUploadScreen> {
             // ───── اختيار الباقة ─────
             if (_selectedNetworkId != null) ...[
               ref.watch(networkPackagesProvider(_selectedNetworkId!)).when(
-                data: (packages) {
-                  if (packages.isEmpty) {
-                    return const Text('لا توجد باقات لهذه الشبكة.');
-                  }
-                  return DropdownButtonFormField<String>(
-                    // مفتاح مرتبط بالشبكة: تبديل الشبكة يعيد بناء الحقل بدل
-                    // أن يحتفظ بباقة لا تتبع الشبكة الجديدة.
-                    key: ValueKey(_selectedNetworkId),
-                    initialValue: _selectedPackageId,
-                    decoration: const InputDecoration(
-                      labelText: 'الباقة',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: packages.map((p) {
-                      final name = p['name'] ?? 'باقة';
-                      final price = p['price'] ?? '—';
-                      return DropdownMenuItem(
-                        value: p['id'] as String,
-                        child: Text('$name ($price ر.ي)'),
+                    data: (packages) {
+                      if (packages.isEmpty) {
+                        return const Text('لا توجد باقات لهذه الشبكة.');
+                      }
+                      return DropdownButtonFormField<String>(
+                        // مفتاح مرتبط بالشبكة: تبديل الشبكة يعيد بناء الحقل بدل
+                        // أن يحتفظ بباقة لا تتبع الشبكة الجديدة.
+                        key: ValueKey(_selectedNetworkId),
+                        initialValue: _selectedPackageId,
+                        decoration: const InputDecoration(
+                          labelText: 'الباقة',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: packages.map((p) {
+                          final name = p['name'] ?? 'باقة';
+                          final price = p['price'] ?? '—';
+                          return DropdownMenuItem(
+                            value: p['id'] as String,
+                            child: Text('$name ($price ر.ي)'),
+                          );
+                        }).toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedPackageId = v),
                       );
-                    }).toList(),
-                    onChanged: (v) => setState(() => _selectedPackageId = v),
-                  );
-                },
-                loading: () => const LinearProgressIndicator(),
-                error: (_, __) => const Text('تعذّر تحميل الباقات'),
-              ),
+                    },
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const Text('تعذّر تحميل الباقات'),
+                  ),
               const SizedBox(height: 12),
             ],
 

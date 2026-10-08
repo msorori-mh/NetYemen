@@ -44,10 +44,13 @@ class SettlementDetailScreen extends StatelessWidget {
                 children: [
                   _infoRow('الفترة',
                       '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}'),
-                  _infoRow('الحالة', settlementStatusLabel(settlement['status'])),
-                  _infoRow('تاريخ الإنشاء', _formatDate(settlement['created_at'])),
+                  _infoRow(
+                      'الحالة', settlementStatusLabel(settlement['status'])),
+                  _infoRow(
+                      'تاريخ الإنشاء', _formatDate(settlement['created_at'])),
                   if (settlement['reviewed_at'] != null)
-                    _infoRow('تاريخ المراجعة', _formatDate(settlement['reviewed_at'])),
+                    _infoRow('تاريخ المراجعة',
+                        _formatDate(settlement['reviewed_at'])),
                   if (settlement['notes'] != null &&
                       settlement['notes'].toString().isNotEmpty)
                     _infoRow('ملاحظات', settlement['notes'].toString()),
@@ -109,7 +112,8 @@ class SettlementDetailScreen extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(height: 8),
-            ...lines.map((line) => _SettlementLineCard(line: Map<String, dynamic>.from(line as Map))),
+            ...lines.map((line) => _SettlementLineCard(
+                line: Map<String, dynamic>.from(line as Map))),
           ] else
             const Card(
               child: Padding(
@@ -135,7 +139,9 @@ class SettlementDetailScreen extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13)),
           ),
           Expanded(
             child: Text(value, style: const TextStyle(fontSize: 13)),
@@ -185,34 +191,32 @@ class _SettlementLineCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // عرض كل مفاتيح البند بشكل عام (defensive — الأعمدة غير مضمونة 100%)
-            ...line.entries
-                .where((e) => e.value != null)
-                .map((e) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 130,
-                            child: Text(
-                              e.key,
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
+            ...line.entries.where((e) => e.value != null).map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 130,
+                        child: Text(
+                          e.key,
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
                           ),
-                          Expanded(
-                            child: Text(
-                              e.key == 'line_type'
-                                  ? settlementLineTypeLabel(e.value)
-                                  : '${e.value}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    )),
+                      Expanded(
+                        child: Text(
+                          e.key == 'line_type'
+                              ? settlementLineTypeLabel(e.value)
+                              : '${e.value}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
           ],
         ),
       ),

@@ -52,7 +52,8 @@ class OwnerInventoryService {
   ///
   /// يُعيد قائمة بأعمدة: package_id, network_id, total_units,
   /// available_units, is_available, updated_at.
-  Future<List<Map<String, dynamic>>> getInventoryBalances(String networkId) async {
+  Future<List<Map<String, dynamic>>> getInventoryBalances(
+      String networkId) async {
     final response = await _client
         .from('package_inventory_balances')
         .select()
@@ -70,7 +71,8 @@ class OwnerInventoryService {
     String networkId, {
     String? state,
   }) async {
-    final response = await _client.rpc('admin_list_card_vault_metadata', params: {
+    final response =
+        await _client.rpc('admin_list_card_vault_metadata', params: {
       'p_network_id': networkId,
       'p_state': state,
     });

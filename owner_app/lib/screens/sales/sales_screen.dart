@@ -47,9 +47,11 @@ class SalesScreen extends ConsumerWidget {
                     prefixIcon: Icon(Icons.wifi_rounded),
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('كل الشبكات')),
+                    const DropdownMenuItem(
+                        value: null, child: Text('كل الشبكات')),
                     ...networks.map((n) {
-                      return DropdownMenuItem(value: n.id, child: Text(n.commercialName));
+                      return DropdownMenuItem(
+                          value: n.id, child: Text(n.commercialName));
                     }),
                   ],
                   onChanged: (v) =>
@@ -66,7 +68,10 @@ class SalesScreen extends ConsumerWidget {
                 // ───── عنوان التسويات ─────
                 const Text(
                   'سجلّ التسويات',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary),
                 ),
                 const SizedBox(height: 12),
 
@@ -223,7 +228,8 @@ class _SettlementsList extends ConsumerWidget {
               padding: EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 48, color: AppTheme.textMuted),
+                  Icon(Icons.receipt_long_outlined,
+                      size: 48, color: AppTheme.textMuted),
                   SizedBox(height: 8),
                   Text(
                     'لا توجد تسويات بعد',
@@ -236,7 +242,8 @@ class _SettlementsList extends ConsumerWidget {
         }
 
         return Column(
-          children: settlements.map((s) => _SettlementCard(settlement: s)).toList(),
+          children:
+              settlements.map((s) => _SettlementCard(settlement: s)).toList(),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -322,7 +329,10 @@ class _SettlementCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary),
                       ),
                     ),
                     AppTheme.statusChip(
@@ -330,36 +340,37 @@ class _SettlementCard extends StatelessWidget {
                       color: color.withValues(alpha: 0.12),
                       textColor: color,
                     ),
-                ],
-              ),
+                  ],
+                ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              // ───── الأرقام ─────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _miniStat('إجمالي', settlement['gross_sales']),
-                  _miniStat('عمولة', settlement['total_commission']),
-                  _miniStat(
-                    'صافي',
-                    settlement['net_settlement'],
-                    bold: true,
-                    color: settlementOwnerOwes(settlement['net_settlement'])
-                        ? AppTheme.error
-                        : AppTheme.accentDark,
-                  ),
-                ],
-              ),
-            ],
+                // ───── الأرقام ─────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _miniStat('إجمالي', settlement['gross_sales']),
+                    _miniStat('عمولة', settlement['total_commission']),
+                    _miniStat(
+                      'صافي',
+                      settlement['net_settlement'],
+                      bold: true,
+                      color: settlementOwnerOwes(settlement['net_settlement'])
+                          ? AppTheme.error
+                          : AppTheme.accentDark,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
-  Widget _miniStat(String label, dynamic value, {bool bold = false, Color? color}) {
+  Widget _miniStat(String label, dynamic value,
+      {bool bold = false, Color? color}) {
     return Column(
       children: [
         Text(

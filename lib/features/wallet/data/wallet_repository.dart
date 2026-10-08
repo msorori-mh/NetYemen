@@ -6,6 +6,7 @@ abstract class WalletRepository {
   Future<WalletSummary> getMyWalletSummary();
   Future<List<DepositRequest>> getMyDepositRequests();
   Future<List<DepositChannel>> getActiveDepositChannels();
+
   /// Files a deposit request for review.
   ///
   /// [amount] is whole YER. [referenceNumber] is the transfer reference from

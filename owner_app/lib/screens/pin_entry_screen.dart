@@ -17,7 +17,7 @@ class PinEntryScreen extends ConsumerStatefulWidget {
 
 class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   final _pinController = TextEditingController();
-  
+
   bool _isLoading = false;
   String _errorMessage = '';
 
@@ -29,13 +29,13 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
 
   void _onDigitPressed(String digit) {
     if (_isLoading) return;
-    
+
     if (_pinController.text.length < 6) {
       setState(() {
         _pinController.text += digit;
         _errorMessage = '';
       });
-      
+
       if (_pinController.text.length == 6) {
         _submitPin();
       }
@@ -46,7 +46,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     if (_isLoading) return;
     if (_pinController.text.isNotEmpty) {
       setState(() {
-        _pinController.text = _pinController.text.substring(0, _pinController.text.length - 1);
+        _pinController.text =
+            _pinController.text.substring(0, _pinController.text.length - 1);
         _errorMessage = '';
       });
     }
@@ -134,7 +135,9 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
           height: 16,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? AppTheme.primary : AppTheme.textMuted.withValues(alpha: 0.3),
+            color: isFilled
+                ? AppTheme.primary
+                : AppTheme.textMuted.withValues(alpha: 0.3),
           ),
         );
       }),
@@ -148,8 +151,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var j = 1; j <= 3; j++)
-                _buildKeypadButton('${i * 3 + j}'),
+              for (var j = 1; j <= 3; j++) _buildKeypadButton('${i * 3 + j}'),
             ],
           ),
         Row(
@@ -186,7 +188,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                 ? Icon(icon, size: 28, color: AppTheme.textPrimary)
                 : Text(
                     label,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.w500),
                   ),
           ),
         ),
@@ -197,7 +200,8 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !widget.isAutoLock, // Prevent going back if it's an auto-lock overlay
+      canPop:
+          !widget.isAutoLock, // Prevent going back if it's an auto-lock overlay
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -220,32 +224,32 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
             children: [
               const Icon(Icons.lock, size: 64, color: AppTheme.primary),
               const SizedBox(height: 24),
-              const Text('أدخل رمز الدخول (PIN)', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text('أدخل رمز الدخول (PIN)',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 32),
-                child: Text('الرجاء إدخال رمز الدخول المكون من 6 أرقام', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+                child: Text('الرجاء إدخال رمز الدخول المكون من 6 أرقام',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.textSecondary)),
               ),
               const SizedBox(height: 48),
-              
               _buildPinDots(_pinController.text),
-              
               const SizedBox(height: 24),
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.error)),
+                  child: Text(_errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppTheme.error)),
                 )
               else
                 const SizedBox(height: 20),
-                
               const SizedBox(height: 32),
-              
               if (_isLoading)
                 const CircularProgressIndicator()
               else
                 _buildKeypad(),
-                
               const SizedBox(height: 24),
               TextButton(
                 onPressed: _isLoading ? null : _requestReset,

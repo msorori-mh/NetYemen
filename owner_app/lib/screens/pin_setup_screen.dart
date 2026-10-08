@@ -16,7 +16,7 @@ class PinSetupScreen extends ConsumerStatefulWidget {
 class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
   final _pinController = TextEditingController();
   final _confirmController = TextEditingController();
-  
+
   bool _isConfirmStep = false;
   bool _isLoading = false;
   String _errorMessage = '';
@@ -31,13 +31,13 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
   void _onDigitPressed(String digit) {
     if (_isLoading) return;
     final controller = _isConfirmStep ? _confirmController : _pinController;
-    
+
     if (controller.text.length < 6) {
       setState(() {
         controller.text += digit;
         _errorMessage = '';
       });
-      
+
       if (controller.text.length == 6) {
         if (!_isConfirmStep) {
           Future.delayed(const Duration(milliseconds: 300), () {
@@ -55,7 +55,8 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
     final controller = _isConfirmStep ? _confirmController : _pinController;
     if (controller.text.isNotEmpty) {
       setState(() {
-        controller.text = controller.text.substring(0, controller.text.length - 1);
+        controller.text =
+            controller.text.substring(0, controller.text.length - 1);
         _errorMessage = '';
       });
     } else if (_isConfirmStep) {
@@ -127,7 +128,9 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
           height: 16,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? AppTheme.primary : AppTheme.textMuted.withValues(alpha: 0.3),
+            color: isFilled
+                ? AppTheme.primary
+                : AppTheme.textMuted.withValues(alpha: 0.3),
           ),
         );
       }),
@@ -141,8 +144,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var j = 1; j <= 3; j++)
-                _buildKeypadButton('${i * 3 + j}'),
+              for (var j = 1; j <= 3; j++) _buildKeypadButton('${i * 3 + j}'),
             ],
           ),
         Row(
@@ -179,7 +181,8 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
                 ? Icon(icon, size: 28, color: AppTheme.textPrimary)
                 : Text(
                     label,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.w500),
                   ),
           ),
         ),
@@ -190,7 +193,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final title = _isConfirmStep ? 'تأكيد رمز الدخول' : 'إعداد رمز الدخول';
-    final subtitle = _isConfirmStep 
+    final subtitle = _isConfirmStep
         ? 'الرجاء إدخال الرمز المكون من 6 أرقام مرة أخرى لتأكيده'
         : 'لحماية حسابك، يرجى إعداد رمز دخول مكون من 6 أرقام';
     final text = _isConfirmStep ? _confirmController.text : _pinController.text;
@@ -214,32 +217,33 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
           children: [
             const Icon(Icons.lock_outline, size: 64, color: AppTheme.primary),
             const SizedBox(height: 24),
-            Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary)),
+              child: Text(subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppTheme.textSecondary)),
             ),
             const SizedBox(height: 48),
-            
             _buildPinDots(text),
-            
             const SizedBox(height: 24),
             if (_errorMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.error)),
+                child: Text(_errorMessage,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppTheme.error)),
               )
             else
               const SizedBox(height: 20),
-              
             const SizedBox(height: 32),
-            
             if (_isLoading)
               const CircularProgressIndicator()
             else
               _buildKeypad(),
-              
             const SizedBox(height: 32),
           ],
         ),

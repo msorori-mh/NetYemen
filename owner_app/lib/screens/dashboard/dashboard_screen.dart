@@ -163,8 +163,8 @@ class _NetworkCard extends StatelessWidget {
                     ),
                     if (network.isVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded, size: 18,
-                          color: AppTheme.primary),
+                      const Icon(Icons.verified_rounded,
+                          size: 18, color: AppTheme.primary),
                     ],
                   ],
                 ),

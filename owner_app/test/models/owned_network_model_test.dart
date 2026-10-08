@@ -22,7 +22,8 @@ void main() {
       expect(network.locationText, 'صنعاء، صنعاء');
     });
 
-    test('falls back to pending/unverified defaults when fields are absent', () {
+    test('falls back to pending/unverified defaults when fields are absent',
+        () {
       final network = OwnedNetwork.fromJson({
         'id': 'net-2',
         'commercial_name': 'شبكة تجريبية',
@@ -35,7 +36,9 @@ void main() {
       expect(network.locationText, isEmpty);
     });
 
-    test('locationText skips a missing city instead of leaving a stray separator', () {
+    test(
+        'locationText skips a missing city instead of leaving a stray separator',
+        () {
       final network = OwnedNetwork.fromJson({
         'id': 'net-3',
         'commercial_name': 'شبكة',

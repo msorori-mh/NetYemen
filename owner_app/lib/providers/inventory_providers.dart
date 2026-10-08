@@ -13,7 +13,8 @@ final selectedInventoryNetworkProvider = StateProvider<String?>((ref) => null);
 
 // مخزون الباقات لشبكة معيّنة
 final inventoryBalancesProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(inventoryServiceProvider);
   return await service.getInventoryBalances(networkId);
 });
@@ -27,7 +28,8 @@ final cardStateBreakdownProvider =
 
 // بيانات بطاقات المخزون الوصفية
 final cardVaultMetadataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(inventoryServiceProvider);
   return await service.getCardVaultMetadata(networkId);
 });

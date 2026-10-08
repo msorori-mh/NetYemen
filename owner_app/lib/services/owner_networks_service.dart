@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class OwnerNetworksService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  Future<List<Map<String, dynamic>>> getNetworkPackages(String networkId) async {
+  Future<List<Map<String, dynamic>>> getNetworkPackages(
+      String networkId) async {
     final response = await _client
         .from('network_packages')
         .select()
@@ -61,14 +62,17 @@ class OwnerNetworksService {
   }
 
   Future<void> publishNetworkPackage(String packageId) async {
-    await _client.rpc('publish_network_package', params: {'p_package_id': packageId});
+    await _client
+        .rpc('publish_network_package', params: {'p_package_id': packageId});
   }
 
   Future<void> deactivateNetworkPackage(String packageId) async {
-    await _client.rpc('deactivate_network_package', params: {'p_package_id': packageId});
+    await _client
+        .rpc('deactivate_network_package', params: {'p_package_id': packageId});
   }
 
-  Future<List<Map<String, dynamic>>> getNetworkSsidAliases(String networkId) async {
+  Future<List<Map<String, dynamic>>> getNetworkSsidAliases(
+      String networkId) async {
     final response = await _client
         .from('network_ssid_aliases')
         .select()
