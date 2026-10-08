@@ -33,7 +33,7 @@ class SalesScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(commercialSummaryProvider(selectedNetwork));
               ref.invalidate(settlementsProvider(selectedNetwork));
-              return ref.refresh(ownedNetworksProvider.future);
+              await ref.refresh(ownedNetworksProvider.future);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),

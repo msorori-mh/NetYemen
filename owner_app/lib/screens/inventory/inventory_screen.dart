@@ -58,7 +58,7 @@ class InventoryScreen extends ConsumerWidget {
                 ref.invalidate(inventoryBalancesProvider(n.id));
                 ref.invalidate(cardStateBreakdownProvider(n.id));
               }
-              return ref.refresh(ownedNetworksProvider.future);
+              await ref.refresh(ownedNetworksProvider.future);
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),

@@ -15,16 +15,14 @@ class NotOwnerScreen extends ConsumerStatefulWidget {
 }
 
 class _NotOwnerScreenState extends ConsumerState<NotOwnerScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // تمت إزالة تسجيل الخروج التلقائي هنا للحفاظ على استقرار الجلسة (P0)
-  }
+  // لا يوجد تسجيل خروج تلقائي هنا حفاظاً على استقرار الجلسة (P0)؛ الخروج
+  // يتم فقط بضغط الزر.
 
   Future<void> _backToLogin() async {
     // splash_screen ستستجيب لتغير الجلسة وتنقله لـ LoginScreen تلقائيا
     final signedOut = await signOutOwner(ref);
-    if (signedOut || !mounted) return;
+    if (!mounted) return;
+    if (signedOut) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(signOutFailedText)),
     );
