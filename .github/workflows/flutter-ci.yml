@@ -11,6 +11,10 @@ on:
       - main
       - codex/WASEL-ONE-APK-PILOT-001
 
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -30,6 +34,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -74,16 +83,28 @@ jobs:
           ! grep -R '{{[A-Z0-9_]\+}}' build/ci-public-legal
           grep -F 'request_my_account_deletion' build/ci-public-legal/delete-account.js
 
+      # The static admin console (admin/) has no build step: check that it
+      # parses and that every RPC it calls exists in the migrations with the
+      # parameters it sends.
+      - name: Verify Static Admin Console
+        run: |
+          set -euo pipefail
+          node --check admin/app.js
+          node scripts/test_admin_console_contract.mjs
+
       - name: Run Tests
         run: timeout 4m flutter test --timeout 2m --reporter expanded
 
-      - name: Build WASEL One Pilot APK
+      # Built WITHOUT --dart-define: there is no SUPABASE_URL, so this APK runs
+      # entirely on built-in demo data and cannot reach any backend. It proves
+      # that the debug build compiles; it is NOT a pilot or release build.
+      - name: Build Demo-Data Debug APK (no backend)
         run: flutter build apk --debug
 
-      - name: Upload WASEL One Pilot APK
+      - name: Upload Demo-Data Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: WASEL-NET-ONE-PILOT-APK
+          name: WASEL-NET-DEMO-DEBUG-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14

@@ -1,0 +1,27 @@
+# Dependency update pull requests.
+#
+# GitHub Actions are still referenced by major tag (actions/checkout@v4, ...).
+# Pinning every action to a full commit SHA is a remaining MANUAL hardening
+# step (see docs/OPERATIONS-RUNBOOK.md, "CI supply chain"): once the workflows
+# use `owner/action@<sha> # vX.Y.Z`, this file keeps those SHAs current.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Customer app + admin Flutter web console (pubspec.yaml at the root).
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Network owner app.
+  - package-ecosystem: "pub"
+    directory: "/owner_app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
