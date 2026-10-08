@@ -27,11 +27,11 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
       packageId: package.id,
       expectedPrice: package.price,
     );
-    final Object? error =
-        isThisPurchase && submission.hasError && !submission.isLoading
-            ? submission.error
-            : null;
+    final showsError =
+        isThisPurchase && submission.hasError && !submission.isLoading;
+    final Object? error = showsError ? submission.error : null;
     final priceChanged = error != null && isPriceChangedError(error);
+    final label = error != null ? 'إعادة المحاولة بأمان' : 'تأكيد الشراء';
 
     return Scaffold(
       appBar: AppBar(title: const Text('تأكيد الشراء')),
@@ -89,11 +89,7 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          error != null
-                              ? 'إعادة المحاولة بأمان'
-                              : 'تأكيد الشراء',
-                        ),
+                      : Text(label),
                 ),
             ],
           ),
