@@ -11,13 +11,21 @@ Write-Host "================================================================" -F
 
 $violations = @()
 
+# All paths below are relative to the repository root.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
+. (Join-Path $PSScriptRoot 'lib/netyemen_sql.ps1')
+
 # -----------------------------------------------------------------------------
 # 1. Branch Validation
 # -----------------------------------------------------------------------------
 $rawBranch = (git branch --show-current)
 $currentBranch = if ($rawBranch) { $rawBranch.ToString().Trim() } else { "" }
 Write-Host "[1/8] Checking Git Branch: $currentBranch" -ForegroundColor Yellow
-if ($currentBranch -eq "main") {
+# The rule is for local work (do not develop directly on main). In CI the
+# workflow also runs on pushes to main, where the checked-out branch IS main;
+# that run verifies the merged result and must not be rejected for it.
+if ($currentBranch -eq "main" -and $env:GITHUB_ACTIONS -ne "true") {
     $violations += "CRITICAL: Script must not be executed directly on 'main' branch."
 }
 
@@ -99,48 +107,159 @@ foreach ($mig in $expectedMigrations) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Row-Level Security Enablement Verification
+# 5. Row-Level Security Enablement Verification (ALL migrations)
 # -----------------------------------------------------------------------------
 Write-Host "[5/8] Verifying Row-Level Security (RLS) Enablement..." -ForegroundColor Yellow
 $coreTables = @("profiles", "user_roles", "networks", "network_memberships", "network_ssid_aliases", "audit_events")
 $mig1Content = if (Test-Path $expectedMigrations[0]) { Get-Content $expectedMigrations[0] -Raw } else { "" }
 $mig2Content = if (Test-Path $expectedMigrations[1]) { Get-Content $expectedMigrations[1] -Raw } else { "" }
+# $combinedSql = the two core-foundation migrations only. It is still used by
+# section 7, whose "no financial tables / object counts" rules are specific to
+# the core foundation and would be wrong for later domain migrations.
 $combinedSql = $mig1Content + "`n" + $mig2Content
 
+# Every other security rule below runs over EVERY migration. Previously sections
+# 5 and 6 inspected only the first two files, so a later migration could add a
+# table without RLS, a permissive policy, GRANT ALL to a client role or a
+# SECURITY DEFINER function without a pinned search_path and still pass.
+# Whole-line SQL comments are blanked by Get-SqlMigrations (line numbers are
+# preserved), so a commented-out statement can neither satisfy nor violate a rule.
+$migrations = @()
+$allSql = ""
+foreach ($migration in (Get-SqlMigrations -Directory (Join-Path $repoRoot "supabase/migrations"))) {
+    if ([string]::IsNullOrEmpty($migration.Sql)) {
+        $violations += "Migration file is empty: $($migration.Name)"
+        continue
+    }
+    $migrations += $migration
+    $allSql += $migration.Sql + "`n"
+}
+if ($migrations.Count -eq 0) {
+    $violations += "No migration files found under supabase/migrations."
+}
+Write-Host "  Migrations inspected: $($migrations.Count)" -ForegroundColor Cyan
+
 foreach ($table in $coreTables) {
-    $pattern = "(?i)ALTER\s+TABLE\s+public\.$table\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
-    if ($combinedSql -notmatch $pattern) {
+    $pattern = '(?i)ALTER\s+TABLE\s+public\.' + $table + '\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY'
+    if ($allSql -notmatch $pattern) {
         $violations += "RLS not enabled on table public.$table"
     } else {
         Write-Host "  [OK] RLS Enabled for public.$table" -ForegroundColor Green
     }
 }
 
+# Every table created in the public schema by ANY migration must have RLS
+# enabled by SOME migration (it may be a later one). A table that is renamed
+# is also accepted when RLS is enabled under its new name.
+$createTablePattern = '(?i)\bCREATE\s+(?:UNLOGGED\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s*(?:\(|AS\b)'
+$renameTablePattern = '(?i)\bALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?(?:public\.)?"?([a-z_][a-z_0-9]*)"?\s+RENAME\s+TO\s+"?([a-z_][a-z_0-9]*)"?'
+$tableRenames = @{}
+foreach ($renameMatch in [regex]::Matches($allSql, $renameTablePattern)) {
+    $tableRenames[$renameMatch.Groups[1].Value.ToLowerInvariant()] = $renameMatch.Groups[2].Value.ToLowerInvariant()
+}
+
+$createdTables = @{}
+foreach ($migration in $migrations) {
+    foreach ($tableMatch in [regex]::Matches($migration.Sql, $createTablePattern)) {
+        $tableName = $tableMatch.Groups[1].Value.ToLowerInvariant()
+        if (-not $createdTables.ContainsKey($tableName)) {
+            $createdTables[$tableName] = "$($migration.Name):$(Get-SqlLineNumber -Text $migration.Sql -Index $tableMatch.Index)"
+        }
+    }
+}
+
+$tablesWithoutRls = 0
+foreach ($tableName in ($createdTables.Keys | Sort-Object)) {
+    # The created name plus every name it was later renamed to.
+    $candidateNames = @($tableName)
+    $currentName = $tableName
+    while ($tableRenames.ContainsKey($currentName) -and $candidateNames.Count -lt 10) {
+        $currentName = $tableRenames[$currentName]
+        $candidateNames += $currentName
+    }
+    $hasRls = $false
+    foreach ($candidateName in $candidateNames) {
+        $rlsPattern = '(?i)\bALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?(?:public\.)?"?' + $candidateName + '"?\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY'
+        if ($allSql -match $rlsPattern) { $hasRls = $true }
+    }
+    if (-not $hasRls) {
+        $violations += "RLS not enabled on table public.$tableName (created at $($createdTables[$tableName]))"
+        $tablesWithoutRls++
+    }
+}
+Write-Host "  public tables created by migrations: $($createdTables.Count) (without RLS: $tablesWithoutRls)" -ForegroundColor Cyan
+if ($migrations.Count -gt 0 -and $createdTables.Count -eq 0) {
+    $violations += "No CREATE TABLE statement was recognised in any migration (the RLS check inspected nothing)."
+}
+
 # -----------------------------------------------------------------------------
-# 6. Security Red Flags & Audit Write Locks Search
+# 6. Security Red Flags & Audit Write Locks Search (ALL migrations)
 # -----------------------------------------------------------------------------
 Write-Host "[6/8] Auditing Security Red Flags & Audit Write Locks..." -ForegroundColor Yellow
-if ($combinedSql -match "(?i)(?<!REVOKE\s)GRANT\s+ALL\b") {
-    $violations += "Security Red Flag: 'GRANT ALL' discovered in migration SQL."
-}
-if ($combinedSql -match "(?i)USING\s*\(\s*true\s*\)") {
-    $violations += "Security Warning: Permissive 'USING (true)' policy discovered."
-}
-if ($combinedSql -match "(?i)WITH\s+CHECK\s*\(\s*true\s*\)") {
-    $violations += "Security Warning: Permissive 'WITH CHECK (true)' policy discovered."
-}
 
-# Verify audit write RPC (record_audit_event) is NOT granted to anon or authenticated
-if ($combinedSql -match "(?i)GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.record_audit_event[^\n;]*TO\s+[^;\n]*\b(authenticated|anon|public)\b") {
-    $violations += "Security Red Flag: record_audit_event is granted to client roles (authenticated/anon/public)."
-}
+$grantAllAnyPattern = '(?i)(?<!REVOKE\s)\bGRANT\s+ALL\b'
+$grantAllStatementPattern = '(?i)(?<!REVOKE\s)\bGRANT\s+ALL\b[^;]*?\bTO\s+([^;]+);'
 
-# Verify SECURITY DEFINER functions set search_path
-$secDefinerMatches = [regex]::Matches($combinedSql, "(?i)CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([^\(\s]+)[^;]+SECURITY\s+DEFINER[^;]+;")
-foreach ($match in $secDefinerMatches) {
-    if ($match.Value -notmatch "(?i)SET\s+search_path\s*=") {
-        $violations += "Security Red Flag: SECURITY DEFINER function missing fixed search_path: " + $match.Groups[1].Value
+# Get-SqlFunctionStatements (scripts/lib/netyemen_sql.ps1) understands function
+# options written before the body (pg_get_functiondef layout) and after it,
+# and keeps the body separate so words inside it are never taken for options.
+$functionStatementCount = 0
+$securityDefinerCount = 0
+foreach ($migration in $migrations) {
+    $migrationSql = $migration.Sql
+    $migrationName = $migration.Name
+
+    # GRANT ALL is acceptable only when every grantee is the trusted server
+    # role service_role. Any other grantee (authenticated, anon, PUBLIC, ...)
+    # is a red flag.
+    $grantAllStatements = [regex]::Matches($migrationSql, $grantAllStatementPattern)
+    foreach ($grantMatch in $grantAllStatements) {
+        foreach ($grantee in $grantMatch.Groups[1].Value.Split(',')) {
+            $granteeName = $grantee.Trim().ToLowerInvariant()
+            if ($granteeName -ne "service_role") {
+                $violations += "Security Red Flag: 'GRANT ALL' to '$granteeName' in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $grantMatch.Index)."
+            }
+        }
     }
+    $grantAllCount = ([regex]::Matches($migrationSql, $grantAllAnyPattern)).Count
+    if ($grantAllCount -ne $grantAllStatements.Count) {
+        $violations += "Security Red Flag: 'GRANT ALL' statement in $migrationName could not be parsed (grantee unknown)."
+    }
+
+    # USING (FALSE) / WITH CHECK (FALSE) are deny-all and intentionally allowed.
+    foreach ($permissiveMatch in [regex]::Matches($migrationSql, '(?i)\bUSING\s*\(\s*true\s*\)')) {
+        $violations += "Security Warning: Permissive 'USING (true)' policy in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $permissiveMatch.Index)."
+    }
+    foreach ($permissiveMatch in [regex]::Matches($migrationSql, '(?i)\bWITH\s+CHECK\s*\(\s*true\s*\)')) {
+        $violations += "Security Warning: Permissive 'WITH CHECK (true)' policy in ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $permissiveMatch.Index)."
+    }
+
+    # Verify audit write RPC (record_audit_event) is NOT granted to anon or authenticated
+    if ($migrationSql -match '(?i)\bGRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.record_audit_event[^;]*\bTO\s+[^;]*\b(authenticated|anon|public)\b') {
+        $violations += "Security Red Flag: record_audit_event is granted to client roles (authenticated/anon/public) in $migrationName."
+    }
+
+    # Every SECURITY DEFINER function must pin its search_path in the SAME
+    # CREATE FUNCTION statement.
+    $functionStatements = Get-SqlFunctionStatements -Sql $migrationSql
+    foreach ($functionStatement in $functionStatements) {
+        $functionStatementCount++
+        $functionLocation = "$($functionStatement.Name) at ${migrationName}:$(Get-SqlLineNumber -Text $migrationSql -Index $functionStatement.Index)"
+        if (-not $functionStatement.Parsed) {
+            $violations += "Security Red Flag: CREATE FUNCTION statement could not be parsed (unterminated body): $functionLocation"
+            continue
+        }
+        if ($functionStatement.Options -match '(?i)\bSECURITY\s+DEFINER\b') {
+            $securityDefinerCount++
+            if ($functionStatement.Options -notmatch '(?i)\bSET\s+search_path\s*(=|TO\b)') {
+                $violations += "Security Red Flag: SECURITY DEFINER function missing fixed search_path: $functionLocation"
+            }
+        }
+    }
+}
+Write-Host "  CREATE FUNCTION statements inspected: $functionStatementCount (SECURITY DEFINER: $securityDefinerCount)" -ForegroundColor Cyan
+if ($migrations.Count -gt 0 -and $functionStatementCount -eq 0) {
+    $violations += "No CREATE FUNCTION statement was recognised in any migration (the search_path check inspected nothing)."
 }
 
 # -----------------------------------------------------------------------------
@@ -245,6 +364,7 @@ if ($violations.Count -gt 0) {
     Write-Host "================================================================" -ForegroundColor Green
     Write-Host "STATIC VERIFICATION RESULT: PASS (All Rules Satisfied)" -ForegroundColor Green
     Write-Host "  Files Verified : $($allRequiredFiles.Count + $expectedMigrations.Count)" -ForegroundColor Green
+    Write-Host "  Migrations Scanned for Security Red Flags: $($migrations.Count)" -ForegroundColor Green
     Write-Host "  Positive Tests : $posTestCount" -ForegroundColor Green
     Write-Host "  Negative Tests : $negTestCount" -ForegroundColor Green
     Write-Host "  Invariant Tests: $invTestCount" -ForegroundColor Green

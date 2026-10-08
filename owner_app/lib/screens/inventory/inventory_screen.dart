@@ -58,7 +58,8 @@ class InventoryScreen extends ConsumerWidget {
                 ref.invalidate(inventoryBalancesProvider(n.id));
                 ref.invalidate(cardStateBreakdownProvider(n.id));
               }
-              return ref.refresh(ownedNetworksProvider.future);
+              ref.invalidate(ownedNetworksProvider);
+              await ref.read(ownedNetworksProvider.future);
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -107,83 +108,84 @@ class _NetworkInventoryCard extends ConsumerWidget {
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ───── اسم الشبكة ─────
-            Row(
-              children: [
-                const Icon(Icons.wifi_rounded, color: AppTheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    networkName,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ───── اسم الشبكة ─────
+          Row(
+            children: [
+              const Icon(Icons.wifi_rounded, color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  networkName,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-
-            const Divider(height: 24),
-
-            // ───── إحصائيات حالات الكروت ─────
-            breakdownAsync.when(
-              data: (breakdown) {
-                if (breakdown.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'لا توجد كروت بعد — ارفع دُفعة جديدة',
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                  );
-                }
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: breakdown.entries.map((e) {
-                    return _StateBadge(state: e.key, count: e.value);
-                  }).toList(),
-                );
-              },
-              loading: () => const SizedBox(
-                height: 24,
-                child: LinearProgressIndicator(),
               ),
-              error: (_, __) => const Text(
-                'تعذّر تحميل إحصائيات الكروت',
-                style: TextStyle(color: AppTheme.error, fontSize: 13),
-              ),
-            ),
+            ],
+          ),
 
-            const SizedBox(height: 12),
+          const Divider(height: 24),
 
-            // ───── ملخّص مخزون الباقات ─────
-            balancesAsync.when(
-              data: (balances) {
-                if (balances.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'مخزون الباقات',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...balances.map((b) => _PackageBalanceRow(balance: b)),
-                  ],
+          // ───── إحصائيات حالات الكروت ─────
+          breakdownAsync.when(
+            data: (breakdown) {
+              if (breakdown.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'لا توجد كروت بعد — ارفع دُفعة جديدة',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
                 );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              }
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: breakdown.entries.map((e) {
+                  return _StateBadge(state: e.key, count: e.value);
+                }).toList(),
+              );
+            },
+            loading: () => const SizedBox(
+              height: 24,
+              child: LinearProgressIndicator(),
             ),
-          ],
+            error: (_, __) => const Text(
+              'تعذّر تحميل إحصائيات الكروت',
+              style: TextStyle(color: AppTheme.error, fontSize: 13),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ───── ملخّص مخزون الباقات ─────
+          balancesAsync.when(
+            data: (balances) {
+              if (balances.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'مخزون الباقات',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...balances.map((b) => _PackageBalanceRow(balance: b)),
+                ],
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }
@@ -243,7 +245,8 @@ class _StateBadge extends StatelessWidget {
         children: [
           Text(
             '$count',
-            style: TextStyle(fontWeight: FontWeight.bold, color: c, fontSize: 14),
+            style:
+                TextStyle(fontWeight: FontWeight.bold, color: c, fontSize: 14),
           ),
           const SizedBox(width: 4),
           Text(

@@ -20,14 +20,14 @@ void main() {
         notifier.submit(
           amount: 1000,
           paymentDestinationId: 'destination-1',
-          proofReference: 'REF-1',
+          referenceNumber: 'REF-1',
         ),
         throwsA(isA<StateError>()),
       );
       final requestId = await notifier.submit(
         amount: 1000,
         paymentDestinationId: 'destination-1',
-        proofReference: 'REF-1',
+        referenceNumber: 'REF-1',
       );
 
       expect(requestId, 'deposit-1');
@@ -46,10 +46,12 @@ void main() {
       final first = notifier.submit(
         amount: 1000,
         paymentDestinationId: 'destination-1',
+        referenceNumber: 'REF-1',
       );
       final second = notifier.submit(
         amount: 1000,
         paymentDestinationId: 'destination-1',
+        referenceNumber: 'REF-1',
       );
       gate.complete();
 
@@ -67,10 +69,12 @@ void main() {
       await notifier.submit(
         amount: 1000,
         paymentDestinationId: 'destination-1',
+        referenceNumber: 'REF-1',
       );
       await notifier.submit(
         amount: 1000,
         paymentDestinationId: 'destination-1',
+        referenceNumber: 'REF-1',
       );
 
       expect(repository.idempotencyKeys, hasLength(2));
@@ -89,15 +93,113 @@ void main() {
       amount: 1000,
       idempotencyKey: 'key-1',
       paymentDestinationId: 'destination-1',
+      referenceNumber: 'REF-1',
     );
     final replay = await repository.createDepositRequest(
       amount: 1000,
       idempotencyKey: 'key-1',
       paymentDestinationId: 'destination-1',
+      referenceNumber: 'REF-1',
     );
 
     expect(replay, first);
     expect(await repository.getMyDepositRequests(), hasLength(2));
+  });
+
+  test('fake repository rejects an empty reference like the server', () async {
+    final repository = FakeWalletRepository();
+
+    await expectLater(
+      repository.createDepositRequest(
+        amount: 1000,
+        idempotencyKey: 'key-2',
+        paymentDestinationId: 'destination-1',
+        referenceNumber: '   ',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('INVALID_REFERENCE'),
+        ),
+      ),
+    );
+    expect(await repository.getMyDepositRequests(), hasLength(1));
+  });
+
+  test('notifier refuses a blank reference before any request', () async {
+    final repository = _RecordingWalletRepository();
+    final container = _container(repository);
+    addTearDown(container.dispose);
+    await container.read(depositSubmissionProvider.future);
+
+    final notifier = container.read(depositSubmissionProvider.notifier);
+    await expectLater(
+      notifier.submit(
+        amount: 1000,
+        paymentDestinationId: 'destination-1',
+        referenceNumber: '  ',
+      ),
+      throwsA(isA<StateError>()),
+    );
+    expect(repository.idempotencyKeys, isEmpty);
+  });
+
+  test('notifier sends the trimmed reference number', () async {
+    final repository = _RecordingWalletRepository();
+    final container = _container(repository);
+    addTearDown(container.dispose);
+    await container.read(depositSubmissionProvider.future);
+
+    final notifier = container.read(depositSubmissionProvider.notifier);
+    await notifier.submit(
+      amount: 1000,
+      paymentDestinationId: 'destination-1',
+      referenceNumber: '  REF-77  ',
+    );
+
+    expect(repository.referenceNumbers, ['REF-77']);
+  });
+
+  group('depositErrorMessage', () {
+    test('maps server refusals to specific messages', () {
+      expect(
+        depositErrorMessage(StateError('INVALID_REFERENCE: required')),
+        contains('رقم المرجع مطلوب'),
+      );
+      expect(
+        depositErrorMessage(StateError('INVALID_AMOUNT: positive')),
+        contains('المبلغ غير صحيح'),
+      );
+      expect(
+        depositErrorMessage(
+          StateError('INVALID_PAYMENT_DESTINATION: inactive'),
+        ),
+        contains('وجهة الدفع'),
+      );
+      expect(
+        depositErrorMessage(StateError('UNAUTHENTICATED: sign in')),
+        contains('جلسة الدخول'),
+      );
+      expect(
+        depositErrorMessage(StateError('INACTIVE_PROFILE: inactive')),
+        contains('غير مفعّل'),
+      );
+    });
+
+    test('keeps the connectivity message for real network errors only', () {
+      final offline = depositErrorMessage(
+        Exception('SocketException: Failed host lookup: example'),
+      );
+      final unknown = depositErrorMessage(StateError('SOMETHING_ELSE'));
+
+      expect(offline, contains('تحقق من الاتصال'));
+      expect(unknown, isNot(contains('تحقق من الاتصال')));
+      for (final text in [offline, unknown]) {
+        expect(text, isNot(contains('OD-FIN')));
+        expect(text, isNot(contains('SOMETHING_ELSE')));
+      }
+    });
   });
 }
 
@@ -111,6 +213,7 @@ class _RecordingWalletRepository implements WalletRepository {
   final bool failFirstAttempt;
   final Completer<void>? gate;
   final List<String> idempotencyKeys = [];
+  final List<String> referenceNumbers = [];
 
   _RecordingWalletRepository({
     this.failFirstAttempt = false,
@@ -121,10 +224,11 @@ class _RecordingWalletRepository implements WalletRepository {
   Future<String> createDepositRequest({
     required int amount,
     required String idempotencyKey,
-    String? paymentDestinationId,
-    String? proofReference,
+    required String paymentDestinationId,
+    required String referenceNumber,
   }) async {
     idempotencyKeys.add(idempotencyKey);
+    referenceNumbers.add(referenceNumber);
     if (failFirstAttempt && idempotencyKeys.length == 1) {
       throw StateError('CONNECTION_LOST_AFTER_SEND');
     }

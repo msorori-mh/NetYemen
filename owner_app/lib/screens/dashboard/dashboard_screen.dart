@@ -3,23 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/owned_network_model.dart';
 import '../../providers/owner_providers.dart';
+import '../../providers/session_providers.dart';
 import '../../utils/app_theme.dart';
-import '../auth/login_screen.dart';
 
 /// الشاشة الرئيسية: قائمة شبكات المالك الحالي عبر [ownedNetworksProvider].
-///
-/// هذا هو المحتوى الحقيقي الوحيد في هذه الموجة؛ باقي التبويبات شاشات مؤقتة.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
+  /// لا تُدفع شاشة تسجيل الدخول يدوياً: المسار الجذر (SplashScreen) هو الوحيد
+  /// الذي يتفاعل مع حالة المصادقة، فنكتفي بإنهاء الجلسة والعودة إليه.
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    await ref.read(ownerServiceProvider).signOut();
+    final signedOut = await signOutOwner(ref);
     if (!context.mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+    if (!signedOut) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(signOutFailedText)),
+      );
+      return;
+    }
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -161,8 +163,8 @@ class _NetworkCard extends StatelessWidget {
                     ),
                     if (network.isVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded, size: 18,
-                          color: AppTheme.primary),
+                      const Icon(Icons.verified_rounded,
+                          size: 18, color: AppTheme.primary),
                     ],
                   ],
                 ),

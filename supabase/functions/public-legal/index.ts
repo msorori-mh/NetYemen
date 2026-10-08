@@ -21,11 +21,17 @@ Deno.serve((request) => {
     .replace(/\/$/, "");
   const functionRoot = `${publicOrigin}/functions/v1/public-legal`;
 
+  // No third-party script is loaded: the deletion form talks to Supabase Auth
+  // and PostgREST with plain fetch(), so the only script that can run on this
+  // page (which collects a phone number and a password) is the nonce'd inline
+  // script below, and it may connect only to this project's own origin.
+  const connectSource = safeOrigin(supabaseUrl) || "'none'";
   const headers = new Headers(securityHeaders);
   headers.set(
     "content-security-policy",
-    `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}' https://esm.sh; connect-src ${supabaseUrl} https://esm.sh; img-src 'self'; base-uri 'none'; form-action 'self'`,
+    `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}'; connect-src ${connectSource}; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
   );
+  headers.set("cache-control", "no-store");
 
   const html = page === "delete-account"
     ? deletionPage({ nonce, supabaseUrl, publishableKey, functionRoot })
@@ -36,6 +42,15 @@ Deno.serve((request) => {
     headers,
   });
 });
+
+function safeOrigin(value: string): string {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.origin : "";
+  } catch {
+    return "";
+  }
+}
 
 interface PageContext {
   nonce: string;
@@ -104,24 +119,86 @@ function deletionPage({
 </form>
 <p id="result" role="status" aria-live="polite"></p>
 <p class="muted"><a href="${functionRoot}/privacy">قراءة سياسة الخصوصية</a></p>
-<script nonce="${nonce}" type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-  const client = createClient(${JSON.stringify(supabaseUrl)}, ${JSON.stringify(publishableKey)}, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+<script nonce="${nonce}">
+(() => {
+  const supabaseUrl = ${scriptJson(supabaseUrl.replace(/\/+$/, ""))};
+  const publishableKey = ${scriptJson(publishableKey)};
   const form = document.getElementById("deletion-form");
   const button = document.getElementById("submit");
   const result = document.getElementById("result");
-  const normalizePhone = value => { const digits=value.replace(/\\D/g,""); if(digits.startsWith("967"))return "+"+digits;if(digits.startsWith("0"))return "+967"+digits.slice(1);if(digits.startsWith("7"))return "+967"+digits;return "+"+digits; };
-  form.addEventListener("submit", async event => {
-    event.preventDefault(); button.disabled=true; result.className=""; result.textContent="جارٍ تسجيل الطلب الآمن…";
-    try {
-      const phone=normalizePhone(form.phone.value); const password=form.password.value; const reason=form.reason.value.trim()||null;
-      const {error:signInError}=await client.auth.signInWithPassword({phone,password}); if(signInError)throw signInError;
-      const {error:rpcError}=await client.rpc("request_my_account_deletion",{p_reason:reason}); if(rpcError)throw rpcError;
-      await client.auth.signOut(); form.reset(); result.className="success"; result.textContent="تم استلام طلب الحذف وإغلاق الحساب. تبدأ الآن مهلة 30 يومًا.";
-    } catch (_) { await client.auth.signOut(); result.className="error"; result.textContent="تعذر تسجيل الطلب. تحقق من رقم الهاتف وكلمة المرور ثم أعد المحاولة."; }
-    finally { button.disabled=false; }
+  const normalizePhone = (value) => {
+    const digits = value.replace(/[^0-9]/g, "");
+    if (digits.startsWith("967")) return "+" + digits;
+    if (digits.startsWith("0")) return "+967" + digits.slice(1);
+    if (digits.startsWith("7")) return "+967" + digits;
+    return "+" + digits;
+  };
+  const request = (requestPath, options) => fetch(supabaseUrl + requestPath, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "omit",
+    referrerPolicy: "no-referrer",
+    body: options.body,
+    headers: Object.assign(
+      { apikey: publishableKey, "content-type": "application/json" },
+      options.headers || {},
+    ),
   });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    result.className = "";
+    result.textContent = "جارٍ تسجيل الطلب الآمن…";
+    let accessToken = "";
+    try {
+      const authResponse = await request("/auth/v1/token?grant_type=password", {
+        body: JSON.stringify({
+          phone: normalizePhone(form.phone.value),
+          password: form.password.value,
+        }),
+      });
+      if (!authResponse.ok) throw new Error("authentication failed");
+      const auth = await authResponse.json();
+      accessToken = auth.access_token || "";
+      if (!accessToken) throw new Error("missing access token");
+
+      const reason = form.reason.value.trim() || null;
+      const deletionResponse = await request("/rest/v1/rpc/request_my_account_deletion", {
+        headers: { Authorization: "Bearer " + accessToken },
+        body: JSON.stringify({ p_reason: reason }),
+      });
+      if (!deletionResponse.ok) throw new Error("deletion request failed");
+
+      form.reset();
+      result.className = "success";
+      result.textContent = "تم استلام طلب الحذف وإغلاق الحساب. تبدأ الآن مهلة 30 يومًا.";
+    } catch (_) {
+      result.className = "error";
+      result.textContent = "تعذر تسجيل الطلب. تحقق من رقم الهاتف وكلمة المرور ثم أعد المحاولة.";
+    } finally {
+      if (accessToken) {
+        await request("/auth/v1/logout", {
+          headers: { Authorization: "Bearer " + accessToken },
+        }).catch(() => {});
+      }
+      form.password.value = "";
+      button.disabled = false;
+    }
+  });
+})();
 </script>`,
     nonce,
   );
+}
+
+// JSON for embedding inside an inline <script>: JSON.stringify alone does not
+// escape "<", so a value containing "</script>" could break out of the element.
+function scriptJson(value: string): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }

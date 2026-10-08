@@ -5,12 +5,16 @@ final networksServiceProvider = Provider<OwnerNetworksService>((ref) {
   return OwnerNetworksService();
 });
 
-final networkPackagesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+final networkPackagesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(networksServiceProvider);
   return await service.getNetworkPackages(networkId);
 });
 
-final networkSsidAliasesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+final networkSsidAliasesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(networksServiceProvider);
   return await service.getNetworkSsidAliases(networkId);
 });

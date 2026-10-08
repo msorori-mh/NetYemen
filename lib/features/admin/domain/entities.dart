@@ -1,6 +1,8 @@
 // lib/features/admin/domain/entities.dart
 // Admin operations domain models for the NetYemen V1 pilot.
 
+import '../../../core/utils/money_format.dart';
+
 class AdminDashboardKpi {
   final int activeNetworks;
   final int pendingRequests;
@@ -323,11 +325,8 @@ class AdminPackageInventory {
 
   bool get isOutOfStock => availableUnits <= 0;
 
-  String get displayPrice {
-    final value = price / 100;
-    final rounded = value == value.toInt() ? value.toInt() : value;
-    return '$rounded $currency';
-  }
+  /// Price exactly as charged: whole Yemeni rials, never scaled.
+  String get displayPrice => formatYer(price, currency: currency);
 
   String get durationText {
     if (durationValue == null || durationUnit == null || durationValue == 0) {

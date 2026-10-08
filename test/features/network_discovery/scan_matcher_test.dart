@@ -73,6 +73,78 @@ void main() {
       expect(result.unmatchedSsids, isEmpty);
     });
 
+    test('a second SSID of an already matched network is still approved', () {
+      const twoAliasNetwork = NetworkEntity(
+        id: 'net-2',
+        commercialName: 'Aden Net',
+        ssidAliases: [
+          SsidAlias(
+            id: 'alias-2a',
+            networkId: 'net-2',
+            ssidDisplay: 'AdenNet',
+            ssidNormalized: 'adennet',
+          ),
+          SsidAlias(
+            id: 'alias-2b',
+            networkId: 'net-2',
+            ssidDisplay: 'AdenNet_5G',
+            ssidNormalized: 'adennet_5g',
+          ),
+        ],
+      );
+
+      final result = ScanMatcher.matchSsidsToNetworks(
+        scannedSsids: ['AdenNet', 'AdenNet_5G', 'Stranger'],
+        networks: const [twoAliasNetwork],
+      );
+
+      expect(
+        result.matchedNetworks,
+        [twoAliasNetwork],
+        reason: 'the network is listed once',
+      );
+      expect(
+        result.unmatchedSsids,
+        ['Stranger'],
+        reason: 'both of its SSIDs are approved, not just the first',
+      );
+    });
+
+    test('an SSID shared by two networks matches both', () {
+      const first = NetworkEntity(
+        id: 'net-a',
+        commercialName: 'Network A',
+        ssidAliases: [
+          SsidAlias(
+            id: 'alias-a',
+            networkId: 'net-a',
+            ssidDisplay: 'SharedHotspot',
+            ssidNormalized: 'sharedhotspot',
+          ),
+        ],
+      );
+      const second = NetworkEntity(
+        id: 'net-b',
+        commercialName: 'Network B',
+        ssidAliases: [
+          SsidAlias(
+            id: 'alias-b',
+            networkId: 'net-b',
+            ssidDisplay: 'SharedHotspot',
+            ssidNormalized: 'sharedhotspot',
+          ),
+        ],
+      );
+
+      final result = ScanMatcher.matchSsidsToNetworks(
+        scannedSsids: ['SharedHotspot'],
+        networks: const [first, second],
+      );
+
+      expect(result.matchedNetworks, [first, second]);
+      expect(result.unmatchedSsids, isEmpty);
+    });
+
     test('normalizeForMatching applies Unicode NFC normalization', () {
       // Decomposed "É" (E + combining acute) and pre-composed "É".
       const decomposed = 'E\u0301';

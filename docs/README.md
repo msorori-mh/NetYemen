@@ -25,7 +25,7 @@ Welcome to the official technical, business, and security documentation reposito
 ## 3. Security, Authorization & Financial Contracts
 
 * 🛡️ [Role Authorization Matrix](NETYEMEN-ROLE-AUTHORIZATION-MATRIX-01.md) — 8 active V1 platform roles, 28 primary action permissions, 8 mandatory anti-bypass rules, 8 negative authorization tests.
-* 💰 [Financial & Ledger Operating Contract](NETYEMEN-FINANCIAL-OPERATING-CONTRACT-01.md) — Double-entry accounting model, 6 financial invariants, 10-step atomic purchase RPC contract, 3 reconciliation formulas.
+* 💰 [Financial & Ledger Operating Contract](NETYEMEN-FINANCIAL-OPERATING-CONTRACT-01.md) — Proposed accounting contract: financial invariants, 10-step atomic purchase RPC contract, 3 reconciliation formulas. Its "Implementation status (2026-10-08)" section states what the code actually does (single-entry ledger with a cached balance, not double-entry).
 * 🔒 [Data Classification & Privacy Specification](NETYEMEN-DATA-CLASSIFICATION-AND-PRIVACY-01.md) — 7 data classification levels, asset mapping, user-triggered scan privacy defense rules, log scrubbing restrictions.
 * ⚠️ [Threat & Fraud Model Catalog](NETYEMEN-THREAT-AND-FRAUD-MODEL-01.md) — 44 comprehensive threat vectors (`THR-01` to `THR-44`) with preventive, detective, and recovery controls.
 
@@ -49,3 +49,14 @@ Welcome to the official technical, business, and security documentation reposito
   * [ADR-003 Network Membership and SSID Aliases](adr/ADR-003-NETWORK-MEMBERSHIP-AND-SSID-ALIASES.md)
   * [ADR-004 Immutable Audit Foundation](adr/ADR-004-IMMUTABLE-AUDIT-FOUNDATION.md)
   * [ADR-005 Migration and Environment Governance](adr/ADR-005-MIGRATION-AND-ENVIRONMENT-GOVERNANCE.md)
+
+---
+
+## 6. Operations & Runbooks
+
+* 🧭 [Operations Runbook](OPERATIONS-RUNBOOK.md) — Applying migrations, scheduled jobs (account deletions, stale RADIUS sessions), daily wallet reconciliation, settlement procedure and refund rule, wallet freeze, `card_master_key` provisioning/rotation, first administrator bootstrap, required production Auth settings, admin console SRI, Firebase API key restriction.
+* [Admin Web Console Runbook](admin/ADMIN-WEB-CONSOLE-RUNBOOK.md) — Flutter web admin console (`lib/admin_main.dart`).
+* [Phone/Password Test Onboarding Runbook](auth/PHONE-PASSWORD-TEST-ONBOARDING-RUNBOOK.md) — Invite-only tester signup.
+* [Google Play Release Runbook](release/GOOGLE-PLAY-RELEASE-RUNBOOK.md)
+* [WASEL One Pilot Runbook](WASEL-ONE-PILOT-RUNBOOK.md) and [Staging VPS Runbook](WASEL-ONE-STAGING-VPS-RUNBOOK.md) — FreeRADIUS / MikroTik pilot.
+* Additional ADRs: [ADR-003 Admin Console Architecture](adr/ADR-003-ADMIN-CONSOLE-ARCHITECTURE.md), [ADR-006 WASEL One Access Federation](adr/ADR-006-WASEL-ONE-ACCESS-FEDERATION.md), [ADR-007 WASEL One RADIUS Pilot](adr/ADR-007-WASEL-ONE-RADIUS-PILOT.md).

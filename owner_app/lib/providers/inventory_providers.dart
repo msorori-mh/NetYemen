@@ -13,7 +13,8 @@ final selectedInventoryNetworkProvider = StateProvider<String?>((ref) => null);
 
 // مخزون الباقات لشبكة معيّنة
 final inventoryBalancesProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(inventoryServiceProvider);
   return await service.getInventoryBalances(networkId);
 });
@@ -27,14 +28,11 @@ final cardStateBreakdownProvider =
 
 // بيانات بطاقات المخزون الوصفية
 final cardVaultMetadataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, networkId) async {
   final service = ref.watch(inventoryServiceProvider);
   return await service.getCardVaultMetadata(networkId);
 });
 
-// قائمة الباقات لشبكة (لنموذج الرفع)
-final networkPackagesProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, networkId) async {
-  final service = ref.watch(inventoryServiceProvider);
-  return await service.getNetworkPackages(networkId);
-});
+// قائمة باقات الشبكة (لنموذج الرفع) هي `networkPackagesProvider` في
+// networks_providers.dart — مزوّد واحد يُبطَل بعد إنشاء/تعديل أي باقة.

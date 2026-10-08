@@ -22,7 +22,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await service.signInWithGoogle();
     } catch (e) {
       if (mounted) {
-        _showError('تعذّر تسجيل الدخول عبر Google. تأكّد من اتصالك بالإنترنت وحاول مرة أخرى.');
+        _showError(
+            'تعذّر تسجيل الدخول عبر Google. تأكّد من اتصالك بالإنترنت وحاول مرة أخرى.');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

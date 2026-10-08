@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config_provider.dart';
+import '../../../core/utils/money_format.dart';
 import '../../../core/widgets/customer_load_error.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
@@ -17,7 +18,7 @@ class PurchaseHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
-    if (user == null && !config.isDemoMode) {
+    if (user == null && !config.usesDemoData) {
       return Scaffold(
         appBar: AppBar(title: const Text('سجل المشتريات')),
         body: Directionality(
@@ -109,8 +110,7 @@ class PurchaseHistoryScreen extends ConsumerWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          '${purchase.networkName ?? 'شبكة'}\n'
-                          '${purchase.totalPrice} ${purchase.currency}'
+                          '${purchase.networkName ?? 'شبكة'}\n${formatYer(purchase.totalPrice, currency: purchase.currency)}'
                           '${purchase.createdAt == null ? '' : ' · ${_formatDate(purchase.createdAt!)}'}',
                         ),
                       ),
@@ -144,7 +144,8 @@ class PurchaseHistoryScreen extends ConsumerWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final local = date.toLocal();
+    return '${local.day}/${local.month}/${local.year}';
   }
 }
 

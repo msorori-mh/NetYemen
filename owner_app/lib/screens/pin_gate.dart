@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/owner_providers.dart';
+import '../utils/app_theme.dart';
 import 'splash_screen.dart'; // for RoleGate and SplashBranding
 import 'pin_setup_screen.dart';
 import 'pin_entry_screen.dart';
-
-final pinTrustedProvider = FutureProvider<bool>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return false;
-  final prefs = await SharedPreferences.getInstance();
-  final isTrusted = prefs.getString('pin_trusted_${user.id}');
-  return isTrusted == '1';
-});
 
 class PinGate extends ConsumerWidget {
   const PinGate({super.key});
@@ -26,7 +18,7 @@ class PinGate extends ConsumerWidget {
         if (!hasPin) {
           return const PinSetupScreen();
         }
-        
+
         final isTrustedAsync = ref.watch(pinTrustedProvider);
         return isTrustedAsync.when(
           data: (isTrusted) {
@@ -37,11 +29,34 @@ class PinGate extends ConsumerWidget {
             }
           },
           loading: () => const SplashBranding(),
-          error: (e, st) => Scaffold(body: Center(child: Text('خطأ: $e'))),
+          // تعذّرت قراءة حالة القفل: نفشل مغلقين ونطلب الرمز.
+          error: (e, st) => const PinEntryScreen(isAutoLock: false),
         );
       },
       loading: () => const SplashBranding(),
-      error: (e, st) => Scaffold(body: Center(child: Text('خطأ: $e'))),
+      error: (e, st) => _PinGateError(
+        onRetry: () => ref.invalidate(hasAccountPinProvider),
+      ),
+    );
+  }
+}
+
+class _PinGateError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _PinGateError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: Center(
+        child: AppTheme.errorState(
+          message: 'تعذّر التحقق من رمز الدخول. تحقّق من اتصالك بالإنترنت '
+              'وحاول مرة أخرى.',
+          onRetry: onRetry,
+        ),
+      ),
     );
   }
 }

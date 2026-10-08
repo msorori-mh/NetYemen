@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../security/presentation/pin_gate.dart';
+import '../../security/presentation/sign_in_gate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/customer_auth.dart';
 import 'customer_auth_providers.dart';
@@ -33,14 +34,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
+    // This screen routes to the PIN gate itself; tell the app root so it does
+    // not start a second gate for the same sign-in. Captured before the await
+    // because `ref` must not be used once this screen is replaced.
+    final signInClaim = ref.read(screenRoutedSignInProvider.notifier);
+    // The navigator is captured too: a claimed sign-in must reach the PIN
+    // gate even when this screen was closed while the request was in flight.
+    final navigator = Navigator.of(context);
+    signInClaim.state = true;
     try {
       final phone = normalizeYemeniPhone(_phoneController.text);
       await ref.read(customerAuthRepositoryProvider).signInWithPhonePassword(
             phone: phone,
             password: _passwordController.text,
           );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      if (!navigator.mounted) return;
+      navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const PinGate()),
         (route) => false,
       );
@@ -49,6 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       _showError('تعذر تسجيل الدخول. تحقق من رقم الهاتف وكلمة المرور.');
     } finally {
+      signInClaim.state = false;
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -57,7 +67,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(customerAuthRepositoryProvider).signInWithGoogle();
-      // Auth state change will be handled by the deep link handler
+      // The browser returns through a deep link. The app root then sees the
+      // "signed in" auth event and routes through the PIN gate.
     } catch (_) {
       _showError('تعذر بدء تسجيل الدخول بحساب Google.');
     } finally {

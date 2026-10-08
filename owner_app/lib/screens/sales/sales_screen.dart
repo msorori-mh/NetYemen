@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/owner_providers.dart';
 import '../../providers/sales_providers.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/settlement_text.dart';
 import 'settlement_detail_screen.dart';
 
 /// F-OWN-06: شاشة المبيعات — ملخّص تجاري + قائمة التسويات.
@@ -33,7 +34,8 @@ class SalesScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(commercialSummaryProvider(selectedNetwork));
               ref.invalidate(settlementsProvider(selectedNetwork));
-              return ref.refresh(ownedNetworksProvider.future);
+              ref.invalidate(ownedNetworksProvider);
+              await ref.read(ownedNetworksProvider.future);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -46,9 +48,11 @@ class SalesScreen extends ConsumerWidget {
                     prefixIcon: Icon(Icons.wifi_rounded),
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('كل الشبكات')),
+                    const DropdownMenuItem(
+                        value: null, child: Text('كل الشبكات')),
                     ...networks.map((n) {
-                      return DropdownMenuItem(value: n.id, child: Text(n.commercialName));
+                      return DropdownMenuItem(
+                          value: n.id, child: Text(n.commercialName));
                     }),
                   ],
                   onChanged: (v) =>
@@ -65,7 +69,10 @@ class SalesScreen extends ConsumerWidget {
                 // ───── عنوان التسويات ─────
                 const Text(
                   'سجلّ التسويات',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary),
                 ),
                 const SizedBox(height: 12),
 
@@ -222,7 +229,8 @@ class _SettlementsList extends ConsumerWidget {
               padding: EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 48, color: AppTheme.textMuted),
+                  Icon(Icons.receipt_long_outlined,
+                      size: 48, color: AppTheme.textMuted),
                   SizedBox(height: 8),
                   Text(
                     'لا توجد تسويات بعد',
@@ -235,7 +243,8 @@ class _SettlementsList extends ConsumerWidget {
         }
 
         return Column(
-          children: settlements.map((s) => _SettlementCard(settlement: s)).toList(),
+          children:
+              settlements.map((s) => _SettlementCard(settlement: s)).toList(),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -273,25 +282,6 @@ class _SettlementCard extends StatelessWidget {
         return AppTheme.error;
       default:
         return AppTheme.textMuted;
-    }
-  }
-
-  String _statusLabel() {
-    switch (settlement['status']) {
-      case 'paid':
-        return 'مدفوعة';
-      case 'approved':
-        return 'معتمدة';
-      case 'draft':
-        return 'مسودة';
-      case 'ready_for_review':
-        return 'قيد المراجعة';
-      case 'cancelled':
-        return 'ملغاة';
-      case 'corrected':
-        return 'معدّلة';
-      default:
-        return settlement['status']?.toString() ?? '—';
     }
   }
 
@@ -340,38 +330,48 @@ class _SettlementCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         '${_formatDate(settlement['period_start'])} ← ${_formatDate(settlement['period_end'])}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary),
                       ),
                     ),
                     AppTheme.statusChip(
-                      _statusLabel(),
+                      settlementStatusLabel(settlement['status']),
                       color: color.withValues(alpha: 0.12),
                       textColor: color,
                     ),
-                ],
-              ),
+                  ],
+                ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              // ───── الأرقام ─────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _miniStat('إجمالي', settlement['gross_sales']),
-                  _miniStat('عمولة', settlement['total_commission']),
-                  _miniStat('صافي', settlement['net_settlement'],
-                      bold: true, color: AppTheme.accentDark),
-                ],
-              ),
-            ],
+                // ───── الأرقام ─────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _miniStat('إجمالي', settlement['gross_sales']),
+                    _miniStat('عمولة', settlement['total_commission']),
+                    _miniStat(
+                      'صافي',
+                      settlement['net_settlement'],
+                      bold: true,
+                      color: settlementOwnerOwes(settlement['net_settlement'])
+                          ? AppTheme.error
+                          : AppTheme.accentDark,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
-  Widget _miniStat(String label, dynamic value, {bool bold = false, Color? color}) {
+  Widget _miniStat(String label, dynamic value,
+      {bool bold = false, Color? color}) {
     return Column(
       children: [
         Text(

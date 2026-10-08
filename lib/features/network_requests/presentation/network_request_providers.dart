@@ -14,7 +14,7 @@ final networkRequestRepositoryProvider = Provider<NetworkRequestRepository>((
   ref,
 ) {
   final config = ref.watch(appConfigProvider);
-  if (config.isDemoMode || !config.isConfigured) {
+  if (config.usesDemoData) {
     return FakeNetworkRequestRepository();
   }
   return SupabaseNetworkRequestRepository(Supabase.instance.client);

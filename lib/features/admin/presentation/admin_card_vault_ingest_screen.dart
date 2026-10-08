@@ -3,6 +3,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/error/error_log.dart';
+import '../../../core/utils/uuid_generator.dart';
 import '../../packages/presentation/package_providers.dart';
 import 'admin_providers.dart';
 
@@ -18,15 +20,19 @@ class _AdminCardVaultIngestScreenState
     extends ConsumerState<AdminCardVaultIngestScreen> {
   String? _selectedNetworkId;
   String? _selectedPackageId;
-  final _keyVersionController = TextEditingController(text: 'v1');
   final _cardsController = TextEditingController();
   bool _submitting = false;
   String? _message;
   String? _result;
 
+  /// Idempotency key of the batch being submitted. It is kept across a failed
+  /// or ambiguous attempt of the same payload, so retrying can never insert
+  /// the same cards twice, and renewed once the payload changes or succeeds.
+  String? _batchKey;
+  String? _batchFingerprint;
+
   @override
   void dispose() {
-    _keyVersionController.dispose();
     _cardsController.dispose();
     super.dispose();
   }
@@ -37,19 +43,21 @@ class _AdminCardVaultIngestScreenState
       return;
     }
 
-    final keyVersion = _keyVersionController.text.trim();
-    if (keyVersion.isEmpty) {
-      setState(() => _message = 'أدخل إصدار المفتاح');
-      return;
-    }
-
+    final cardsText = _cardsController.text.trim();
     List<Map<String, dynamic>> cards;
     try {
-      final parsed = jsonDecode(_cardsController.text.trim());
+      final parsed = jsonDecode(cardsText);
       if (parsed is! List) throw const FormatException('JSON array expected');
-      cards = parsed.cast<Map<String, dynamic>>();
-    } catch (e) {
-      setState(() => _message = 'صيغة JSON غير صحيحة: $e');
+      cards = [
+        for (final entry in parsed)
+          Map<String, dynamic>.from(entry as Map<dynamic, dynamic>),
+      ];
+    } catch (error, stackTrace) {
+      logError('Card batch JSON could not be parsed', error, stackTrace);
+      setState(
+        () => _message =
+            'صيغة JSON غير صحيحة. المطلوب مصفوفة من عناصر الكروت، مثل القالب.',
+      );
       return;
     }
 
@@ -64,30 +72,84 @@ class _AdminCardVaultIngestScreenState
       _result = null;
     });
 
+    final fingerprint = '$_selectedNetworkId|$_selectedPackageId|$cardsText';
+    if (_batchKey == null || _batchFingerprint != fingerprint) {
+      _batchKey = UuidGenerator.generateV4();
+      _batchFingerprint = fingerprint;
+    }
+
     try {
       final repo = ref.read(adminRepositoryProvider);
       final result = await repo.ingestCardVaultBatch(
         networkId: _selectedNetworkId!,
         packageId: _selectedPackageId!,
         cards: cards,
-        keyVersion: keyVersion,
+        batchKey: _batchKey,
       );
+      _batchKey = null;
+      _batchFingerprint = null;
       if (mounted) {
         setState(() {
-          _result =
-              'تم استيراد ${result['ingested_count']} بطاقة\nمعرف الدفعة: ${result['batch_id']}';
+          _result = _describeResult(result);
           _cardsController.clear();
         });
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
+      logError('Card batch ingest failed', error, stackTrace);
+      if (error.toString().contains('BATCH_KEY_REUSED')) {
+        // The key belongs to another package: the next attempt needs a new one.
+        _batchKey = null;
+        _batchFingerprint = null;
+      }
       if (mounted) {
-        setState(() => _message = 'فشل الاستيراد: $e');
+        setState(() => _message = _ingestErrorMessage(error));
       }
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  String _describeResult(Map<String, dynamic> result) {
+    final lines = <String>[
+      'تم استيراد ${result['ingested_count'] ?? 0} بطاقة',
+    ];
+    final duplicates = (result['duplicates_skipped'] as num?)?.toInt() ?? 0;
+    if (duplicates > 0) {
+      lines.add('تم تجاوز $duplicates بطاقة مكررة موجودة مسبقاً');
+    }
+    if (result['replayed'] == true) {
+      lines.add('هذه الدفعة أُرسلت من قبل؛ عُرضت نتيجتها السابقة دون تكرار.');
+    }
+    lines.add('معرف الدفعة: ${result['batch_id'] ?? '-'}');
+    return lines.join('\n');
+  }
+
+  String _ingestErrorMessage(Object error) {
+    final message = error.toString();
+    if (message.contains('TOO_MANY_CARDS')) {
+      return 'عدد الكروت في الدفعة أكبر من المسموح (5000). قسّم الدفعة ثم أعد المحاولة.';
+    }
+    if (message.contains('INVALID_CARDS')) {
+      return 'الدفعة فارغة. أضف بطاقة واحدة على الأقل ثم أعد المحاولة.';
+    }
+    if (message.contains('INVALID_CARD')) {
+      return 'توجد بطاقة غير صالحة في الدفعة (رمز فارغ، أطول من 64 حرفاً، أو يحتوي مسافات). صحّح البيانات ثم أعد المحاولة.';
+    }
+    if (message.contains('BATCH_KEY_REUSED')) {
+      return 'سبق إرسال هذه الدفعة لباقة أخرى. أعد فتح الصفحة ثم أرسلها من جديد.';
+    }
+    if (message.contains('INVALID_PACKAGE_REFERENCE')) {
+      return 'الباقة المختارة لا تتبع هذه الشبكة. اختر الشبكة والباقة من جديد.';
+    }
+    if (message.contains('INACTIVE_PROFILE')) {
+      return 'حسابك غير مفعّل حالياً ولا يمكنه استيراد الكروت.';
+    }
+    if (message.contains('UNAUTHENTICATED') || message.contains('FORBIDDEN')) {
+      return 'لا تملك صلاحية استيراد الكروت أو انتهت الجلسة. سجّل الدخول من جديد.';
+    }
+    return 'تعذر استيراد الدفعة. تحقق من الاتصال ثم أعد المحاولة؛ لن تتكرر البطاقات.';
   }
 
   @override
@@ -126,7 +188,9 @@ class _AdminCardVaultIngestScreenState
                 }),
               ),
               loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('خطأ في الشبكات: $e'),
+              error: (_, __) => const Text(
+                'تعذر تحميل الشبكات. تحقق من الاتصال ثم أعد فتح الصفحة.',
+              ),
             ),
             const SizedBox(height: 16),
             if (_selectedNetworkId != null)
@@ -148,23 +212,16 @@ class _AdminCardVaultIngestScreenState
                       setState(() => _selectedPackageId = value),
                 ),
                 loading: () => const CircularProgressIndicator(),
-                error: (e, _) => Text('خطأ في الباقات: $e'),
+                error: (_, __) => const Text(
+                  'تعذر تحميل الباقات. تحقق من الاتصال ثم أعد فتح الصفحة.',
+                ),
               ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _keyVersionController,
-              decoration: const InputDecoration(
-                labelText: 'إصدار المفتاح',
-                border: OutlineInputBorder(),
-              ),
-            ),
             const SizedBox(height: 16),
             TextField(
               controller: _cardsController,
               decoration: const InputDecoration(
-                labelText: 'مصفوفة الكروت المشفرة (JSON)',
-                hintText:
-                    '[{"ciphertext":"...","nonce":"...","auth_tag":"...","expires_at":"..."}]',
+                labelText: 'مصفوفة الكروت (JSON)',
+                hintText: '[{"pin":"...","expires_at":"..."}]',
                 border: OutlineInputBorder(),
               ),
               maxLines: 10,
@@ -174,9 +231,7 @@ class _AdminCardVaultIngestScreenState
               onPressed: () {
                 _cardsController.text = jsonEncode([
                   {
-                    'ciphertext': 'BASE64_CIPHERTEXT_HERE',
-                    'nonce': 'NONCE_HERE',
-                    'auth_tag': 'AUTH_TAG_HERE',
+                    'pin': 'CARD_PIN_HERE',
                     'expires_at': DateTime.now()
                         .add(const Duration(days: 365))
                         .toIso8601String(),

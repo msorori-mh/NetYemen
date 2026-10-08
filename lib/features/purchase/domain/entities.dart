@@ -35,6 +35,12 @@ class PurchaseOrder {
     required this.ownerNetAmount,
   });
 
+  /// Status used when the server did not send one. It is never revealable.
+  static const String unknownStatus = 'unknown';
+
+  /// Only a completed purchase may reveal its card.
+  bool get isRevealable => status == 'completed';
+
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
     final gross = (json['gross_amount'] as num?)?.toInt() ??
         (json['total_price'] as num?)?.toInt() ??
@@ -67,7 +73,8 @@ class PurchaseOrder {
           (json['amount_paid'] as num?)?.toInt() ??
           0,
       currency: json['currency'] as String? ?? 'YER',
-      status: json['status'] as String? ?? 'completed',
+      // A missing status must never look like a delivered purchase.
+      status: json['status'] as String? ?? unknownStatus,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

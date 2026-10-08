@@ -19,8 +19,8 @@ class SplashScreen extends ConsumerWidget {
 
     return authState.when(
       data: (state) {
-        final session = state.session ??
-            Supabase.instance.client.auth.currentSession;
+        final session =
+            state.session ?? Supabase.instance.client.auth.currentSession;
         return session != null ? const PinGate() : const LoginScreen();
       },
       loading: () {
@@ -68,7 +68,7 @@ class RoleGate extends ConsumerWidget {
         if (networks.isNotEmpty) {
           return const MainScreen();
         }
-        
+
         final hasRoleAsync = ref.watch(hasNetworkOwnerRoleProvider);
         return hasRoleAsync.when(
           data: (hasRole) {
@@ -85,7 +85,8 @@ class RoleGate extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
+                  const Icon(Icons.error_outline,
+                      size: 64, color: AppTheme.error),
                   const SizedBox(height: 16),
                   const Text(
                     'تعذّر التحقق من الصلاحيات',
@@ -93,7 +94,8 @@ class RoleGate extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => ref.invalidate(hasNetworkOwnerRoleProvider),
+                    onPressed: () =>
+                        ref.invalidate(hasNetworkOwnerRoleProvider),
                     child: const Text('إعادة المحاولة'),
                   )
                 ],

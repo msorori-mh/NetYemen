@@ -4,6 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'purchase_repository.dart';
 import '../domain/entities.dart';
 
+/// Newest-first page size for customer history lists. Keeps a long-lived
+/// account from downloading its whole history on every screen open.
+const int _customerListLimit = 100;
+
 class SupabasePurchaseRepository implements PurchaseRepository {
   final SupabaseClient _client;
 
@@ -13,15 +17,28 @@ class SupabasePurchaseRepository implements PurchaseRepository {
   Future<Map<String, dynamic>> purchasePackage({
     required String packageId,
     required String idempotencyKey,
+    required int expectedPrice,
   }) async {
     final result = await _client.rpc(
       'purchase_package',
       params: {
         'p_package_id': packageId,
         'p_idempotency_key': idempotencyKey,
+        'p_expected_price': expectedPrice,
       },
     );
-    return result as Map<String, dynamic>;
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  @override
+  Future<PurchaseOrder?> getMyPurchaseOrder(String purchaseId) async {
+    final row = await _client
+        .from('purchase_records')
+        .select('*, network_packages(name), networks(commercial_name)')
+        .eq('id', purchaseId)
+        .maybeSingle();
+    if (row == null) return null;
+    return PurchaseOrder.fromJson(row);
   }
 
   @override
@@ -29,7 +46,8 @@ class SupabasePurchaseRepository implements PurchaseRepository {
     final result = await _client
         .from('purchase_records')
         .select('*, network_packages(name), networks(commercial_name)')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(_customerListLimit);
     final list = result as List<dynamic>;
     return list.map((row) {
       final json = row as Map<String, dynamic>;
@@ -79,7 +97,8 @@ class SupabasePurchaseRepository implements PurchaseRepository {
     final result = await _client
         .from('card_fulfillment_records')
         .select('*, network_packages(name), networks(commercial_name)')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(_customerListLimit);
     final list = result as List<dynamic>;
     return list.map((row) {
       final json = row as Map<String, dynamic>;

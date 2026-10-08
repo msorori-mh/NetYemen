@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/owned_network_model.dart';
 import '../../providers/networks_providers.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/error_text.dart';
 import 'package_form_screen.dart';
 
 class NetworkDetailScreen extends ConsumerStatefulWidget {
@@ -11,10 +12,12 @@ class NetworkDetailScreen extends ConsumerStatefulWidget {
   const NetworkDetailScreen({super.key, required this.network});
 
   @override
-  ConsumerState<NetworkDetailScreen> createState() => _NetworkDetailScreenState();
+  ConsumerState<NetworkDetailScreen> createState() =>
+      _NetworkDetailScreenState();
 }
 
-class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with SingleTickerProviderStateMixin {
+class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -29,9 +32,20 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
     super.dispose();
   }
 
+  void _showError(Object error, StackTrace stackTrace) {
+    final message = describeError(
+      error,
+      stackTrace: stackTrace,
+      where: 'owner.network_detail',
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   void _showAddSsidDialog(BuildContext context) {
     final displayController = TextEditingController();
-    final normalizedController = TextEditingController();
 
     showDialog(
       context: context,
@@ -43,11 +57,13 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
             children: [
               TextField(
                 controller: displayController,
-                decoration: const InputDecoration(labelText: 'اسم الشبكة (Display)'),
-              ),
-              TextField(
-                controller: normalizedController,
-                decoration: const InputDecoration(labelText: 'الاسم الموحد (Normalized)'),
+                maxLength: 32,
+                decoration: const InputDecoration(
+                  labelText: 'اسم شبكة الواي فاي (SSID)',
+                  helperText: 'اكتبه كما يظهر في قائمة الواي فاي تماماً. '
+                      'يُفعَّل بعد اعتماد الإدارة.',
+                  helperMaxLines: 3,
+                ),
               ),
             ],
           ),
@@ -59,23 +75,20 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
             ElevatedButton(
               onPressed: () async {
                 final display = displayController.text.trim();
-                final normalized = normalizedController.text.trim();
-                if (display.isEmpty || normalized.isEmpty) return;
-                
+                if (display.isEmpty) return;
+
                 try {
-                  await ref.read(networksServiceProvider).createSsidAlias(
-                    widget.network.id, display, normalized
-                  );
+                  // الاسم الموحّد (normalized) يحسبه الخادم؛ لا يُدخله المالك.
+                  final service = ref.read(networksServiceProvider);
+                  await service.createSsidAlias(widget.network.id, display);
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ref.invalidate(networkSsidAliasesProvider(widget.network.id));
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('خطأ: $e')),
+                    ref.invalidate(
+                      networkSsidAliasesProvider(widget.network.id),
                     );
                   }
+                } catch (e, st) {
+                  _showError(e, st);
                 }
               },
               child: const Text('إضافة'),
@@ -118,7 +131,8 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PackageFormScreen(networkId: widget.network.id),
+                builder: (context) =>
+                    PackageFormScreen(networkId: widget.network.id),
               ),
             ).then((_) {
               ref.invalidate(networkPackagesProvider(widget.network.id));
@@ -189,12 +203,13 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                         'نشر',
                         () async {
                           try {
-                            await ref.read(networksServiceProvider).publishNetworkPackage(pkg['id']);
-                            ref.invalidate(networkPackagesProvider(widget.network.id));
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
-                            }
+                            final service = ref.read(networksServiceProvider);
+                            await service.publishNetworkPackage(pkg['id']);
+                            ref.invalidate(
+                              networkPackagesProvider(widget.network.id),
+                            );
+                          } catch (e, st) {
+                            _showError(e, st);
                           }
                         },
                       ),
@@ -205,12 +220,13 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                         'تعطيل',
                         () async {
                           try {
-                            await ref.read(networksServiceProvider).deactivateNetworkPackage(pkg['id']);
-                            ref.invalidate(networkPackagesProvider(widget.network.id));
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
-                            }
+                            final service = ref.read(networksServiceProvider);
+                            await service.deactivateNetworkPackage(pkg['id']);
+                            ref.invalidate(
+                              networkPackagesProvider(widget.network.id),
+                            );
+                          } catch (e, st) {
+                            _showError(e, st);
                           }
                         },
                       ),
@@ -228,7 +244,8 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                             ),
                           ),
                         ).then((_) {
-                          ref.invalidate(networkPackagesProvider(widget.network.id));
+                          ref.invalidate(
+                              networkPackagesProvider(widget.network.id));
                         });
                       },
                     ),
@@ -236,11 +253,17 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                       Padding(
                         padding: const EdgeInsetsDirectional.only(start: 8),
                         child: AppTheme.statusChip(
-                          pkg['status'] == 'active' ? 'نشطة' : (pkg['status'] == 'draft' ? 'مسودة' : pkg['status']),
+                          pkg['status'] == 'active'
+                              ? 'نشطة'
+                              : (pkg['status'] == 'draft'
+                                  ? 'مسودة'
+                                  : pkg['status']),
                           color: pkg['status'] == 'active'
                               ? AppTheme.success.withValues(alpha: 0.12)
                               : AppTheme.warning.withValues(alpha: 0.12),
-                          textColor: pkg['status'] == 'active' ? AppTheme.success : AppTheme.warning,
+                          textColor: pkg['status'] == 'active'
+                              ? AppTheme.success
+                              : AppTheme.warning,
                         ),
                       ),
                   ],
@@ -253,12 +276,14 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
       loading: () => AppTheme.loadingIndicator(),
       error: (e, st) => AppTheme.errorState(
         message: 'تعذّر تحميل الباقات',
-        onRetry: () => ref.invalidate(networkPackagesProvider(widget.network.id)),
+        onRetry: () =>
+            ref.invalidate(networkPackagesProvider(widget.network.id)),
       ),
     );
   }
 
-  Widget _actionIcon(IconData icon, Color color, String tooltip, VoidCallback onTap) {
+  Widget _actionIcon(
+      IconData icon, Color color, String tooltip, VoidCallback onTap) {
     return IconButton(
       icon: Icon(icon, color: color, size: 20),
       onPressed: onTap,
@@ -301,7 +326,8 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.wifi_rounded, color: AppTheme.primary, size: 20),
+                    child: const Icon(Icons.wifi_rounded,
+                        color: AppTheme.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -318,8 +344,10 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Normalized: ${ssid['ssid_normalized']}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          'الاسم الموحّد (من الخادم): '
+                          '${ssid['ssid_normalized']}',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textMuted),
                         ),
                       ],
                     ),
@@ -329,7 +357,9 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
                     color: ssid['status'] == 'active'
                         ? AppTheme.success.withValues(alpha: 0.12)
                         : AppTheme.textMuted.withValues(alpha: 0.12),
-                    textColor: ssid['status'] == 'active' ? AppTheme.success : AppTheme.textMuted,
+                    textColor: ssid['status'] == 'active'
+                        ? AppTheme.success
+                        : AppTheme.textMuted,
                   ),
                 ],
               ),
@@ -340,7 +370,8 @@ class _NetworkDetailScreenState extends ConsumerState<NetworkDetailScreen> with 
       loading: () => AppTheme.loadingIndicator(),
       error: (e, st) => AppTheme.errorState(
         message: 'تعذّر تحميل SSIDs',
-        onRetry: () => ref.invalidate(networkSsidAliasesProvider(widget.network.id)),
+        onRetry: () =>
+            ref.invalidate(networkSsidAliasesProvider(widget.network.id)),
       ),
     );
   }

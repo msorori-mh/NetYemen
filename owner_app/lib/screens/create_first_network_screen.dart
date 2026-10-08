@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/owner_providers.dart';
+import '../providers/session_providers.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import '../utils/error_text.dart';
 
 class CreateFirstNetworkScreen extends ConsumerStatefulWidget {
   const CreateFirstNetworkScreen({super.key});
@@ -13,7 +14,8 @@ class CreateFirstNetworkScreen extends ConsumerStatefulWidget {
       _CreateFirstNetworkScreenState();
 }
 
-class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScreen> {
+class _CreateFirstNetworkScreenState
+    extends ConsumerState<CreateFirstNetworkScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
@@ -56,15 +58,15 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
 
       // Invalidate owned networks to refresh the RoleGate and go to Dashboard
       ref.invalidate(ownedNetworksProvider);
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ في قاعدة البيانات: ${e.message}')),
+    } catch (e, st) {
+      final message = describeError(
+        e,
+        stackTrace: st,
+        where: 'owner.create_network',
       );
-    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ غير متوقع: $e')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) {
@@ -73,8 +75,13 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
     }
   }
 
-  void _signOut() {
-    ref.read(ownerServiceProvider).signOut();
+  Future<void> _signOut() async {
+    final signedOut = await signOutOwner(ref);
+    if (!mounted) return;
+    if (signedOut) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(signOutFailedText)),
+    );
   }
 
   @override
@@ -118,7 +125,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Commercial Name
                 TextFormField(
                   controller: _commercialNameController,
@@ -134,7 +141,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Governorate
                 DropdownButtonFormField<String>(
                   initialValue: _selectedGovernorate,
@@ -161,7 +168,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // City
                 TextFormField(
                   controller: _cityController,
@@ -171,7 +178,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // District
                 TextFormField(
                   controller: _districtController,
@@ -181,7 +188,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Description
                 TextFormField(
                   controller: _descriptionController,
@@ -192,7 +199,7 @@ class _CreateFirstNetworkScreenState extends ConsumerState<CreateFirstNetworkScr
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Submit Button
                 SizedBox(
                   height: 54,

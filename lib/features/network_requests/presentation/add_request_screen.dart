@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/error/error_log.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/auth_required_gate.dart';
 import '../../network_discovery/presentation/network_discovery_providers.dart';
@@ -90,11 +91,16 @@ class _AddRequestScreenState extends ConsumerState<AddRequestScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('تم إرسال الطلب بنجاح')));
       Navigator.pop(context);
-    } catch (e) {
+    } catch (error, stackTrace) {
+      logError('Network request submission failed', error, stackTrace);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('فشل إرسال الطلب: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تعذر إرسال الطلب. تحقق من الاتصال ثم أعد المحاولة.',
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

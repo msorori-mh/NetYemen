@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class OwnerNetworksService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  Future<List<Map<String, dynamic>>> getNetworkPackages(String networkId) async {
+  Future<List<Map<String, dynamic>>> getNetworkPackages(
+      String networkId) async {
     final response = await _client
         .from('network_packages')
         .select()
@@ -61,14 +62,17 @@ class OwnerNetworksService {
   }
 
   Future<void> publishNetworkPackage(String packageId) async {
-    await _client.rpc('publish_network_package', params: {'p_package_id': packageId});
+    await _client
+        .rpc('publish_network_package', params: {'p_package_id': packageId});
   }
 
   Future<void> deactivateNetworkPackage(String packageId) async {
-    await _client.rpc('deactivate_network_package', params: {'p_package_id': packageId});
+    await _client
+        .rpc('deactivate_network_package', params: {'p_package_id': packageId});
   }
 
-  Future<List<Map<String, dynamic>>> getNetworkSsidAliases(String networkId) async {
+  Future<List<Map<String, dynamic>>> getNetworkSsidAliases(
+      String networkId) async {
     final response = await _client
         .from('network_ssid_aliases')
         .select()
@@ -77,12 +81,15 @@ class OwnerNetworksService {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<void> createSsidAlias(String networkId, String ssidDisplay, String ssidNormalized) async {
+  /// يضيف SSID للشبكة بانتظار اعتماد الإدارة.
+  ///
+  /// يُرسَل الاسم الظاهر فقط: `ssid_normalized` يحسبه الخادم دائماً من
+  /// `ssid_display` عبر trigger `enforce_ssid_normalization`، والحالة تبدأ
+  /// `pending_verification` افتراضياً (المالك لا يستطيع ضبط غيرها).
+  Future<void> createSsidAlias(String networkId, String ssidDisplay) async {
     await _client.from('network_ssid_aliases').insert({
       'network_id': networkId,
       'ssid_display': ssidDisplay,
-      'ssid_normalized': ssidNormalized,
-      // status will default to 'pending_verification'
     });
   }
 }

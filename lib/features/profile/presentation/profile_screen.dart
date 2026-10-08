@@ -73,7 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          if (config.isDemoMode)
+          if (config.usesDemoData)
             Card(
               color: AppTheme.warning.withValues(alpha: 0.1),
               child: const Padding(

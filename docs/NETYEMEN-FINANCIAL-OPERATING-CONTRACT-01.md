@@ -7,6 +7,29 @@
 
 ---
 
+## Implementation status (2026-10-08)
+
+> This section records what the code in `supabase/migrations` (up to
+> `20261008094000`) actually does where it differs from, or is narrower than,
+> the proposed contract below. The contract text itself is unchanged. Operator
+> procedures are in [OPERATIONS-RUNBOOK.md](OPERATIONS-RUNBOOK.md).
+
+| Topic | Contract below | Implemented |
+|---|---|---|
+| Accounting model | "Double-entry" | **Single-entry** customer ledger. `customer_wallet_ledger` (called `wallet_ledger_entries` below) holds one signed movement per event for the customer's wallet only; there are no platform, owner or clearing accounts and no balancing counter-entry. `wallet_accounts.cached_balance` is a cached sum maintained by the trigger `trg_update_wallet_account_balance` on ledger insert. |
+| Ledger immutability | Append-only | Enforced since `20261008092000`: `trg_customer_wallet_ledger_append_only` rejects UPDATE and DELETE, a statement trigger rejects TRUNCATE, RLS is SELECT-only and clients have no write grants. Corrections are new compensating entries. `entry_type` allows `CREDIT`, `DEBIT`, `REVERSAL`; refunds are written as `CREDIT`. |
+| Non-negative balance | Invariant | `CHECK (cached_balance >= 0)` on the wallet and `CHECK (balance_after >= 0)` on the ledger; `purchase_package` locks the wallet row and refuses with `INSUFFICIENT_BALANCE`; a non-active wallet is refused with `WALLET_FROZEN`. |
+| Price authority | Server-side | The debit is always the current package price. The client may pass `p_expected_price`; a mismatch raises `PRICE_CHANGED` instead of charging a different amount. |
+| Idempotency | Unique key per event | Unique `(user_id, idempotency_key)` on ledger, deposits and purchases; concurrent calls with one key are serialized by an advisory lock and the second returns `replayed`. A key reused for another package raises `IDEMPOTENCY_KEY_REUSED`. |
+| Reconciliation | Daily, automatic, release-blocking | `finance_reconcile_wallets()` exists and returns the wallets whose cached balance differs from the ledger sum (empty = healthy). It is **not scheduled** and raises no alert; someone must run it daily. Card-inventory and owner-payable reconciliation formulas (4.2, 4.3) have no function. |
+| Deposit approval | Finance review | Self-review is refused. Dual approval applies when the amount, **or the amount plus the same customer's approvals of the previous 24 hours**, reaches `deposit_dual_approval_threshold()` (50000 YER): the first approval only moves the request to `under_review`, a different reviewer credits. A bank reference is credited once per destination. |
+| Refund vs settlement | Net payable formula | A sale refunded before settlement is voided (no line). A sale refunded after it was included or paid produces a refund line with `net_amount = -(owner net)` carrying the commission of the reversed sale; the platform gives up that commission. `total_refunds` is the owner net clawed back and `net_settlement = gross_sales - total_commission - total_refunds`, which can be negative. Batches created before `20261008090000` may contain wrong refund deductions (see the runbook). |
+| Settlement control | — | Creator and approver must differ. Draft / ready-for-review batches can be cancelled with a reason. |
+| Payout | Settlement payment | **No payout ledger.** "Paid" is the batch status plus a mandatory free-text payment reference stored in `settlement_batches.notes` and in the audit event. The system does not move or verify money and has no adjustment RPC (`total_adjustments` is always 0). |
+| Amount types | Integer YER | Whole rials everywhere, nothing is scaled by 100. Wallet balances, ledger amounts and the batch aggregates (`gross_sales`, `total_commission`, `total_refunds`, `net_settlement`) are 32-bit `INTEGER` columns, so a single balance or batch total is limited to 2,147,483,647 YER; exceeding it fails the transaction rather than wrapping. |
+
+---
+
 ## 1. Wallet & Double-Entry Accounting Model
 
 To guarantee 100% financial integrity, NetYemen employs an **Append-Only Immutable Ledger Architecture**. Wallet balances are NEVER updated via direct arithmetic modifications on database tables. Every movement of funds is represented by a double-entry or verified single-direction ledger record.

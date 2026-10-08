@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/money_format.dart';
 import '../../../core/widgets/customer_load_error.dart';
 import '../domain/entities.dart';
 import 'card_reveal_screen.dart';
@@ -49,7 +50,7 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
       return const Center(child: Text('لم يتم العثور على عملية الشراء'));
     }
 
-    final isCompleted = purchase.status == 'completed';
+    final isCompleted = purchase.isRevealable;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -164,7 +165,7 @@ class _InfoCard extends StatelessWidget {
             const Divider(height: 24),
             _row(
               'المبلغ المدفوع',
-              '${purchase.totalPrice} ${purchase.currency}',
+              formatYer(purchase.totalPrice, currency: purchase.currency),
             ),
           ],
         ),
@@ -194,6 +195,8 @@ class _InfoCard extends StatelessWidget {
         return 'متنازع عليه';
       case 'cancelled':
         return 'ملغي';
+      case PurchaseOrder.unknownStatus:
+        return 'غير معروفة';
       default:
         return status;
     }
@@ -201,6 +204,8 @@ class _InfoCard extends StatelessWidget {
 
   String _formatDate(DateTime? date) {
     if (date == null) return '-';
-    return '${date.day}/${date.month}/${date.year}';
+    // The server stores UTC; show the customer's local calendar day.
+    final local = date.toLocal();
+    return '${local.day}/${local.month}/${local.year}';
   }
 }

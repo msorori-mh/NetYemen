@@ -1,6 +1,56 @@
 -- TEST_ONLY NetYemen V1 local pilot seed. Never use against a remote project.
 -- All identities, references, amounts, and names below are synthetic.
 
+-- ---------------------------------------------------------------------------
+-- LOCAL-ONLY GUARD. This file creates privileged synthetic accounts
+-- (platform_admin, finance_officer, ...) and wallet credit. It must abort
+-- before the first INSERT unless ALL of the following hold:
+--   1. the session explicitly opted in:  SET app.allow_local_seed = 'on';
+--      (scripts/reset_netyemen_local_pilot.ps1 does this; the Supabase CLI
+--      never does, and automatic seeding is disabled in supabase/config.toml)
+--   2. the database is the local stack's `postgres` database, reached over a
+--      Unix socket, loopback or a private (RFC 1918, e.g. Docker bridge)
+--      address; a public server address is always refused;
+--   3. the database holds no account other than this seed's own synthetic
+--      *@pilot.netyemen.test identities (a database with real users is never
+--      a seed target).
+-- The address test alone is only a heuristic (cloud hosts also use private
+-- ranges); conditions 1 and 3 are the ones that stop a hosted project.
+-- Run with psql -v ON_ERROR_STOP=1 so the exception stops the whole file.
+-- ---------------------------------------------------------------------------
+DO $seed_guard$
+DECLARE
+  v_address inet := inet_server_addr();
+  v_opt_in  text := coalesce(current_setting('app.allow_local_seed', true), '');
+BEGIN
+  IF v_opt_in <> 'on' THEN
+    RAISE EXCEPTION 'LOCAL_ONLY seed refused: app.allow_local_seed is not ''on''. Use scripts/reset_netyemen_local_pilot.ps1 against the local stack only.';
+  END IF;
+
+  IF current_database() <> 'postgres' THEN
+    RAISE EXCEPTION 'LOCAL_ONLY seed refused: unexpected database %.', current_database();
+  END IF;
+
+  IF NOT (
+    v_address IS NULL
+    OR host(v_address) LIKE '127.%'
+    OR host(v_address) = '::1'
+    OR v_address << inet '172.16.0.0/12'
+    OR v_address << inet '192.168.0.0/16'
+    OR v_address << inet '10.0.0.0/8'
+  ) THEN
+    RAISE EXCEPTION 'LOCAL_ONLY seed refused: server address % is not loopback or a private local address.', host(v_address);
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE email IS NULL OR email NOT LIKE '%@pilot.netyemen.test'
+  ) THEN
+    RAISE EXCEPTION 'LOCAL_ONLY seed refused: this database contains accounts that are not TEST_ONLY pilot seed identities.';
+  END IF;
+END
+$seed_guard$;
+
 INSERT INTO auth.users (
   id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,invited_at,
   confirmation_token,confirmation_sent_at,recovery_token,recovery_sent_at,

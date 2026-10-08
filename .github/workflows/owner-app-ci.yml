@@ -1,0 +1,63 @@
+name: Owner App CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'owner_app/**'
+      - '.github/workflows/owner-app-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'owner_app/**'
+      - '.github/workflows/owner-app-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Owner App Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: owner_app
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Locked Dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze Static Code
+        run: flutter analyze lib test
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build Debug APK
+        run: flutter build apk --debug

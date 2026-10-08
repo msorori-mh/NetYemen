@@ -1,6 +1,8 @@
 // lib/services/owner_inventory_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../utils/card_batch_validator.dart';
+
 /// خدمة المخزون لأصحاب الشبكات — F-OWN-04 (رفع الكروت) و F-OWN-05 (التحكم بالمخزون).
 ///
 /// تستخدم `Supabase.instance.client` مباشرة (لا تعدّل `owner_supabase_service.dart`).
@@ -11,62 +13,37 @@ class OwnerInventoryService {
 
   // ==================== F-OWN-04: CARD UPLOAD ====================
 
-  /// التحقق المسبق من الدُفعة قبل الرفع: يكشف التكرارات داخل الدُفعة والأسطر الفارغة.
-  ///
-  /// يُعيد خريطة:
-  /// - `validPins`: القائمة النظيفة بعد الحذف.
-  /// - `duplicates`: قائمة الأرقام المكرّرة.
-  /// - `emptyLines`: عدد الأسطر الفارغة المُتجاهَلة.
-  static Map<String, dynamic> validateBatch(String rawText) {
-    final lines = rawText.split('\n');
-    final seen = <String>{};
-    final validPins = <String>[];
-    final duplicates = <String>[];
-    int emptyLines = 0;
-
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) {
-        emptyLines++;
-        continue;
-      }
-      if (seen.contains(trimmed)) {
-        duplicates.add(trimmed);
-      } else {
-        seen.add(trimmed);
-        validPins.add(trimmed);
-      }
-    }
-
-    return {
-      'validPins': validPins,
-      'duplicates': duplicates,
-      'emptyLines': emptyLines,
-    };
-  }
-
   /// رفع دُفعة كروت عبر `admin_ingest_card_vault_batch`.
   ///
-  /// [pins] — القائمة النظيفة بعد التحقق.
-  /// [expiresAt] — تاريخ انتهاء اختياري (ISO 8601).
-  /// يُعيد `{batch_id, ingested_count}`.
-  Future<Map<String, dynamic>> uploadCardBatch({
+  /// [pins] — القائمة النظيفة بعد التحقق (راجع `validateCardBatch`).
+  /// [batchKey] — مفتاح عدم التكرار (UUID): إعادة الإرسال بنفس المفتاح تعيد
+  /// نتيجة الرفع الأول مع `replayed: true` بدل إدخال الكروت مرتين.
+  /// [expiresAt] — تاريخ انتهاء اختياري (ISO 8601 بتوقيت UTC).
+  /// يُعيد `{batch_id, ingested_count, duplicates_skipped, replayed}`.
+  Future<CardBatchUploadResult> uploadCardBatch({
     required String networkId,
     required String packageId,
     required List<String> pins,
+    required String batchKey,
     String? expiresAt,
   }) async {
-    final pCards = pins
-        .map((pin) => {'pin': pin, 'expires_at': expiresAt})
-        .toList();
+    final pCards = [
+      for (final pin in pins) {'pin': pin, 'expires_at': expiresAt},
+    ];
 
-    final response = await _client.rpc('admin_ingest_card_vault_batch', params: {
-      'p_network_id': networkId,
-      'p_package_id': packageId,
-      'p_cards': pCards,
-    });
+    final response = await _client.rpc(
+      'admin_ingest_card_vault_batch',
+      params: {
+        'p_network_id': networkId,
+        'p_package_id': packageId,
+        'p_cards': pCards,
+        'p_batch_key': batchKey,
+      },
+    );
 
-    return Map<String, dynamic>.from(response as Map);
+    return CardBatchUploadResult.fromJson(
+      Map<String, dynamic>.from(response as Map),
+    );
   }
 
   // ==================== F-OWN-05: INVENTORY ====================
@@ -75,13 +52,14 @@ class OwnerInventoryService {
   ///
   /// يُعيد قائمة بأعمدة: package_id, network_id, total_units,
   /// available_units, is_available, updated_at.
-  Future<List<Map<String, dynamic>>> getInventoryBalances(String networkId) async {
+  Future<List<Map<String, dynamic>>> getInventoryBalances(
+      String networkId) async {
     final response = await _client
         .from('package_inventory_balances')
         .select()
         .eq('network_id', networkId)
         .order('updated_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response as List);
+    return List<Map<String, dynamic>>.from(response);
   }
 
   /// بيانات بطاقات المخزون الوصفية عبر `admin_list_card_vault_metadata`.
@@ -93,7 +71,8 @@ class OwnerInventoryService {
     String networkId, {
     String? state,
   }) async {
-    final response = await _client.rpc('admin_list_card_vault_metadata', params: {
+    final response =
+        await _client.rpc('admin_list_card_vault_metadata', params: {
       'p_network_id': networkId,
       'p_state': state,
     });
@@ -111,15 +90,5 @@ class OwnerInventoryService {
       breakdown[state] = (breakdown[state] ?? 0) + 1;
     }
     return breakdown;
-  }
-
-  /// الباقات المتاحة لشبكة معيّنة (لاختيار الباقة عند رفع الكروت).
-  Future<List<Map<String, dynamic>>> getNetworkPackages(String networkId) async {
-    final response = await _client
-        .from('network_packages')
-        .select('id, name, price, currency, duration_value, duration_unit, speed_mbps, package_type, status')
-        .eq('network_id', networkId)
-        .order('price', ascending: true);
-    return List<Map<String, dynamic>>.from(response as List);
   }
 }

@@ -56,18 +56,30 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: background,
       textTheme: const TextTheme(
-        displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textPrimary),
-        displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textPrimary),
-        displaySmall: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textPrimary),
-        headlineLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimary),
-        headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textPrimary),
-        headlineSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
-        titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
-        titleMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: textPrimary),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: textSecondary),
-        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: textMuted),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textOnPrimary),
+        displayLarge: TextStyle(
+            fontSize: 32, fontWeight: FontWeight.bold, color: textPrimary),
+        displayMedium: TextStyle(
+            fontSize: 28, fontWeight: FontWeight.bold, color: textPrimary),
+        displaySmall: TextStyle(
+            fontSize: 24, fontWeight: FontWeight.bold, color: textPrimary),
+        headlineLarge: TextStyle(
+            fontSize: 22, fontWeight: FontWeight.bold, color: textPrimary),
+        headlineMedium: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.bold, color: textPrimary),
+        headlineSmall: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
+        titleLarge: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
+        titleMedium: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
+        bodyLarge: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.normal, color: textPrimary),
+        bodyMedium: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.normal, color: textSecondary),
+        bodySmall: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.normal, color: textMuted),
+        labelLarge: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w600, color: textOnPrimary),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: surface,
@@ -76,7 +88,8 @@ class AppTheme {
         centerTitle: true,
         scrolledUnderElevation: 2,
         iconTheme: IconThemeData(color: textPrimary),
-        titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
+        titleTextStyle: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -91,7 +104,8 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -100,7 +114,8 @@ class AppTheme {
           side: const BorderSide(color: primary, width: 1.5),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -112,7 +127,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: border),
@@ -132,22 +148,26 @@ class AppTheme {
         hintStyle: const TextStyle(color: textMuted),
         labelStyle: const TextStyle(color: textSecondary),
       ),
-      dividerTheme: const DividerThemeData(color: border, thickness: 1, space: 1),
+      dividerTheme:
+          const DividerThemeData(color: border, thickness: 1, space: 1),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
         selectedItemColor: primary,
         unselectedItemColor: textMuted,
         selectedIconTheme: IconThemeData(size: 28),
         unselectedIconTheme: IconThemeData(size: 24),
-        selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+        selectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
       chipTheme: const ChipThemeData(
         shape: StadiumBorder(),
         backgroundColor: primarySoft,
-        labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primary),
+        labelStyle: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w600, color: primary),
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         side: BorderSide.none,
       ),

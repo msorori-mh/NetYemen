@@ -180,13 +180,40 @@ class FakeFinanceRepository implements FinanceRepository {
   @override
   Future<Map<String, dynamic>> markSettlementPaid(
     String batchId, {
-    String? notes,
+    required String paymentReference,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
+    // Mirror the server contract so the demo cannot accept what production
+    // rejects.
+    final reference = paymentReference.trim();
+    if (reference.isEmpty) {
+      throw StateError('PAYMENT_REFERENCE_REQUIRED: Provide the reference.');
+    }
     final batch = _settlementBatches.firstWhere((b) => b['id'] == batchId);
+    if (batch['status'] != 'approved') {
+      throw StateError('INVALID_STATE: Batch must be approved first.');
+    }
     batch['status'] = 'paid';
-    batch['notes'] = notes;
+    batch['notes'] = reference;
     return {'id': batchId, 'status': 'paid'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> cancelSettlementBatch(
+    String batchId, {
+    required String reason,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (reason.trim().isEmpty) {
+      throw StateError('REASON_REQUIRED: A cancellation reason is required.');
+    }
+    final batch = _settlementBatches.firstWhere((b) => b['id'] == batchId);
+    final status = batch['status'];
+    if (status != 'draft' && status != 'ready_for_review') {
+      throw StateError('INVALID_STATE: Only a draft batch can be cancelled.');
+    }
+    batch['status'] = 'cancelled';
+    return {'id': batchId, 'status': 'cancelled', 'released_items': 0};
   }
 
   @override

@@ -394,3 +394,15 @@ td.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .btn { min-height: 44px; }
   .btn-sm { min-height: 36px; }
 }
+
+/* عناصر تُخفى حسب الدور (السمة hidden يجب أن تتغلب على display المعرّف للروابط) */
+[hidden] { display: none !important; }
+
+/* حالة خطأ تحميل داخل القسم — تمييز واضح عن «لا توجد بيانات» */
+.load-error { background: var(--error-bg); border: 1px solid var(--error); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; color: var(--error); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.load-error strong { font-weight: 700; }
+
+/* تفاصيل مراجعة طلبات الشحن */
+.kv { font-size: 13px; line-height: 1.7; }
+.kv .k { color: var(--text-muted); }
+.dual-note { margin-top: 6px; padding: 6px 8px; border-radius: var(--radius-sm); background: var(--warning-bg); color: #8A5A12; font-size: 12px; font-weight: 600; max-width: 260px; }

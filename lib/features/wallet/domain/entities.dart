@@ -51,7 +51,10 @@ class DepositRequest {
       currency: json['currency'] as String? ?? 'YER',
       status: json['status'] as String? ?? 'submitted',
       channelId: json['bank_directory_id'] as String?,
-      proofReference: json['proof_storage_path'] as String?,
+      // `reference_number` is the customer's transfer reference. Older rows
+      // also carried it in `proof_storage_path`.
+      proofReference: json['reference_number'] as String? ??
+          json['proof_storage_path'] as String?,
       reviewerNotes: json['rejection_reason'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>واصل نت — لوحة الإدارة</title>
-  <link rel="stylesheet" href="./styles.css?v=20260914b">
+  <link rel="stylesheet" href="./styles.css?v=20261008b">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
     
     <div id="step-google">
       <button class="btn btn-primary w-full mt-4" id="google-signin">تسجيل الدخول عبر Google</button>
-      <p class="login-hint mt-2">يجب أن يملك الحساب صلاحية إدارة المنصة</p>
+      <p class="login-hint mt-2">يجب أن يملك الحساب دور مدير منصة أو موظف مالية أو دعم فني</p>
     </div>
   </div>
 </div>
@@ -95,8 +95,8 @@
   <main class="main-content">
     <div class="topbar">
       <h2 id="page-title">لوحة القيادة</h2>
-      <button class="menu-toggle btn btn-icon" id="menu-toggle">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      <button class="menu-toggle btn btn-icon" id="menu-toggle" type="button" aria-label="فتح أو إغلاق القائمة الجانبية">
+        <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
     <div id="view" class="view-container"></div>
@@ -105,10 +105,10 @@
 
 <!-- Custom Modal Overlay -->
 <div id="modal-overlay" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
       <h3 id="modal-title">تأكيد</h3>
-      <button class="btn btn-icon btn-close" id="modal-close">&times;</button>
+      <button class="btn btn-icon btn-close" id="modal-close" type="button" aria-label="إغلاق النافذة">&times;</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer" id="modal-footer"></div>
@@ -116,11 +116,18 @@
 </div>
 
 <!-- Non-blocking Toasts -->
-<div id="toast-container" class="toast-container"></div>
+<div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="./config.js?v=20260914b"></script>
-<script src="./app.js?v=20260914b"></script>
+<!--
+  TODO(SRI): هذا السكربت يُحمَّل من CDN بلا Subresource Integrity.
+  احسب التجزئة بالأمر الموثّق في admin/README.md ثم أضف السمة:
+    integrity="sha384-<الناتج>"
+  إلى الوسم التالي (crossorigin="anonymous" موجودة مسبقاً وهي شرط لعمل SRI).
+  لا تضع تجزئة لم تحسبها بنفسك من الملف الفعلي لهذا الإصدار المثبّت (2.45.4).
+-->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script src="./config.js?v=20261008b"></script>
+<script src="./app.js?v=20261008b"></script>
 
 </body>
 </html>

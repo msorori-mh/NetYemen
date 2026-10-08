@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config_provider.dart';
+import '../../../core/utils/money_format.dart';
 import '../../../core/widgets/customer_load_error.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
@@ -17,7 +18,7 @@ class WalletScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
-    if (user == null && !config.isDemoMode) {
+    if (user == null && !config.usesDemoData) {
       return Scaffold(
         appBar: AppBar(title: const Text('المحفظة')),
         body: Directionality(
@@ -78,7 +79,8 @@ class WalletScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       walletAsync.when(
                         data: (wallet) => Text(
-                          '${wallet.balance} ${wallet.currency}',
+                          formatYer(wallet.balance, currency: wallet.currency),
+                          key: const Key('wallet-balance'),
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
