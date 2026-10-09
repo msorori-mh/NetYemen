@@ -196,7 +196,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _isLoading
                           ? null
                           : () => setState(
-                                () => _showPasswordSignIn = !_showPasswordSignIn,
+                                () =>
+                                    _showPasswordSignIn = !_showPasswordSignIn,
                               ),
                       child: Text(
                         _showPasswordSignIn

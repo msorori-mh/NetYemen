@@ -58,21 +58,24 @@ void main() {
   testWidgets('asks for the PIN, rejects a wrong one, accepts the right one', (
     tester,
   ) async {
-    final pins = FakePinRepository(recentlyVerified: false, verifyResult: false);
+    final pins =
+        FakePinRepository(recentlyVerified: false, verifyResult: false);
     await tester.pumpWidget(buildHarness(pins));
 
     await tester.tap(find.byKey(const Key('protected-action')));
     await tester.pumpAndSettle();
     expect(find.byType(PinConfirmDialog), findsOneWidget);
 
-    await tester.enterText(find.byKey(const Key('pin-confirm-field')), '111111');
+    await tester.enterText(
+        find.byKey(const Key('pin-confirm-field')), '111111');
     await tester.tap(find.byKey(const Key('pin-confirm-submit')));
     await tester.pumpAndSettle();
     expect(find.text('الرمز السري غير صحيح'), findsOneWidget);
     expect(outcome, isNull);
 
     pins.verifyResult = true;
-    await tester.enterText(find.byKey(const Key('pin-confirm-field')), '٢٤٦٨١٠');
+    await tester.enterText(
+        find.byKey(const Key('pin-confirm-field')), '٢٤٦٨١٠');
     await tester.tap(find.byKey(const Key('pin-confirm-submit')));
     await tester.pumpAndSettle();
 
@@ -101,7 +104,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('protected-action')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('pin-confirm-field')), '123456');
+    await tester.enterText(
+        find.byKey(const Key('pin-confirm-field')), '123456');
     await tester.tap(find.byKey(const Key('pin-confirm-submit')));
     await tester.pumpAndSettle();
 
