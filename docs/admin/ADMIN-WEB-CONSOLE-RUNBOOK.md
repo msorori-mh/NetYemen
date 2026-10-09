@@ -1,5 +1,10 @@
 # WASEL NET Admin Web Console Runbook
 
+> **Historical (2026-10-09):** the Flutter web admin console described here was
+> removed. The only admin console is the static app in `admin/`; see
+> `admin/README.md` and ADR-003 (amendment).
+
+
 ## Entry point
 
 The administration console has an independent Flutter entry point:

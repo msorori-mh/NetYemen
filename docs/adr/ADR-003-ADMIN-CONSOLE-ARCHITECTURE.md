@@ -1,11 +1,21 @@
 # ADR-003 — WASEL NET Admin Console Architecture
 
-- Status: Accepted
+- Status: Superseded in part (2026-10-09) — see "Amendment" below
 - Date: 2026-08-19
 - Scope: V1 admin and operations experience
 - Applies to: Flutter client, Supabase RPC/RLS contracts, responsive web target
 
-## Decision
+## Amendment (2026-10-09): one admin console
+
+The product owner chose a single admin console: the static web app in `admin/`
+(Google sign-in, then account PIN). The Flutter Web console
+(`lib/admin_main.dart`, `lib/features/admin`, admin auth, finance and
+notification-composer screens) was removed. The customer app no longer contains
+staff surfaces; `test/architecture/customer_entrypoint_dependency_test.dart`
+asserts the Flutter admin does not return. The security boundary below is
+unchanged: RLS and SECURITY DEFINER RPCs remain authoritative.
+
+## Original decision (2026-08-19)
 
 WASEL NET will keep one shared Flutter domain and data layer, while presenting two
 separate product surfaces:
