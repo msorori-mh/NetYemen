@@ -15,7 +15,7 @@
 2. **Supabase Auth**: فعّل مزوّد Google، وأضف أصل اللوحة (مثل `https://admin.example.com`) إلى
    *Redirect URLs*. الدخول يتم بتدفق PKCE: `signInWithOAuth` يعيد التوجيه إلى `window.location.origin`
    ثم تستبدل المكتبة `?code=` بجلسة تلقائياً (`detectSessionInUrl`).
-3. **SRI**: نفّذ خطوة Subresource Integrity أدناه قبل أول نشر إنتاجي.
+3. **SRI**: مضبوطة في `index.html`؛ عند ترقية supabase-js اتبع قسم SRI أدناه.
 4. **النشر على Vercel**: مشروع ثابت جذره مجلد `admin/` (بلا أمر بناء ولا مجلد مخرجات). `vercel.json`
    يضبط ترويسات الأمان؛ `config.js` يجب أن يكون موجوداً في المجلد المنشور (القالب مستثنى في `.vercelignore`).
 5. بعد النشر: سجّل الدخول بحساب يملك أحد الأدوار أدناه وتأكد من ظهور الأقسام، ثم شغّل اختبار العقد.
@@ -63,10 +63,11 @@ node scripts/test_admin_console_contract.mjs
 وأن رموز الأخطاء مترجمة، وأن حالات التصفية والعمولة والمحفظة مطابقة للخادم، وأن الصفحة متوافقة مع
 الـ CSP (لا سكربت ولا أحداث مضمّنة) و`vercel.json` صالح. شغّله بعد أي تعديل على `app.js` أو على الـ migrations.
 
-## Subresource Integrity لمكتبة supabase-js (TODO)
+## Subresource Integrity لمكتبة supabase-js
 
-`index.html` يحمّل `@supabase/supabase-js@2.45.4` من jsDelivr بإصدار مثبّت و
-`crossorigin="anonymous"`، لكن **بدون** سمة `integrity` بعد. احسب التجزئة من الملف الفعلي:
+`index.html` يحمّل `@supabase/supabase-js@2.45.4` من jsDelivr بإصدار مثبّت مع
+`integrity="sha384-GFr3yTh5…"` و `crossorigin="anonymous"` (حُسبت التجزئة من الملف الفعلي في
+2026-10-09). عند ترقية الإصدار احسب التجزئة الجديدة من الملف نفسه:
 
 ```sh
 curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js | openssl dgst -sha384 -binary | openssl base64 -A

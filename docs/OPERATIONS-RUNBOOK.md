@@ -434,9 +434,10 @@ configured, only the test numbers can sign in that way.
 
 ## 10. Static admin console: Subresource Integrity
 
-`admin/index.html` loads `@supabase/supabase-js` from jsDelivr at a pinned
-version but, until this step is done, without an `integrity` attribute (the
-`TODO(SRI)` comment). Before publishing the console:
+`admin/index.html` loads `@supabase/supabase-js@2.45.4` from jsDelivr with an
+`integrity="sha384-…"` attribute computed from the served file on 2026-10-09.
+After deploying, load the console once and confirm in the browser console that
+the script was not blocked. When upgrading the library, recompute:
 
 ```sh
 curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js \
@@ -444,9 +445,8 @@ curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supab
 ```
 
 Put the output into the script tag as `integrity="sha384-<output>"` (keep
-`crossorigin="anonymous"`), load the console once and confirm in the browser
-console that the script was not blocked. When the version in the URL changes,
-recompute the hash in the same commit. Never copy a hash from elsewhere: a
+`crossorigin="anonymous"`). When the version in the URL changes, recompute the
+hash in the same commit. Never copy a hash from elsewhere: a
 wrong value blocks the library and the whole console. Details:
 `admin/README.md`.
 
