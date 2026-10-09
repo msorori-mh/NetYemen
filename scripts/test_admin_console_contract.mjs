@@ -538,6 +538,7 @@ function functionSource(name) {
     ['get_finance_deposit_queue', () => functionSource('renderDeposits'), 'd'],
     ['review_wallet_deposit_request', () => functionSource('renderDeposits'), 'res'],
     ['admin_get_payment_destinations', () => viewSource('destinations'), 'd'],
+    ['admin_list_payment_destination_activations', () => viewSource('destinations'), 'q'],
     ['get_platform_commission_config', () => viewSource('commission'), 'conf'],
     ['get_notification_transport_status', () => viewSource('notifications'), 'st'],
     ['admin_ingest_card_vault_batch', () => viewSource('cards'), 'r'],
