@@ -139,13 +139,3 @@ jobs:
         if: always()
         run: |
           rm -f android/key.properties android/ci-upload-keystore.jks
-
-      - name: Build Admin Web Console
-        run: flutter build web --target lib/admin_main.dart
-
-      - name: Upload Admin Web Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: admin-web-console
-          path: build/web
-          if-no-files-found: error
