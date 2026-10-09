@@ -42,6 +42,15 @@ BEGIN
     (v_admin,'auth-admin@pilot.netyemen.test'),
     (v_auditor,'auth-auditor@pilot.netyemen.test');
 
+    -- Server-side PIN enforcement (20261009090000): every fixture user has a
+    -- PIN verified in the current (claim-less) test session.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
+
   INSERT INTO public.profiles(id,full_name,account_status) VALUES
     (v_customer_a,'TEST_ONLY Customer A','active'),
     (v_customer_b,'TEST_ONLY Customer B','active'),
@@ -81,6 +90,11 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub',v_admin::text,true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
   v_destination := public.admin_create_payment_destination('bank_account','TEST_ONLY Auth Bank',NULL,'TEST_ONLY-ACCT-AUTH',NULL,'YER',0);
+    -- Dual control (20261009091000): destinations are created inactive and a
+    -- second staff member approves activation; the fixture activates directly.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.payment_destinations SET is_active = TRUE WHERE id = v_destination;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
   -- Fund customer_a and make a purchase so we have a card to reveal.
   EXECUTE 'SET LOCAL ROLE postgres';

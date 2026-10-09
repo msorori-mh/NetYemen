@@ -43,6 +43,15 @@ BEGIN
     (v_support,'e2e-support@pilot.netyemen.test'),
     (v_admin,'e2e-admin@pilot.netyemen.test');
 
+    -- Server-side PIN enforcement (20261009090000): every fixture user has a
+    -- PIN verified in the current (claim-less) test session.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
+
   IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id=v_customer)
      OR NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id=v_customer AND role='customer') THEN
     RAISE EXCEPTION 'E2E-01 FAIL: fresh auth identity/session projection missing';
@@ -102,6 +111,11 @@ BEGIN
     'YER',
     0
   );
+    -- Dual control (20261009091000): destinations are created inactive and a
+    -- second staff member approves activation; the fixture activates directly.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.payment_destinations SET is_active = TRUE WHERE id = v_destination;
+    EXECUTE 'SET LOCAL ROLE authenticated';
   IF v_destination IS NULL THEN RAISE EXCEPTION 'E2E-16 FAIL: destination not created'; END IF;
   RAISE NOTICE 'E2E-16 PASS: admin creates payment destination';
 

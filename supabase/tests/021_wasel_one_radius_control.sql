@@ -37,6 +37,15 @@ BEGIN
         (v_admin, 'radius-admin@example.test')
     ON CONFLICT (id) DO NOTHING;
 
+    -- Server-side PIN enforcement (20261009090000): every fixture user has a
+    -- PIN verified in the current (claim-less) test session.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
+
     INSERT INTO public.profiles (id, full_name, account_status) VALUES
         (v_customer_a, 'RADIUS Customer A', 'active'),
         (v_customer_b, 'RADIUS Customer B', 'active'),

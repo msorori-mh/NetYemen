@@ -47,11 +47,15 @@ jobs:
             supabase/tests/028_identity_role_audit_hardening.sql \
             supabase/tests/029_wasel_one_accounting_hardening.sql \
             supabase/tests/030_operations_closure.sql \
+            supabase/tests/031_server_side_pin_enforcement.sql \
+            supabase/tests/032_payment_destination_dual_control.sql \
             supabase/migrations/20261008090000_settlement_refund_integrity.sql \
             supabase/migrations/20261008091000_purchase_card_ingest_commission_integrity.sql \
             supabase/migrations/20261008092000_identity_role_audit_hardening.sql \
             supabase/migrations/20261008093000_wasel_one_accounting_hardening.sql \
             supabase/migrations/20261008094000_operations_closure.sql \
+            supabase/migrations/20261009090000_server_side_pin_enforcement.sql \
+            supabase/migrations/20261009091000_payment_destination_dual_control.sql \
             supabase/verification/017_hosted_admin_review_production_preflight.sql \
             supabase/verification/017_hosted_admin_review_production_postverify.sql \
             supabase/verification/018_account_deletion_production_preflight.sql \
@@ -175,10 +179,10 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/025_platform_commission_config_rls.sql
 
-      - name: Run Audit Remediation SQL Contracts (026-030)
+      - name: Run Audit Remediation SQL Contracts (026+)
         run: |
           set -euo pipefail
-          for test_file in supabase/tests/{026..030}_*.sql; do
+          for test_file in supabase/tests/02[6-9]_*.sql supabase/tests/03[0-9]_*.sql; do
             echo "Running $test_file"
             PGPASSWORD=postgres psql \
               "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \

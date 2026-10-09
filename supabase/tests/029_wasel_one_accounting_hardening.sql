@@ -33,6 +33,15 @@ BEGIN
   INSERT INTO auth.users(id,email) VALUES
     (v_customer,'s29-customer@example.test'),(v_other,'s29-other@example.test'),
     (v_owner,'s29-owner@example.test'),(v_admin,'s29-admin@example.test');
+
+    -- Server-side PIN enforcement (20261009090000): every fixture user has a
+    -- PIN verified in the current (claim-less) test session.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
   INSERT INTO public.profiles(id,full_name,account_status) VALUES
     (v_customer,'TEST_ONLY S29 Customer','active'),(v_other,'TEST_ONLY S29 Other','active'),
     (v_owner,'TEST_ONLY S29 Owner','active'),(v_admin,'TEST_ONLY S29 Admin','active')

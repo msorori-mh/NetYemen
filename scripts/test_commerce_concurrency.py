@@ -146,6 +146,17 @@ BEGIN
         (v_finance_2, 'conc_fin2_{run}@netyemen.local')
     ON CONFLICT (id) DO NOTHING;
 
+    -- Server-side PIN enforcement: the customers have a PIN verified in the
+    -- (claim-less) test session, so purchase_package reaches its money logic.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    WHERE id IN (v_customer_a, v_customer_b, v_customer_c, v_customer_d, v_customer_e)
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    WHERE id IN (v_customer_a, v_customer_b, v_customer_c, v_customer_d, v_customer_e)
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
+
     INSERT INTO public.profiles (id, full_name, account_status) VALUES
         (v_customer_a, 'Customer A', 'active'),
         (v_customer_b, 'Customer B', 'active'),
