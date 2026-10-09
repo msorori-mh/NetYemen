@@ -452,6 +452,29 @@ wrong value blocks the library and the whole console. Details:
 
 ---
 
+## 10a. Official domain: waseelnet.com
+
+One Vercel project (root directory `admin/`) serves both hostnames:
+
+| Hostname | Serves |
+|---|---|
+| `admin.waseelnet.com` | the admin console |
+| `waseelnet.com` (and `www.waseelnet.com`) | the public legal pages `/legal/privacy.html` and `/legal/delete-account.html`; `/` redirects to the console until a public site exists (`admin/vercel.json`) |
+
+After adding the domains in Vercel (Project → Settings → Domains) and creating
+the DNS records Vercel shows:
+
+1. Supabase → Authentication → URL Configuration: set **Site URL** to
+   `https://admin.waseelnet.com` and add it to **Redirect URLs** (keep the app
+   deep link). Remove the old `*.vercel.app` origin once the new one works.
+2. Build the app with `PRIVACY_POLICY_URL=https://waseelnet.com/legal/privacy.html`
+   and `ACCOUNT_DELETION_URL=https://waseelnet.com/legal/delete-account.html`, and
+   use the same two URLs in the Google Play listing.
+3. Set the GitHub environment variable `ADMIN_PUBLIC_ORIGIN` to
+   `https://waseelnet.com`.
+
+---
+
 ## 11. Firebase / Google API key in `android/app/google-services.json`
 
 The `current_key` in that file is a public client identifier that ships inside
