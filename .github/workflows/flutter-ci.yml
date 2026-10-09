@@ -102,7 +102,7 @@ jobs:
         run: flutter build apk --debug
 
       - name: Upload Demo-Data Debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: WASEL-NET-DEMO-DEBUG-APK
           path: build/app/outputs/flutter-apk/app-debug.apk

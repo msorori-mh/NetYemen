@@ -133,14 +133,14 @@ jobs:
           grep -F 'request_my_account_deletion' build/web/legal/delete-account.js
 
       - name: Upload Admin Release Candidate
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: admin-web-release-candidate
           path: build/web
           if-no-files-found: error
 
       - name: Upload Release Preflight Evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: admin-release-preflight-evidence
           path: build/admin-release-evidence
