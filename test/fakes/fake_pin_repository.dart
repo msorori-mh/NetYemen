@@ -7,6 +7,7 @@ class FakePinRepository implements PinRepository {
     this.status = PinStatus.setAndTrusted,
     this.resolveError,
     this.verifyResult = true,
+    this.recentlyVerified = true,
   });
 
   PinStatus status;
@@ -15,6 +16,12 @@ class FakePinRepository implements PinRepository {
   Object? resolveError;
 
   bool verifyResult;
+
+  /// What [hasRecentVerification] reports; a successful [verifyPin] sets it.
+  bool recentlyVerified;
+
+  /// When set, [verifyPin] throws it (e.g. `PIN_LOCKED`).
+  Object? verifyError;
 
   final List<String> setPins = <String>[];
   final List<String> verifiedPins = <String>[];
@@ -33,6 +40,8 @@ class FakePinRepository implements PinRepository {
   @override
   Future<bool> verifyPin(String pin) async {
     verifiedPins.add(pin);
+    if (verifyError != null) throw verifyError!;
+    if (verifyResult) recentlyVerified = true;
     return verifyResult;
   }
 
@@ -41,4 +50,7 @@ class FakePinRepository implements PinRepository {
 
   @override
   Future<void> trustDevice(String userId) async => trustedUsers.add(userId);
+
+  @override
+  Future<bool> hasRecentVerification() async => recentlyVerified;
 }

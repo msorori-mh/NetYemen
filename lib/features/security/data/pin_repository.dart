@@ -31,6 +31,11 @@ abstract interface class PinRepository {
 
   /// Mark this device as trusted for [userId].
   Future<void> trustDevice(String userId);
+
+  /// Whether the server accepts PIN-protected operations (purchases, card
+  /// reveal, WASEL One credentials) in this session right now, i.e. the PIN
+  /// was verified in this session within the server's window.
+  Future<bool> hasRecentVerification();
 }
 
 class SupabasePinRepository implements PinRepository {
@@ -67,5 +72,11 @@ class SupabasePinRepository implements PinRepository {
   Future<void> trustDevice(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_trustKeyPrefix$userId', '1');
+  }
+
+  @override
+  Future<bool> hasRecentVerification() async {
+    final result = await _client.rpc('get_account_pin_verification');
+    return result is Map && result['verified'] == true;
   }
 }

@@ -5,6 +5,9 @@ import '../domain/customer_auth.dart';
 
 abstract interface class CustomerAuthRepository {
   Future<void> signInWithGoogle();
+
+  /// Sends a one-time sign-in code to [phone] over WhatsApp. The account is
+  /// created on first sign-in. Verify with [verifyOtp].
   Future<void> signInWithPhone(String phone);
 
   Future<AuthResponse> signInWithPhonePassword({
@@ -35,7 +38,14 @@ class SupabaseCustomerAuthRepository implements CustomerAuthRepository {
 
   @override
   Future<void> signInWithPhone(String phone) async {
-    await _client.auth.signInWithOtp(phone: phone);
+    // Supabase Auth delivers the code through the configured phone provider
+    // (Twilio / Twilio Verify) on the WhatsApp channel. Numbers listed under
+    // Auth > Phone > "Test phone numbers and OTPs" receive no message and
+    // accept their fixed code instead.
+    await _client.auth.signInWithOtp(
+      phone: phone,
+      channel: OtpChannel.whatsapp,
+    );
   }
 
   @override
@@ -87,6 +97,7 @@ class SupabaseCustomerAuthRepository implements CustomerAuthRepository {
 
   @override
   Future<AuthResponse> verifyOtp(String phone, String otp) {
+    // A WhatsApp code is a phone OTP: it is verified with type `sms`.
     return _client.auth.verifyOTP(
       phone: phone,
       token: otp,

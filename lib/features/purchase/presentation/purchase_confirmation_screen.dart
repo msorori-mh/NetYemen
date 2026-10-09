@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../packages/domain/entities.dart';
+import '../../security/presentation/pin_confirmation.dart';
 import '../../wallet/presentation/wallet_providers.dart';
 import 'purchase_providers.dart';
 import 'purchase_result_screen.dart';
@@ -99,6 +100,8 @@ class PurchaseConfirmationScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmPurchase(BuildContext context, WidgetRef ref) async {
+    // The server refuses a purchase until the PIN was verified recently.
+    if (!await confirmAccountPin(context, ref) || !context.mounted) return;
     try {
       final result = await ref
           .read(purchaseSubmissionProvider.notifier)

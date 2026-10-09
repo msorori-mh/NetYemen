@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/money_format.dart';
 import '../../../core/widgets/customer_load_error.dart';
+import '../../security/presentation/pin_confirmation.dart';
 import '../domain/entities.dart';
 import 'card_reveal_screen.dart';
 import 'purchase_providers.dart';
@@ -105,6 +106,8 @@ class _PurchaseDetailScreenState extends ConsumerState<PurchaseDetailScreen> {
   }
 
   Future<void> _revealCard(BuildContext context, PurchaseOrder purchase) async {
+    // The server reveals a card only after a recent PIN verification.
+    if (!await confirmAccountPin(context, ref) || !context.mounted) return;
     setState(() {
       _revealing = true;
       _message = null;

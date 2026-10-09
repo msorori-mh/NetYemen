@@ -8,6 +8,7 @@ import 'package:netyemen/features/auth/presentation/customer_auth_providers.dart
 import 'package:netyemen/features/auth/presentation/customer_session_providers.dart';
 
 import 'package:netyemen/features/auth/presentation/login_screen.dart';
+import 'package:netyemen/features/auth/presentation/otp_screen.dart';
 import 'package:netyemen/features/security/domain/pin_status.dart';
 import 'package:netyemen/features/security/presentation/pin_entry_screen.dart';
 import 'package:netyemen/features/security/presentation/pin_providers.dart';
@@ -43,6 +44,43 @@ void main() {
     );
   }
 
+  testWidgets('sends a WhatsApp code to the normalized phone and opens OTP', (
+    tester,
+  ) async {
+    final service = FakeCustomerAuthRepository();
+    await tester.pumpWidget(buildScreen(service));
+
+    expect(find.byKey(const Key('login-password')), findsNothing);
+    await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.ensureVisible(find.byKey(const Key('login-whatsapp-otp')));
+    await tester.tap(find.byKey(const Key('login-whatsapp-otp')));
+    await tester.pumpAndSettle();
+
+    expect(service.phoneOtpRequest, '+967771234567');
+    expect(find.byType(OTPScreen), findsOneWidget);
+    expect(find.textContaining('واتساب'), findsWidgets);
+  });
+
+  testWidgets('a failed WhatsApp send stays on the login screen', (
+    tester,
+  ) async {
+    final service = FakeCustomerAuthRepository()
+      ..phoneOtpException = Exception('provider details');
+    await tester.pumpWidget(buildScreen(service));
+
+    await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.ensureVisible(find.byKey(const Key('login-whatsapp-otp')));
+    await tester.tap(find.byKey(const Key('login-whatsapp-otp')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OTPScreen), findsNothing);
+    expect(
+      find.text('تعذر إرسال رمز التحقق عبر واتساب حالياً. حاول بعد قليل.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('provider details'), findsNothing);
+  });
+
   testWidgets('signs in with normalized phone and chosen password', (
     tester,
   ) async {
@@ -50,10 +88,14 @@ void main() {
     await tester.pumpWidget(buildScreen(service));
 
     await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.ensureVisible(find.byKey(const Key('login-show-password')));
+    await tester.tap(find.byKey(const Key('login-show-password')));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('login-password')),
       'Pilot1234',
     );
+    await tester.ensureVisible(find.byKey(const Key('login-submit')));
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
@@ -70,10 +112,14 @@ void main() {
     await tester.pumpWidget(buildScreen(service));
 
     await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.ensureVisible(find.byKey(const Key('login-show-password')));
+    await tester.tap(find.byKey(const Key('login-show-password')));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('login-password')),
       'wrongpass',
     );
+    await tester.ensureVisible(find.byKey(const Key('login-submit')));
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
@@ -104,10 +150,14 @@ void main() {
     );
 
     await tester.enterText(find.byKey(const Key('login-phone')), '771234567');
+    await tester.ensureVisible(find.byKey(const Key('login-show-password')));
+    await tester.tap(find.byKey(const Key('login-show-password')));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('login-password')),
       'Pilot1234',
     );
+    await tester.ensureVisible(find.byKey(const Key('login-submit')));
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
