@@ -332,7 +332,11 @@ Rotation is **not automated** and there is one live key at a time. It needs a
 reviewed migration, run in a maintenance window, that in a single transaction:
 
 1. creates the new secret under a new name;
-2. re-encrypts every row: `pgp_sym_encrypt(pgp_sym_decrypt(ciphertext, old), new)`;
+2. re-encrypts every row:
+   `extensions.pgp_sym_encrypt(extensions.pgp_sym_decrypt(ciphertext, old), new)`.
+   Schema-qualify pgcrypto (it lives in `extensions`): the unqualified call in
+   the `20261008091000` fingerprint backfill failed on the hosted project and
+   the backfill was completed by hand;
 3. recomputes `pin_fingerprint` with the new key for every row (the
    fingerprint is keyed with the master key; skipping this silently disables
    duplicate detection against existing cards);
@@ -392,9 +396,15 @@ Create a second `platform_admin` and at least two `finance_officer` accounts
 immediately: settlement approval, large deposits and several safety checks
 require a second person.
 
-Note: `lib/admin_main.dart` (Flutter web console) signs in with email and
-password. An account created that way is not Google-only and cannot receive a
-staff grant; see the README on choosing one console.
+The only admin console is the static `admin/` app (Google sign-in); the Flutter
+web console was removed. Staff grants apply to Google-only accounts.
+
+Payment destinations are under dual control: a destination is created inactive
+and becomes visible to customers only when a *different* finance_officer or
+platform_admin approves its activation request in the console
+(«وجهات الدفع» → «طلبات التفعيل»). An active destination cannot be edited:
+deactivate it (immediate), edit, then request activation again. Requests expire
+after 7 days and are refused if the destination changed after the request.
 
 ---
 
@@ -406,7 +416,8 @@ before every release:
 | Setting | Required | Why |
 |---|---|---|
 | Email confirmations | **ON** | With confirmations off anyone can register someone else's address with a password. `supabase/config.toml` turns them off for the local stack only. |
-| Phone test OTP numbers | **none configured** | `supabase/config.toml` lists `+967771111111` / `+967772222222` with a fixed public code for local use. On a hosted project they would be open accounts. |
+| Phone provider (WhatsApp OTP) | enabled, WhatsApp-capable provider (e.g. Twilio) | customer sign-in sends the code over WhatsApp; see `docs/auth/WHATSAPP-OTP-LOGIN.md` |
+| Phone test OTP numbers | testing phase: **only the 10 approved tester numbers**, code `123456`, with "valid until" set; public launch: **none** | anyone who knows a test number can sign in as that account with the fixed code. Never add a real customer's number. |
 | Minimum password length | 8 or more | matches the client and the onboarding function |
 | Google provider | enabled, with the production OAuth client | staff and owner sign-in |
 | Redirect URL allow-list | only the real admin origin and the app deep links | prevents token redirection |
@@ -416,16 +427,17 @@ before every release:
 Verify the flag is off by calling the function without a body: it must answer
 `503 TEST_ONBOARDING_DISABLED`.
 
-Customer self-signup currently exists only through that invite-only tester
-path. A public launch needs a real SMS (or other) verification flow first.
+Customer sign-in is phone number + WhatsApp code. Until a WhatsApp provider is
+configured, only the test numbers can sign in that way.
 
 ---
 
 ## 10. Static admin console: Subresource Integrity
 
-`admin/index.html` loads `@supabase/supabase-js` from jsDelivr at a pinned
-version but, until this step is done, without an `integrity` attribute (the
-`TODO(SRI)` comment). Before publishing the console:
+`admin/index.html` loads `@supabase/supabase-js@2.45.4` from jsDelivr with an
+`integrity="sha384-…"` attribute computed from the served file on 2026-10-09.
+After deploying, load the console once and confirm in the browser console that
+the script was not blocked. When upgrading the library, recompute:
 
 ```sh
 curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js \
@@ -433,9 +445,8 @@ curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supab
 ```
 
 Put the output into the script tag as `integrity="sha384-<output>"` (keep
-`crossorigin="anonymous"`), load the console once and confirm in the browser
-console that the script was not blocked. When the version in the URL changes,
-recompute the hash in the same commit. Never copy a hash from elsewhere: a
+`crossorigin="anonymous"`). When the version in the URL changes, recompute the
+hash in the same commit. Never copy a hash from elsewhere: a
 wrong value blocks the library and the whole console. Details:
 `admin/README.md`.
 

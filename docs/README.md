@@ -55,7 +55,8 @@ Welcome to the official technical, business, and security documentation reposito
 ## 6. Operations & Runbooks
 
 * 🧭 [Operations Runbook](OPERATIONS-RUNBOOK.md) — Applying migrations, scheduled jobs (account deletions, stale RADIUS sessions), daily wallet reconciliation, settlement procedure and refund rule, wallet freeze, `card_master_key` provisioning/rotation, first administrator bootstrap, required production Auth settings, admin console SRI, Firebase API key restriction.
-* [Admin Web Console Runbook](admin/ADMIN-WEB-CONSOLE-RUNBOOK.md) — Flutter web admin console (`lib/admin_main.dart`).
+* [Admin Web Console Runbook](admin/ADMIN-WEB-CONSOLE-RUNBOOK.md) — historical: the Flutter web console was removed (2026-10-09); the only admin console is `admin/` (see `admin/README.md`).
+* [WhatsApp OTP Login](auth/WHATSAPP-OTP-LOGIN.md) — phone sign-in with a WhatsApp code, provider setup and the 10 test numbers (fixed code 123456).
 * [Phone/Password Test Onboarding Runbook](auth/PHONE-PASSWORD-TEST-ONBOARDING-RUNBOOK.md) — Invite-only tester signup.
 * [Google Play Release Runbook](release/GOOGLE-PLAY-RELEASE-RUNBOOK.md)
 * [WASEL One Pilot Runbook](WASEL-ONE-PILOT-RUNBOOK.md) and [Staging VPS Runbook](WASEL-ONE-STAGING-VPS-RUNBOOK.md) — FreeRADIUS / MikroTik pilot.

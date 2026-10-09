@@ -48,6 +48,11 @@ BEGIN
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
   v_destination := public.admin_create_payment_destination(
     'bank_account','TEST_ONLY S30 Bank','TEST_ONLY Holder','TEST_ONLY-S30-ACCT','TEST_ONLY','YER',0);
+    -- Dual control (20261009091000): destinations are created inactive and a
+    -- second staff member approves activation; the fixture activates directly.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.payment_destinations SET is_active = TRUE WHERE id = v_destination;
+    EXECUTE 'SET LOCAL ROLE authenticated';
 
   -- First 30,000: below the threshold, one reviewer is enough.
   PERFORM set_config('request.jwt.claim.sub',v_customer::text,true);

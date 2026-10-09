@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_format.dart';
 import '../../auth/presentation/customer_session_providers.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../security/presentation/pin_confirmation.dart';
 import '../../wallet/presentation/wallet_providers.dart';
 import '../domain/entities.dart';
 import 'wasel_one_providers.dart';
@@ -88,6 +89,8 @@ class WaselOneScreen extends ConsumerWidget {
     WidgetRef ref,
     AccessEntitlement entitlement,
   ) async {
+    // The server issues credentials only after a recent PIN verification.
+    if (!await confirmAccountPin(context, ref) || !context.mounted) return;
     // Captured before any await: `ref` must not be used after this widget is
     // unmounted, and the notifier outlives the screen.
     final notifier = ref.read(waselOneCredentialProvider.notifier);
@@ -161,6 +164,7 @@ class WaselOneScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
+    if (!await confirmAccountPin(context, ref) || !context.mounted) return;
 
     // Captured before the await: `ref` must not be used after unmount.
     final notifier = ref.read(waselOnePurchaseProvider.notifier);
@@ -964,6 +968,9 @@ String _formatMoney(int amount) => formatYer(amount, currency: 'ر.ي');
 
 String _friendlyError(Object error) {
   final value = error.toString();
+  if (value.contains('PIN_REQUIRED') || value.contains('PIN_NOT_SET')) {
+    return 'انتهت مهلة التأكيد بالرمز السري. حاول مجددًا وأدخل رمزك عند الطلب.';
+  }
   if (value.contains('ENTITLEMENT_NOT_ACTIVE') ||
       value.contains('ENTITLEMENT_NOT_FOUND')) {
     return 'هذه الباقة غير فعّالة أو انتهت صلاحيتها.';
@@ -982,6 +989,9 @@ bool _isInactiveAccountError(String value) =>
 
 String _friendlyPurchaseError(Object error) {
   final value = error.toString();
+  if (value.contains('PIN_REQUIRED') || value.contains('PIN_NOT_SET')) {
+    return 'انتهت مهلة التأكيد بالرمز السري. حاول مجددًا وأدخل رمزك عند الطلب.';
+  }
   if (_isInactiveAccountError(value)) {
     return 'حسابك غير مفعّل حاليًا. تواصل مع الدعم لمراجعة حالته.';
   }

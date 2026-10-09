@@ -22,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _hidePassword = true;
+  bool _showPasswordSignIn = false;
 
   @override
   void dispose() {
@@ -93,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context,
       ).push(MaterialPageRoute(builder: (_) => OTPScreen(phone: phone)));
     } catch (_) {
-      _showError('تعذر إرسال الرمز حالياً. استخدم كلمة المرور للاختبار.');
+      _showError('تعذر إرسال رمز التحقق عبر واتساب حالياً. حاول بعد قليل.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -135,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'أدخل رقم الهاتف وكلمة المرور التي أنشأتها',
+                      'أدخل رقم جوالك المسجّل في واتساب، وسنرسل لك رمز تحقق من 6 أرقام',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppTheme.textSecondary),
                     ),
@@ -159,39 +160,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         }
                       },
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      key: const Key('login-password'),
-                      controller: _passwordController,
-                      obscureText: _hidePassword,
-                      textDirection: TextDirection.ltr,
-                      decoration: InputDecoration(
-                        labelText: 'كلمة المرور',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _hidePassword = !_hidePassword),
-                          icon: Icon(
-                            _hidePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value ?? '').isEmpty ? 'كلمة المرور مطلوبة' : null,
-                      onFieldSubmitted: (_) {
-                        if (!_isLoading) _signIn();
-                      },
-                    ),
                     const SizedBox(height: 22),
                     SizedBox(
                       width: double.infinity,
                       height: 54,
-                      child: ElevatedButton(
-                        key: const Key('login-submit'),
-                        onPressed: _isLoading ? null : _signIn,
-                        child: _isLoading
+                      child: ElevatedButton.icon(
+                        key: const Key('login-whatsapp-otp'),
+                        onPressed: _isLoading ? null : _sendOtp,
+                        icon: const Icon(Icons.chat_outlined),
+                        label: _isLoading && !_showPasswordSignIn
                             ? const SizedBox.square(
                                 dimension: 24,
                                 child: CircularProgressIndicator(
@@ -199,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('دخول'),
+                            : const Text('إرسال رمز التحقق عبر واتساب'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -213,23 +190,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         label: const Text('المتابعة بحساب Google'),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      key: const Key('open-signup'),
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const SignupScreen(),
-                                ),
-                              ),
-                      child: const Text('إنشاء حساب للمختبرين'),
-                    ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: _isLoading ? null : _sendOtp,
-                      child: const Text('الدخول برمز SMS عند عودة الخدمة'),
+                      key: const Key('login-show-password'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => setState(
+                                () =>
+                                    _showPasswordSignIn = !_showPasswordSignIn,
+                              ),
+                      child: Text(
+                        _showPasswordSignIn
+                            ? 'إخفاء الدخول بكلمة المرور'
+                            : 'حسابات المختبرين: الدخول بكلمة المرور',
+                      ),
                     ),
+                    if (_showPasswordSignIn) ...[
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        key: const Key('login-password'),
+                        controller: _passwordController,
+                        obscureText: _hidePassword,
+                        textDirection: TextDirection.ltr,
+                        decoration: InputDecoration(
+                          labelText: 'كلمة المرور',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            onPressed: () =>
+                                setState(() => _hidePassword = !_hidePassword),
+                            icon: Icon(
+                              _hidePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                        ),
+                        validator: (value) =>
+                            (value ?? '').isEmpty ? 'كلمة المرور مطلوبة' : null,
+                        onFieldSubmitted: (_) {
+                          if (!_isLoading) _signIn();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: OutlinedButton(
+                          key: const Key('login-submit'),
+                          onPressed: _isLoading ? null : _signIn,
+                          child: _isLoading
+                              ? const SizedBox.square(
+                                  dimension: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('دخول بكلمة المرور'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        key: const Key('open-signup'),
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignupScreen(),
+                                  ),
+                                ),
+                        child: const Text('إنشاء حساب للمختبرين'),
+                      ),
+                    ],
                     const Divider(height: 28),
                     const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +273,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'استعادة كلمة المرور عبر الرسائل غير متاحة أثناء انقطاع الاتصالات. حسابات الاختبار تُدار بواسطة المشرف.',
+                            'يصلك الرمز في محادثة واتساب على الرقم نفسه. لا تشارك الرمز مع أي شخص؛ فريق واصل نت لن يطلبه منك أبداً.',
                             style: TextStyle(
                               color: AppTheme.textSecondary,
                               fontSize: 12,

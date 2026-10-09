@@ -42,7 +42,10 @@ void main() {
       visited,
       contains('lib/features/profile/presentation/profile_screen.dart'),
     );
-    expect(File('lib/admin_main.dart').existsSync(), isTrue);
+    // The admin console is the static web app in admin/ (ADR-003, single
+    // console decision): the Flutter Web admin entrypoint must not come back.
+    expect(File('lib/admin_main.dart').existsSync(), isFalse);
+    expect(Directory('lib/features/admin').existsSync(), isFalse);
   });
 
   test('shared app configuration is not owned by a feature', () {

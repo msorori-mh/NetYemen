@@ -119,6 +119,15 @@
       UNAUTHENTICATED: 'انتهت الجلسة، سجّل الدخول من جديد',
       FORBIDDEN_SELF_APPROVAL: 'لا يمكنك الموافقة على دفعة أنشأتها أنت — يجب أن يوافق موظف آخر',
       SELF_REVIEW_FORBIDDEN: 'لا يمكنك مراجعة طلب شحن قدّمته أنت',
+      SELF_APPROVAL_FORBIDDEN: 'لا يمكنك اعتماد طلب قدّمته أنت — يجب أن يراجعه موظف آخر',
+      STALE_CHANGE_REQUEST: 'تغيّرت بيانات الوجهة بعد تقديم الطلب — ارفضه وقدّم طلباً جديداً',
+      CHANGE_ALREADY_PENDING: 'يوجد طلب تفعيل قيد المراجعة لهذه الوجهة',
+      APPROVAL_REQUIRED: 'التفعيل يحتاج موافقة موظف آخر: استخدم «طلب تفعيل»',
+      DESTINATION_ACTIVE: 'لا يمكن تعديل وجهة مفعّلة: عطّلها أولاً ثم اطلب تفعيلها من جديد',
+      REQUEST_EXPIRED: 'انتهت صلاحية الطلب (7 أيام) — قدّم طلباً جديداً',
+      ALREADY_ACTIVE: 'الوجهة مفعّلة مسبقاً',
+      INVALID_DESTINATION: 'أدخل رقم الحساب قبل طلب التفعيل',
+      INVALID_DECISION: 'القرار غير صالح',
       SELF_CHANGE_FORBIDDEN: 'لا يمكنك تغيير حالة محفظتك بنفسك',
       PAYMENT_REFERENCE_REQUIRED: 'مرجع السداد مطلوب: أدخل رقم/مرجع التحويل قبل تسجيل السداد',
       PAYMENT_REFERENCE_TOO_LONG: 'مرجع السداد أطول من 500 حرف',
@@ -1078,16 +1087,51 @@
   };
 
   // ---------- وجهات الدفع ----------
+  // رقابة مزدوجة (الخادم يفرضها): الوجهة تُنشأ معطّلة، وتفعيلها طلب يوافق عليه موظف آخر
+  // (admin_request/review/cancel_payment_destination_activation). التعطيل فوري.
   views.destinations = function () {
-    return rpc('admin_get_payment_destinations').then(function (list) {
-      var rows = (list || []).map(function (d) {
-        var toggle = d.is_active
-          ? '<button class="btn btn-sm btn-ghost" data-deact="' + esc(d.id) + '">تعطيل</button>'
-          : '<button class="btn btn-sm btn-accent" data-act="' + esc(d.id) + '">تفعيل</button>';
-        return '<tr><td>' + esc(d.display_name) + '</td><td>' + esc(providerLabel(d.provider_type)) + '</td><td>' + esc(d.account_holder_name) + '</td><td dir="ltr" class="text-center">' + esc(d.account_identifier) + '</td><td>' + (d.is_active ? badge('مُفعّلة', 'ok') : badge('معطّلة', 'mute')) + '</td><td class="actions">' + toggle + '</td></tr>';
+    return Promise.all([
+      rpc('admin_get_payment_destinations'),
+      rpc('admin_list_payment_destination_activations', { p_status: 'pending' })
+    ]).then(function (results) {
+      var list = results[0] || [];
+      var pending = results[1] || [];
+      var pendingByDest = {};
+      pending.forEach(function (q) { pendingByDest[q.destination_id] = q; });
+
+      var rows = list.map(function (d) {
+        var action;
+        if (d.is_active) {
+          action = '<button class="btn btn-sm btn-ghost" data-deact="' + esc(d.id) + '">تعطيل</button>';
+        } else if (pendingByDest[d.id]) {
+          action = badge('بانتظار موافقة موظف آخر', 'warn');
+        } else {
+          action = '<button class="btn btn-sm btn-accent" data-reqact="' + esc(d.id) + '">طلب تفعيل</button>';
+        }
+        return '<tr><td>' + esc(d.display_name) + '</td><td>' + esc(providerLabel(d.provider_type)) + '</td><td>' + esc(d.account_holder_name) + '</td><td dir="ltr" class="text-center">' + esc(d.account_identifier) + '</td><td>' + (d.is_active ? badge('مُفعّلة', 'ok') : badge('معطّلة', 'mute')) + '</td><td class="actions">' + action + '</td></tr>';
       });
 
-      viewEl.innerHTML = '<div class="note">هذه الوجهات تظهر للعميل في شاشة شحن المحفظة.</div>' +
+      var requestRows = pending.map(function (q) {
+        var c = q.content_snapshot || {};
+        var actions;
+        if (q.requested_by_me) {
+          actions = '<button class="btn btn-sm btn-ghost" data-cancelact="' + esc(q.id) + '">سحب الطلب</button>';
+        } else {
+          actions = (q.is_stale ? '' : '<button class="btn btn-sm btn-primary" data-approveact="' + esc(q.id) + '">موافقة وتفعيل</button> ') +
+            '<button class="btn btn-sm btn-ghost" data-rejectact="' + esc(q.id) + '">رفض</button>';
+        }
+        return '<tr><td>' + esc(c.display_name) + '<div class="text-sm text-muted">' + esc(providerLabel(c.provider_type)) + '</div></td>' +
+          '<td>' + esc(c.account_holder_name) + '</td>' +
+          '<td dir="ltr" class="text-center">' + esc(c.account_identifier) + '</td>' +
+          '<td>' + esc(q.requested_by_email) + '<div class="text-sm text-muted">' + esc(whenFull(q.requested_at)) + '</div>' + (q.reason ? '<div class="text-sm text-muted">' + esc(q.reason) + '</div>' : '') + '</td>' +
+          '<td>' + (q.is_stale ? badge('تغيّرت الوجهة بعد الطلب — ارفضه', 'err') : statusBadge(q.status)) + '</td>' +
+          '<td class="actions">' + actions + '</td></tr>';
+      });
+
+      viewEl.innerHTML = '<div class="note">هذه الوجهات تظهر للعميل في شاشة شحن المحفظة. لحماية أموال العملاء تُنشأ الوجهة <strong>معطّلة</strong>، ' +
+          'ولا تظهر للعملاء إلا بعد أن يوافق على تفعيلها <strong>موظف آخر</strong> (مالية أو مدير منصة). تعديل بيانات وجهة مفعّلة غير ممكن: عطّلها أولاً ثم اطلب تفعيلها من جديد.</div>' +
+        '<div class="card"><div class="card-header"><h3>طلبات التفعيل بانتظار المراجعة</h3></div>' +
+          table(['الوجهة', 'صاحب الحساب', 'رقم الحساب', 'مقدّم الطلب', 'الحالة', 'إجراء'], requestRows) + '</div>' +
         '<div class="card"><div class="card-header"><h3>إضافة وجهة دفع جديدة</h3></div>' +
           '<div class="grid grid-2 mb-4">' +
             '<div><label>النوع</label><select id="d-type"><option value="bank_account">حساب بنكي</option><option value="mobile_wallet">محفظة إلكترونية</option><option value="manual_transfer">حوالة / صرافة</option><option value="other">أخرى</option></select></div>' +
@@ -1096,7 +1140,7 @@
             '<div><label>رقم الحساب</label><input id="d-acct" dir="ltr"></div>' +
           '</div>' +
           '<label>تعليمات إضافية للعميل</label><textarea id="d-inst" rows="2" class="mb-4"></textarea>' +
-          '<button class="btn btn-primary" id="d-create">إضافة الوجهة</button>' +
+          '<button class="btn btn-primary" id="d-create">إضافة الوجهة (معطّلة)</button>' +
         '</div>' +
         '<div class="card"><div class="card-header"><h3>وجهات الدفع الحالية</h3></div>' + table(['الاسم', 'النوع', 'صاحب الحساب', 'رقم الحساب', 'الحالة', 'إجراء'], rows) + '</div>';
 
@@ -1104,19 +1148,50 @@
       if (btnCreate) btnCreate.onclick = function () {
         var name = document.getElementById('d-name').value.trim();
         if (!name) return toast('أدخل الاسم المعروض', true);
+        var acct = document.getElementById('d-acct').value.trim();
+        if (!acct) return toast('أدخل رقم الحساب', true);
         this.disabled = true;
         rpc('admin_create_payment_destination', {
           p_provider_type: document.getElementById('d-type').value,
           p_display_name: name,
           p_account_holder_name: document.getElementById('d-holder').value.trim() || null,
-          p_account_identifier: document.getElementById('d-acct').value.trim() || null,
+          p_account_identifier: acct,
           p_instructions: document.getElementById('d-inst').value.trim() || null,
           p_currency: 'YER', p_sort_order: 0
-        }).then(function () { toast('تمت الإضافة'); route(); }).catch(function (e) { toast(errText(e), true); }).finally(function () { if(btnCreate) btnCreate.disabled = false; });
+        }).then(function () { toast('أُضيفت الوجهة معطّلة — اطلب تفعيلها ليوافق عليه موظف آخر'); route(); }).catch(function (e) { toast(errText(e), true); }).finally(function () { if(btnCreate) btnCreate.disabled = false; });
       };
 
-      bindActionAsync('act', function (id) { return rpc('admin_set_payment_destination_active', { p_id: id, p_active: true }); }, 'تم التفعيل');
-      bindActionAsync('deact', function (id) { return rpc('admin_set_payment_destination_active', { p_id: id, p_active: false }); }, 'تم التعطيل');
+      bindActionAsync('reqact', function (id) {
+        return asyncPrompt('سبب طلب التفعيل (اختياري) — سيراجعه موظف آخر قبل أن تظهر الوجهة للعملاء').then(function (reason) {
+          if (reason === null) return false;
+          return rpc('admin_request_payment_destination_activation', { p_destination_id: id, p_reason: reason || null });
+        });
+      }, 'أُرسل طلب التفعيل للمراجعة');
+      bindActionAsync('approveact', function (id) {
+        return asyncConfirm('راجعت اسم صاحب الحساب ورقم الحساب وتأكدت من صحتهما؟ ستظهر الوجهة للعملاء فوراً.').then(function (ok) {
+          if (!ok) return false;
+          return rpc('admin_review_payment_destination_activation', { p_request_id: id, p_approve: true, p_note: null });
+        });
+      }, 'تم التفعيل');
+      bindActionAsync('rejectact', function (id) {
+        return asyncPrompt('سبب الرفض (مطلوب)').then(function (note) {
+          if (note === null) return false;
+          if (!note) { toast('سبب الرفض مطلوب', true); return false; }
+          return rpc('admin_review_payment_destination_activation', { p_request_id: id, p_approve: false, p_note: note });
+        });
+      }, 'تم رفض الطلب');
+      bindActionAsync('cancelact', function (id) {
+        return asyncConfirm('سحب طلب التفعيل؟').then(function (ok) {
+          if (!ok) return false;
+          return rpc('admin_cancel_payment_destination_activation', { p_request_id: id });
+        });
+      }, 'تم سحب الطلب');
+      bindActionAsync('deact', function (id) {
+        return asyncConfirm('تعطيل الوجهة؟ ستختفي من شاشة الشحن فوراً، وإعادة تفعيلها تحتاج موافقة موظف آخر.').then(function (ok) {
+          if (!ok) return false;
+          return rpc('admin_set_payment_destination_active', { p_id: id, p_active: false });
+        });
+      }, 'تم التعطيل');
     });
   };
 

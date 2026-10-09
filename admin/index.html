@@ -119,15 +119,13 @@
 <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
 <!--
-  TODO(SRI): هذا السكربت يُحمَّل من CDN بلا Subresource Integrity.
-  احسب التجزئة بالأمر الموثّق في admin/README.md ثم أضف السمة:
-    integrity="sha384-<الناتج>"
-  إلى الوسم التالي (crossorigin="anonymous" موجودة مسبقاً وهي شرط لعمل SRI).
-  لا تضع تجزئة لم تحسبها بنفسك من الملف الفعلي لهذا الإصدار المثبّت (2.45.4).
+  SRI: التجزئة محسوبة من الملف الفعلي على jsDelivr لهذا الإصدار المثبّت (2.45.4).
+  عند ترقية الإصدار غيّر الرابط والتجزئة معاً (الأمر في admin/README.md)؛
+  تجزئة لا تطابق الملف تمنع تحميل المكتبة فتتعطل اللوحة كلها.
 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
-<script src="./config.js?v=20261008b"></script>
-<script src="./app.js?v=20261008b"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
+<script src="./config.js?v=20261009a"></script>
+<script src="./app.js?v=20261009a"></script>
 
 </body>
 </html>

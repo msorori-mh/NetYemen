@@ -51,6 +51,15 @@ BEGIN
             (v_admin_id, 'admin@netyemen.local'),
             (v_auditor_id, 'auditor@netyemen.local')
         ON CONFLICT (id) DO NOTHING;
+
+    -- Server-side PIN enforcement (20261009090000): every fixture user has a
+    -- PIN verified in the current (claim-less) test session.
+    INSERT INTO public.account_pins (user_id, pin_hash)
+    SELECT id, 'fixture-not-a-real-hash' FROM auth.users
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.account_pin_verifications (user_id, session_key)
+    SELECT id, '' FROM auth.users
+    ON CONFLICT (user_id, session_key) DO UPDATE SET verified_at = now();
     END IF;
 
     -- Profiles & roles
@@ -115,6 +124,11 @@ BEGIN
     v_destination_id := public.admin_create_payment_destination(
         'bank_account', 'TEST_ONLY Commerce Bank', NULL, 'TEST_ONLY-ACCT-CC', NULL, 'YER', 0
     );
+    -- Dual control (20261009091000): destinations are created inactive and a
+    -- second staff member approves activation; the fixture activates directly.
+    EXECUTE 'SET LOCAL ROLE postgres';
+    UPDATE public.payment_destinations SET is_active = TRUE WHERE id = v_destination_id;
+    EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM public.admin_ingest_card_vault_batch(
         v_net_id,
         v_pkg_id,

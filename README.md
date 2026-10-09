@@ -15,27 +15,29 @@
 | المكوّن | المسار | الحالة الفعلية |
 |---|---|---|
 | تطبيق العميل (Flutter، Android) | `lib/main.dart` | يعمل مع Supabase عند تمرير `--dart-define`. بدونها يعمل بناء debug على **بيانات تجريبية مضمّنة** فقط، وبناء release يعرض شاشة «غير مهيّأ». |
-| لوحة الإدارة — Flutter web | `lib/admin_main.dart` | تُبنى في CI. الدخول بالبريد وكلمة المرور. |
-| لوحة الإدارة — صفحة ثابتة | `admin/` | `index.html` + `app.js` بلا خطوة بناء (Vercel). الدخول عبر Google. سمة SRI لمكتبة supabase-js لم تُضف بعد. |
+| لوحة الإدارة (الوحيدة) | `admin/` | صفحة ثابتة `index.html` + `app.js` بلا خطوة بناء (Vercel). الدخول عبر Google ثم رمز PIN. لوحة Flutter web السابقة حُذفت (قرار لوحة واحدة). |
 | تطبيق المالك (Flutter، Android) | `owner_app/` | تطبيق مستقل، دخول Google + رمز PIN. انظر `owner_app/README.md`. |
-| الخادم (Supabase) | `supabase/` | 39 ملف migration، 30 مجموعة اختبار SQL، 4 دوال Edge. كل العمليات الحساسة دوال RPC والصلاحيات تُفرض بـ RLS. |
+| الخادم (Supabase) | `supabase/` | 41 ملف migration، 32 مجموعة اختبار SQL، 4 دوال Edge. كل العمليات الحساسة دوال RPC والصلاحيات تُفرض بـ RLS. |
 | واصل ون (WASEL One) — RADIUS | `infra/radius/`، `supabase/functions/radius-control` | جسر FreeRADIUS لراوترات MikroTik Hotspot. في مرحلة تجربة محدودة (pilot)، غير مُطلق للعموم. |
 | الصفحات القانونية | `legal/`، `admin/legal/`، `supabase/functions/public-legal` | سياسة الخصوصية وصفحة طلب حذف الحساب، تُولَّد بـ `scripts/configure_waselnet_public_legal_pages.mjs`. |
 
 ### نواقص معروفة (اقرأها قبل أي إطلاق)
 
-- **تسجيل العملاء الذاتي** موجود فقط عبر مسار المختبِرين بالدعوة
-  (`supabase/functions/test-onboarding`: رمز دعوة + قائمة أرقام مسموحة + مدة لا
-  تتجاوز 14 يوماً). لا يوجد تحقق SMS حقيقي، فلا يصلح هذا المسار لإطلاق عام.
+- **الدخول برقم الجوال عبر واتساب**: التطبيق يرسل رمز تحقق من 6 أرقام عبر
+  واتساب (Supabase Auth، قناة `whatsapp`). يحتاج مزوّد رسائل واتساب مضبوطاً في
+  Supabase (مثل Twilio). إلى أن يُحدَّد المزوّد تُستخدم **أرقام اختبار** برمز ثابت
+  `123456` تُضبط في لوحة Supabase. الإعداد في `docs/auth/WHATSAPP-OTP-LOGIN.md`.
+  مسار المختبِرين بكلمة المرور (`test-onboarding`) ما زال موجوداً خلف زر جانبي.
 - **الإشعارات الفورية (Push)** غير موصولة من طرف إلى طرف: التطبيق يسجّل رمز الجهاز
   والخادم يكتب الأحداث في `notification_outbox`، ودالة
   `notification-transport-adapter` تستطيع الإرسال عبر FCM، لكن لا يوجد ما يسحب
   الصف من الـ outbox ويستدعي الإرسال. صندوق الإشعارات داخل التطبيق يقرأ من
   `notification_inbox` ولا يعتمد على Push.
-- **لوحتا إدارة** موجودتان ويجب اعتماد واحدة. منح أدوار الموظفين
-  (`platform_access_grants`) يُطبَّق فقط على حساب هويته الوحيدة Google، وهذا ما
-  تستخدمه اللوحة الثابتة `admin/`؛ حساب بريد/كلمة مرور في لوحة Flutter لا يستقبل
-  منحة دور.
+- **رمز PIN يفرضه الخادم**: الشراء وكشف الكرت وشراء باقة واصل ون وإصدار بيانات
+  دخولها ترفضها قاعدة البيانات (`PIN_REQUIRED`) ما لم يُتحقَّق من الرمز في الجلسة
+  نفسها خلال 15 دقيقة؛ التطبيق يطلب الرمز عند الحاجة.
+- **وجهات الدفع برقابة مزدوجة**: الوجهة تُنشأ معطّلة ولا تظهر للعملاء إلا بعد
+  موافقة موظف آخر غير مقدّم الطلب. لذلك يلزم وجود موظفَين على الأقل (مالية/مدير).
 - **المهام الدورية** (إتمام حذف الحسابات، إغلاق جلسات RADIUS المعلّقة) تُجدول
   تلقائياً فقط إذا كان `pg_cron` مفعّلاً وقت تطبيق الـ migration. **مطابقة المحافظ
   اليومية** (`finance_reconcile_wallets`) غير مجدولة إطلاقاً.
@@ -66,23 +68,11 @@ flutter run \
 | `SUPABASE_PUBLISHABLE_KEY` | نعم | المفتاح العام فقط. لا تضع مفتاح service-role في أي تطبيق أو صفحة. |
 | `PRIVACY_POLICY_URL` | لبناء الإصدار | رابط `https` عام. |
 | `ACCOUNT_DELETION_URL` | لبناء الإصدار | رابط `https` عام. |
-| `ADMIN_PASSWORD_RECOVERY_REDIRECT_URL` | للوحة Flutter فقط | أصل لوحة الإدارة. |
 
 `flutter run` بلا تعريفات = وضع البيانات التجريبية (debug فقط). بناء حزمة Play:
 `scripts/build_waselnet_play_bundle.ps1` و `docs/release/GOOGLE-PLAY-RELEASE-RUNBOOK.md`.
 
-### لوحة الإدارة (Flutter web)
-
-```bash
-flutter run -d chrome --target lib/admin_main.dart \
-  --dart-define=SUPABASE_URL=https://<project>.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key> \
-  --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL=http://localhost:7357
-```
-
-انظر `docs/admin/ADMIN-WEB-CONSOLE-RUNBOOK.md`.
-
-### لوحة الإدارة الثابتة
+### لوحة الإدارة
 
 انسخ `admin/config.example.js` إلى `admin/config.js` (غير مُتتبَّع في git) واملأ
 عنوان المشروع والمفتاح العام، ثم قدّم المجلد بأي خادم ملفات ثابتة. انظر

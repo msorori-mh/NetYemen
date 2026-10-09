@@ -346,6 +346,12 @@ async function handleCustomerCardReveal(
   );
   if (revealError || !revealData) {
     console.error("Customer card reveal RPC rejected", revealError?.code || "unknown");
+    // The server-side PIN check (require_recent_account_pin) is surfaced so the
+    // app can ask for the PIN and retry; every other refusal stays generic.
+    const message = revealError?.message || "";
+    for (const code of ["PIN_REQUIRED", "PIN_NOT_SET"]) {
+      if (message.startsWith(code)) return jsonResponse({ error: code }, 403);
+    }
     return jsonResponse({ error: "CARD_REVEAL_DENIED" }, 403);
   }
 

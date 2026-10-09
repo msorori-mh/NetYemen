@@ -181,6 +181,9 @@ bool isPriceChangedError(Object error) =>
 /// Customer-facing Arabic message for a failed purchase submission.
 String purchaseErrorMessage(Object error) {
   final message = error.toString();
+  if (message.contains('PIN_REQUIRED') || message.contains('PIN_NOT_SET')) {
+    return 'انتهت مهلة التأكيد بالرمز السري. لم يُخصم أي مبلغ. اضغط «شراء» مجددًا وأدخل رمزك عند الطلب.';
+  }
   if (message.contains('PRICE_CHANGED')) {
     return 'تغيّر سعر هذه الباقة. لم يُخصم أي مبلغ. ارجع إلى قائمة الباقات وراجع السعر الجديد قبل الشراء.';
   }

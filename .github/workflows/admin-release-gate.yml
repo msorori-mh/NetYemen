@@ -17,15 +17,14 @@ jobs:
     timeout-minutes: 30
     environment: admin-production
 
-    # Job-level env holds PUBLIC build configuration only. The Supabase access
-    # token and the database password are passed to the individual steps that
-    # call the Supabase CLI, so `flutter pub get`, the tests and the web build
-    # (which run third-party code) never see them.
+    # Job-level env holds PUBLIC configuration only. The Supabase access token
+    # and the database password are passed only to the steps that call the
+    # Supabase CLI. The admin console is the static app in admin/ (no build
+    # step, no third-party packages); this gate verifies it and packages it.
     env:
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-      ADMIN_PASSWORD_RECOVERY_REDIRECT_URL: ${{ vars.ADMIN_PASSWORD_RECOVERY_REDIRECT_URL }}
       ADMIN_PUBLIC_ORIGIN: ${{ vars.ADMIN_PUBLIC_ORIGIN }}
 
     steps:
@@ -45,7 +44,6 @@ jobs:
             SUPABASE_DB_PASSWORD \
             SUPABASE_URL \
             SUPABASE_PUBLISHABLE_KEY \
-            ADMIN_PASSWORD_RECOVERY_REDIRECT_URL \
             ADMIN_PUBLIC_ORIGIN; do
             if [ -z "${!name:-}" ]; then
               echo "::error::Required admin release configuration is missing: $name"
@@ -58,29 +56,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.7'
-          channel: 'stable'
-          cache: true
-
-      - name: Install Locked Dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Verify Dependency Lock Stability
-        run: git diff --exit-code -- pubspec.lock
-
-      - name: Verify Formatting
+      - name: Verify Static Admin Console
         run: |
-          dart format lib test
-          git diff --exit-code -- lib test
-
-      - name: Analyze Static Code
-        run: flutter analyze lib test
-
-      - name: Run Tests
-        run: flutter test
+          set -euo pipefail
+          node --check admin/app.js
+          node scripts/test_admin_console_contract.mjs
 
       - name: Link Supabase Project for Read-Only Preflight
         env:
@@ -122,12 +102,19 @@ jobs:
           npx --yes supabase@2.115.0 db push --linked --dry-run \
             2>&1 | tee build/admin-release-evidence/db-push-dry-run.txt
 
-      - name: Build Admin Web Release
+      - name: Assemble Static Admin Release
+        shell: bash
         run: |
-          flutter build web --release --target lib/admin_main.dart \
-            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
-            --dart-define=ADMIN_PASSWORD_RECOVERY_REDIRECT_URL="$ADMIN_PASSWORD_RECOVERY_REDIRECT_URL"
+          set -euo pipefail
+          mkdir -p build/web
+          cp admin/index.html admin/app.js admin/styles.css admin/vercel.json build/web/
+          # config.js carries PUBLIC values only (project URL + publishable key).
+          node -e '
+            const fs = require("fs");
+            const cfg = { url: process.env.SUPABASE_URL, anonKey: process.env.SUPABASE_PUBLISHABLE_KEY };
+            fs.writeFileSync("build/web/config.js", "window.NETYEMEN_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+          '
+          node --check build/web/config.js
 
       - name: Generate Public Legal Pages
         run: |

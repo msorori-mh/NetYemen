@@ -113,7 +113,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
       if (!mounted) return;
       _otpController.clear();
       setState(_startCooldown);
-      _showMessage('أُرسل رمز جديد إلى رقمك.');
+      _showMessage('أُرسل رمز جديد إلى واتساب على رقمك.');
     } catch (_) {
       _showError('تعذر إرسال الرمز حالياً. حاول بعد قليل.');
     } finally {
@@ -156,7 +156,7 @@ class _OTPScreenState extends ConsumerState<OTPScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'أدخل الرمز المرسل إلى ${widget.phone}',
+              'أدخل الرمز المرسل عبر واتساب إلى ${widget.phone}',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
